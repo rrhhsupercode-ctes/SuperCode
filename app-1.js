@@ -1,3 +1,11 @@
+/*****************************************************
+ * app-1.js
+ * Funciones principales: 
+ * - Navegación entre secciones
+ * - Login de cajeros (Firebase Realtime Database)
+ * - Inicialización de combos dinámicos
+ *****************************************************/
+
 // === NAVEGACIÓN ENTRE SECCIONES ===
 const navBtns = document.querySelectorAll(".nav-btn");
 const sections = document.querySelectorAll("main section");
