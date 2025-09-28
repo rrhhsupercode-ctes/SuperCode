@@ -91,7 +91,7 @@
         <label>
           Cantidad a cargar:
           <select id="stock-cantidad"></select>
-          <!-- Opciones 01–99 generadas desde JS -->
+          <!-- Opciones 01–999 generadas desde JS -->
         </label>
         <button id="agregar-stock">Agregar al stock</button>
       </div>
@@ -116,7 +116,7 @@
       <div class="cajero-form">
         <label>Nro:
           <select id="cajero-nro"></select>
-          <!-- Opciones 001–999 generadas desde JS -->
+          <!-- Opciones 01–99 cargadas desde Firebase -->
         </label>
         <label>Nombre Completo:
           <input type="text" id="cajero-nombre" maxlength="15">
@@ -169,7 +169,9 @@
   <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getDatabase } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { 
+      getDatabase, ref, set, push, update, remove, get, onValue 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAzbtibp4-myG8SNY6Irrb7-nuoyP1535g",
@@ -183,11 +185,21 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    window.db = db; // lo exponemos globalmente para app-1.js y app-2.js
+
+    // Exponer todo a window
+    window.db = db;
+    window.ref = ref;
+    window.set = set;
+    window.push = push;
+    window.update = update;
+    window.remove = remove;
+    window.get = get;
+    window.onValue = onValue;
   </script>
 
   <!-- Scripts principales -->
   <script src="app-1.js"></script>
   <script src="app-2.js"></script>
+  <script src="app-3.js"></script>
 </body>
 </html>
