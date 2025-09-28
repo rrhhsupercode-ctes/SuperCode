@@ -57,6 +57,7 @@
         const datos = snap.val();
         Object.values(datos).forEach(mov => {
           const tr = document.createElement("tr");
+
           tr.innerHTML = `
             <td>${mov.id}</td>
             <td>${formatoPrecio(mov.total)}</td>
@@ -65,6 +66,7 @@
           `;
           tablaMovimientos.appendChild(tr);
         });
+
         document.querySelectorAll(".btn-eliminar-mov").forEach(btn => {
           btn.onclick = () => eliminarMovimiento(btn.dataset.id);
         });
@@ -76,6 +78,7 @@
     const pass = prompt("Ingrese contraseña administrativa:");
     const snapConfig = await window.get(window.ref(window.db, "config/passAdmin"));
     const adminPass = snapConfig.exists() ? snapConfig.val() : ADMIN_PASS_DEFAULT;
+
     if (pass === adminPass) {
       await window.remove(window.ref(window.db, `movimientos/${id}`));
     } else {
@@ -87,6 +90,7 @@
     const pass = prompt("Contraseña administrativa para TIRAR Z:");
     const snapConfig = await window.get(window.ref(window.db, "config/passAdmin"));
     const adminPass = snapConfig.exists() ? snapConfig.val() : ADMIN_PASS_DEFAULT;
+
     if (pass === adminPass) {
       await window.remove(window.ref(window.db, "movimientos"));
       alert("Movimientos eliminados (TIRAR Z)");
@@ -101,15 +105,16 @@
   btnAgregarStock.addEventListener("click", async () => {
     const codigo = inputStockCodigo.value.trim();
     const cantidad = parseInt(stockCantidadSelect.value, 10);
+
     if (!codigo) return;
 
-    const fecha = new Date().toLocaleString();
     const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
+    const fecha = new Date().toLocaleString();
 
     if (snap.exists()) {
       const prod = snap.val();
       await window.update(window.ref(window.db, `stock/${codigo}`), {
-        cantidad: (prod.cantidad || 0) + cantidad,
+        cantidad: prod.cantidad + cantidad,
         fechaIngreso: fecha
       });
     } else {
@@ -120,6 +125,7 @@
         precio: 0
       });
     }
+
     inputStockCodigo.value = "";
   });
 
@@ -131,6 +137,7 @@
         const datos = snap.val();
         Object.entries(datos).forEach(([codigo, prod]) => {
           const tr = document.createElement("tr");
+
           tr.innerHTML = `
             <td>${codigo}</td>
             <td>${prod.nombre}</td>
@@ -142,12 +149,14 @@
               <button class="btn-eliminar-stock" data-codigo="${codigo}">ELIMINAR</button>
             </td>
           `;
+
           tablaStock.appendChild(tr);
         });
 
         document.querySelectorAll(".btn-editar-stock").forEach(btn => {
           btn.onclick = () => editarStock(btn.dataset.codigo);
         });
+
         document.querySelectorAll(".btn-eliminar-stock").forEach(btn => {
           btn.onclick = () => eliminarStock(btn.dataset.codigo);
         });
@@ -163,10 +172,13 @@
       <button id="btn-guardar-edit">Guardar</button>
     `;
     modalEditar.classList.remove("hidden");
+
     document.getElementById("btn-guardar-edit").onclick = async () => {
       const nombre = document.getElementById("edit-nombre").value;
       const precio = parseFloat(document.getElementById("edit-precio").value);
-      await window.update(window.ref(window.db, `stock/${codigo}`), { nombre, precio });
+      await window.update(window.ref(window.db, `stock/${codigo}`), {
+        nombre, precio
+      });
       modalEditar.classList.add("hidden");
     };
   }
@@ -175,6 +187,7 @@
     const pass = prompt("Ingrese contraseña administrativa:");
     const snapConfig = await window.get(window.ref(window.db, "config/passAdmin"));
     const adminPass = snapConfig.exists() ? snapConfig.val() : ADMIN_PASS_DEFAULT;
+
     if (pass === adminPass) {
       await window.remove(window.ref(window.db, `stock/${codigo}`));
     } else {
@@ -185,11 +198,26 @@
   // ======================================================
   // CAJEROS
   // ======================================================
+  function llenarOpcionesCajeroNro(cajerosObj = {}) {
+    cajeroNroSelect.innerHTML = "";
+    for (let i = 1; i <= 99; i++) {
+      const nro = i.toString().padStart(2, "0");
+      // Si el nro ya existe en Firebase, no se muestra para volver a usar
+      if (!cajerosObj[nro]) {
+        const opt = document.createElement("option");
+        opt.value = nro;
+        opt.textContent = nro;
+        cajeroNroSelect.appendChild(opt);
+      }
+    }
+  }
+
   btnAgregarCajero.addEventListener("click", async () => {
     const nro = cajeroNroSelect.value;
     const nombre = inputCajeroNombre.value.trim();
     const dni = inputCajeroDni.value.trim();
     const pass = inputCajeroPass.value.trim();
+
     if (!nro || !nombre || !dni || !pass) {
       alert("Complete todos los campos");
       return;
@@ -208,22 +236,27 @@
     const cajRef = window.ref(window.db, "cajeros");
     window.onValue(cajRef, snap => {
       tablaCajeros.innerHTML = "";
+      let cajerosObj = {};
       if (snap.exists()) {
-        const datos = snap.val();
-        Object.values(datos).forEach(caj => {
+        cajerosObj = snap.val();
+        Object.values(cajerosObj).forEach(caj => {
           const tr = document.createElement("tr");
+
           tr.innerHTML = `
             <td>${caj.nro}</td>
             <td>${caj.nombre}</td>
             <td>${caj.dni}</td>
             <td><button class="btn-eliminar-cajero" data-nro="${caj.nro}">ELIMINAR</button></td>
           `;
+
           tablaCajeros.appendChild(tr);
         });
+
         document.querySelectorAll(".btn-eliminar-cajero").forEach(btn => {
           btn.onclick = () => eliminarCajero(btn.dataset.nro);
         });
       }
+      llenarOpcionesCajeroNro(cajerosObj);
     });
   }
 
@@ -231,6 +264,7 @@
     const pass = prompt("Ingrese contraseña administrativa:");
     const snapConfig = await window.get(window.ref(window.db, "config/passAdmin"));
     const adminPass = snapConfig.exists() ? snapConfig.val() : ADMIN_PASS_DEFAULT;
+
     if (pass === adminPass) {
       await window.remove(window.ref(window.db, `cajeros/${nro}`));
     } else {
@@ -244,17 +278,24 @@
   btnGuardarConfig.addEventListener("click", async () => {
     const nombre = inputConfigNombre.value.trim();
     const pass = inputConfigPass.value.trim();
+
     if (!nombre || !pass) {
       configMsg.textContent = "Complete todos los campos";
       return;
     }
-    await window.set(window.ref(window.db, "config"), { nombre, passAdmin: pass });
+
+    await window.set(window.ref(window.db, "config"), {
+      nombre, passAdmin: pass
+    });
+
     configMsg.textContent = "Configuración guardada ✅";
   });
 
   btnRestaurar.addEventListener("click", async () => {
     if (inputMasterPass.value === MASTER_PASS) {
-      await window.update(window.ref(window.db, "config"), { passAdmin: ADMIN_PASS_DEFAULT });
+      await window.update(window.ref(window.db, "config"), {
+        passAdmin: ADMIN_PASS_DEFAULT
+      });
       configMsg.textContent = "Contraseña administrativa restaurada ✅";
     } else {
       configMsg.textContent = "Clave maestra incorrecta ❌";
@@ -262,7 +303,7 @@
   });
 
   // ======================================================
-  // AUTO-CARGA
+  // AUTO-CARGA EN TIEMPO REAL
   // ======================================================
   cargarMovimientos();
   cargarStock();
