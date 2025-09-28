@@ -97,12 +97,12 @@ for (let i = 1; i <= 999; i++) {
   stockCantidadSelect.appendChild(opt);
 }
 
-// Nros de cajero 001–999 para sección CAJEROS
+// Nros de cajero 01–99 para sección CAJEROS
 const cajeroNroSelect = document.getElementById("cajero-nro");
-for (let i = 1; i <= 999; i++) {
+for (let i = 1; i <= 99; i++) {
   const opt = document.createElement("option");
-  opt.value = i.toString().padStart(3, "0");
-  opt.textContent = i.toString().padStart(3, "0");
+  opt.value = i.toString().padStart(2, "0"); // 01–99
+  opt.textContent = i.toString().padStart(2, "0");
   cajeroNroSelect.appendChild(opt);
 }
 
