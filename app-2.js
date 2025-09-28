@@ -1,8 +1,8 @@
 /*****************************************************
  * app-2.js
- * Funciones generales:
+ * Funciones generales de:
  * - Navegación entre secciones
- * - Combos dinámicos de STOCK y CAJEROS
+ * - Combo dinámico de STOCK
  *****************************************************/
 (() => {
   // === NAVEGACIÓN ENTRE SECCIONES ===
@@ -12,12 +12,16 @@
   navBtns.forEach(btn => {
     btn.addEventListener("click", () => {
       const target = btn.getAttribute("data-section");
-      sections.forEach(sec => sec.classList.add("hidden")); // ocultar todas
-      document.getElementById(target).classList.remove("hidden"); // mostrar seleccionada
+
+      // Ocultar todas las secciones
+      sections.forEach(sec => sec.classList.add("hidden"));
+
+      // Mostrar la seleccionada
+      document.getElementById(target).classList.remove("hidden");
     });
   });
 
-  // === COMBO DE CANTIDADES PARA STOCK (001–999) ===
+  // === COMBO DE CANTIDADES PARA STOCK ===
   const stockCantidadSelect = document.getElementById("stock-cantidad");
   if (stockCantidadSelect) {
     for (let i = 1; i <= 999; i++) {
@@ -28,16 +32,16 @@
     }
   }
 
-  // === COMBO DE NÚMEROS DE CAJEROS (01–99) ===
-  const cajeroNroSelect = document.getElementById("cajero-nro");
-  if (cajeroNroSelect) {
-    for (let i = 1; i <= 99; i++) {
-      const opt = document.createElement("option");
-      opt.value = i.toString().padStart(2, "0");
-      opt.textContent = i.toString().padStart(2, "0");
-      cajeroNroSelect.appendChild(opt);
+  // === AUTO-CREAR RAMA STOCK SI NO EXISTE ===
+  async function inicializarStock() {
+    const stockRef = window.ref(window.db, "stock");
+    const snap = await window.get(stockRef);
+    if (!snap.exists()) {
+      await window.set(stockRef, {});
     }
   }
+
+  inicializarStock();
 
   console.log("✅ app-2.js cargado correctamente");
 })();
