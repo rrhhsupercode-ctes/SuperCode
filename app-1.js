@@ -35,7 +35,7 @@ const btnCobrar = document.getElementById("btn-cobrar");
 let cajeroActivo = null; // se guarda el cajero logueado
 
 btnLogin.addEventListener("click", async () => {
-  const usuario = usuarioInput.value.padStart(2, "0");
+  const usuario = usuarioInput.value.padStart(2, "0"); // siempre 2 dígitos
   const pass = passInput.value;
 
   if (usuario.length !== 2 || pass.length !== 4) {
@@ -52,7 +52,7 @@ btnLogin.addEventListener("click", async () => {
     if (snapshot.exists()) {
       const cajero = snapshot.val();
 
-      if (cajero.password === pass) {
+      if (cajero.pass === pass) {
         // Login correcto
         cajeroActivo = { nro: usuario, ...cajero };
         loginMsg.textContent = `Bienvenido ${cajero.nombre}`;
@@ -97,13 +97,26 @@ for (let i = 1; i <= 999; i++) {
   stockCantidadSelect.appendChild(opt);
 }
 
-// Nros de cajero 01–99 para sección CAJEROS
+// === CARGAR NROS DE CAJEROS DESDE FIREBASE ===
 const cajeroNroSelect = document.getElementById("cajero-nro");
-for (let i = 1; i <= 99; i++) {
-  const opt = document.createElement("option");
-  opt.value = i.toString().padStart(2, "0"); // 01–99
-  opt.textContent = i.toString().padStart(2, "0");
-  cajeroNroSelect.appendChild(opt);
+
+async function cargarSelectCajeros() {
+  cajeroNroSelect.innerHTML = ""; // limpiar antes
+
+  const snap = await window.get(window.ref(window.db, "cajeros"));
+  if (snap.exists()) {
+    const datos = snap.val();
+    Object.keys(datos).forEach(nro => {
+      // Asegurar que siempre sean 2 dígitos
+      const nro2 = nro.toString().padStart(2, "0");
+      const opt = document.createElement("option");
+      opt.value = nro2;
+      opt.textContent = nro2;
+      cajeroNroSelect.appendChild(opt);
+    });
+  }
 }
+
+cargarSelectCajeros();
 
 console.log("✅ app-1.js cargado correctamente");
