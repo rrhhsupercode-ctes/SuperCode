@@ -1,111 +1,72 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>SuperCode — Gestión y cobro</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SuperCode</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- HEADER -->
-  <header class="main-header">
-    <div class="brand">SUPER<span>CODE</span></div>
-    <nav class="main-nav">
-      <button class="nav-btn active" data-section="cobrar">COBRAR</button>
+  <!-- === HEADER PRINCIPAL === -->
+  <header>
+    <nav>
+      <button class="nav-btn" data-section="cobrar">COBRAR</button>
       <button class="nav-btn" data-section="movimientos">MOVIMIENTOS</button>
       <button class="nav-btn" data-section="stock">STOCK</button>
       <button class="nav-btn" data-section="cajeros">CAJEROS</button>
-      <button class="nav-btn" data-section="config">CONFIGURACIÓN</button>
+      <button class="nav-btn" data-section="configuracion">CONFIGURACIÓN</button>
     </nav>
   </header>
 
-  <!-- CONTENEDOR PRINCIPAL -->
-  <main class="app-container">
-
+  <main>
     <!-- --- SECCIÓN: COBRAR --- -->
-    <section id="cobrar" class="app-section">
-      <div class="sub-actions" aria-hidden="false">
-        <button class="small-btn" id="btn-nueva-venta">Nueva venta</button>
-        <button class="small-btn" id="btn-ver-caja">Ver caja</button>
+    <section id="cobrar" class="hidden">
+      <h2>Cobrar</h2>
+
+      <!-- Modal de login cajero -->
+      <div id="login-modal" class="modal">
+        <h3>Iniciar Sesión Cajero</h3>
+        <input type="number" id="login-usuario" placeholder="Usuario (2 dígitos)" maxlength="2">
+        <input type="number" id="login-pass" placeholder="Contraseña (4 dígitos)" maxlength="4">
+        <button id="btn-login">ACCEDER</button>
+        <p id="login-msg"></p>
       </div>
 
-      <!-- MODAL LOGIN CAJERO -->
-      <div id="modal-cajero-login" class="modal hidden" role="dialog" aria-modal="true">
-        <div class="modal-inner">
-          <h3>Acceso cajero</h3>
-          <input id="login-usuario" inputmode="numeric" maxlength="2" placeholder="Usuario (2 dígitos)" />
-          <input id="login-pass" inputmode="numeric" maxlength="4" placeholder="Contraseña (4 dígitos)" />
-          <div class="login-legend" id="login-legend"></div>
-          <button id="login-acceder">ACCEDER</button>
-        </div>
-      </div>
-
-      <!-- AREA DE COBROS -->
-      <div class="cobro-area">
-        <label class="label-inline">Cantidad:
-          <select id="cantidad-default" aria-label="Cantidad por defecto">
-            <option value="1">01</option>
-            <option value="2">02</option>
-            <option value="3">03</option>
-          </select>
+      <!-- Controles de cobro -->
+      <div id="cobro-controles" class="hidden">
+        <label>
+          Cantidad:
+          <select id="cobro-cantidad"></select>
+          <!-- Opciones 01–99 se generarán dinámicamente en app-1.js -->
         </label>
-        <input id="scan-input" inputmode="numeric" placeholder="Escanear código (sólo números)" />
-        <div id="stock-warning" class="warning"></div>
-
-        <table id="cart-table" class="table">
-          <thead>
-            <tr>
-              <th>CANTIDAD</th>
-              <th>PRODUCTO</th>
-              <th>PRECIO</th>
-              <th>ACCIÓN</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-
-        <div class="cobro-footer">
-          <div class="total">TOTAL: <span id="total-amount">$0,00</span></div>
-          <div class="cobrar-actions">
-            <button id="btn-cobrar" class="primary" disabled>COBRAR</button>
-          </div>
-        </div>
+        <label>
+          Escanear producto:
+          <input type="number" id="cobro-codigo" placeholder="Código de barras">
+        </label>
       </div>
 
-      <!-- MODALES DE COBRAR -->
-      <div id="modal-pago" class="modal hidden" role="dialog" aria-modal="true">
-        <div class="modal-inner">
-          <h3>¿Cómo se cobrará?</h3>
-          <div class="modal-pago-buttons">
-            <button class="pay-btn" data-method="efectivo">EFECTIVO</button>
-            <button class="pay-btn" data-method="tarjeta">TARJETA</button>
-          </div>
-          <div id="modal-pago-confirm" class="confirmation"></div>
-        </div>
-      </div>
+      <!-- Tabla de cobros -->
+      <table id="tabla-cobro">
+        <thead>
+          <tr>
+            <th>CANTIDAD</th>
+            <th>PRODUCTO</th>
+            <th>PRECIO</th>
+            <th>ACCIÓN</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
 
-      <div id="modal-admin-pass" class="modal hidden" role="dialog" aria-modal="true">
-        <div class="modal-inner">
-          <h4>Contraseña administrativa</h4>
-          <input id="admin-pass-input" inputmode="numeric" maxlength="10" placeholder="Contraseña admin (10 dígitos)" />
-          <div id="admin-pass-legend" class="login-legend"></div>
-          <button id="admin-pass-accept">Aceptar</button>
-        </div>
-      </div>
-
-      <div id="ticket-preview" class="modal hidden" role="dialog">
-        <div class="modal-inner ticket-printable" id="ticket-print-area"></div>
-        <div class="modal-actions">
-          <button id="ticket-print">IMPRIMIR</button>
-          <button class="close-modal">CERRAR</button>
-        </div>
-      </div>
+      <!-- Total y botón cobrar -->
+      <div id="total-div">TOTAL: $0,00</div>
+      <button id="btn-cobrar" class="hidden">COBRAR</button>
     </section>
 
     <!-- --- SECCIÓN: MOVIMIENTOS --- -->
-    <section id="movimientos" class="app-section hidden">
+    <section id="movimientos" class="hidden">
       <h2>Movimientos</h2>
-      <table id="movimientos-table" class="table">
+      <table id="tabla-movimientos">
         <thead>
           <tr>
             <th>ID</th>
@@ -116,26 +77,25 @@
         </thead>
         <tbody></tbody>
       </table>
-      <div class="tirar-z">
-        <button id="btn-tirar-z" class="danger">TIRAR Z</button>
-      </div>
+      <button id="btn-tirar-z">TIRAR Z</button>
     </section>
 
     <!-- --- SECCIÓN: STOCK --- -->
-    <section id="stock" class="app-section hidden">
-      <h2>Stock</h2>
-      <div class="stock-controls">
-        <label> Cantidad a cargar:
-          <select id="stock-cantidad" aria-label="Cantidad a cargar">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="5">5</option>
-          </select>
+    <section id="stock" class="hidden">
+      <h2>Gestión de Stock</h2>
+      <div class="stock-inputs">
+        <label>
+          Escanear código de barras:
+          <input type="number" id="stock-codigo" placeholder="Código de barras">
         </label>
-        <input id="stock-scan" inputmode="numeric" placeholder="Escanear código de barras" />
-        <button id="stock-agregar">Agregar / Actualizar</button>
+        <label>
+          Cantidad a cargar:
+          <select id="stock-cantidad"></select>
+          <!-- Opciones 01–99 generadas desde JS -->
+        </label>
+        <button id="agregar-stock">Agregar al stock</button>
       </div>
-      <table id="stock-table" class="table">
+      <table id="tabla-stock">
         <thead>
           <tr>
             <th>Cód. Barras</th>
@@ -148,36 +108,28 @@
         </thead>
         <tbody></tbody>
       </table>
-
-      <div id="modal-edit-product" class="modal hidden">
-        <div class="modal-inner">
-          <h4>Editar producto</h4>
-          <label>Cod. Barras: <input id="edit-barcode" readonly /></label>
-          <label>Nombre: <input id="edit-name" maxlength="80" /></label>
-          <label>Cantidad: <input id="edit-qty" type="number" min="0" /></label>
-          <label>Precio: <input id="edit-price" placeholder="$0,00" /></label>
-          <div class="modal-actions">
-            <button id="edit-save">Guardar</button>
-            <button class="close-modal">Cancelar</button>
-          </div>
-        </div>
-      </div>
     </section>
 
     <!-- --- SECCIÓN: CAJEROS --- -->
-    <section id="cajeros" class="app-section hidden">
-      <h2>Cajeros</h2>
-      <div class="cajeros-form">
-        <label>Nro: <select id="cajero-nro">
-          <option value="1">001</option>
-          <option value="2">002</option>
-        </select></label>
-        <label>Nombre completo: <input id="cajero-nombre" maxlength="15" /></label>
-        <label>DNI: <input id="cajero-dni" inputmode="numeric" maxlength="8" /></label>
-        <label>Contraseña (4 dígitos): <input id="cajero-pass" inputmode="numeric" maxlength="4" /></label>
-        <button id="cajero-agregar">Agregar cajero</button>
+    <section id="cajeros" class="hidden">
+      <h2>Gestión de Cajeros</h2>
+      <div class="cajero-form">
+        <label>Nro:
+          <select id="cajero-nro"></select>
+          <!-- Opciones 001–999 generadas desde JS -->
+        </label>
+        <label>Nombre Completo:
+          <input type="text" id="cajero-nombre" maxlength="15">
+        </label>
+        <label>DNI:
+          <input type="number" id="cajero-dni" maxlength="8">
+        </label>
+        <label>Contraseña:
+          <input type="number" id="cajero-pass" maxlength="4">
+        </label>
+        <button id="agregar-cajero">Agregar Cajero</button>
       </div>
-      <table id="cajeros-table" class="table">
+      <table id="tabla-cajeros">
         <thead>
           <tr>
             <th>Nro</th>
@@ -191,32 +143,51 @@
     </section>
 
     <!-- --- SECCIÓN: CONFIGURACIÓN --- -->
-    <section id="config" class="app-section hidden">
+    <section id="configuracion" class="hidden">
       <h2>Configuración</h2>
-      <div class="config-grid">
-        <label>Nombre del establecimiento: <input id="config-nombre" /></label>
-        <label>Contraseña administrativa: <input id="config-admin-pass" inputmode="numeric" maxlength="10" /></label>
+      <label>Nombre del Establecimiento:
+        <input type="text" id="config-nombre">
+      </label>
+      <label>Contraseña Administrativa:
+        <input type="password" id="config-pass" maxlength="10">
+      </label>
+      <button id="guardar-config">Guardar Configuración</button>
+
+      <div class="restaurar-admin">
+        <button id="btn-restaurar">RESTAURAR CONTRASEÑA</button>
+        <input type="password" id="master-pass" placeholder="Contraseña Maestra (9999)">
       </div>
-      <div class="config-actions">
-        <button id="config-guardar">Guardar</button>
-        <button id="config-restaurar">RESTAURAR CONTRASEÑA</button>
-      </div>
-      <div id="modal-restaurar" class="modal hidden">
-        <div class="modal-inner">
-          <h4>Restaurar contraseña administrativa</h4>
-          <input id="master-pass" inputmode="numeric" maxlength="4" placeholder="Contraseña maestra" />
-          <div class="master-legend"></div>
-          <div class="modal-actions">
-            <button id="master-confirm">SI</button>
-            <button class="close-modal">NO</button>
-          </div>
-        </div>
-      </div>
+      <p id="config-msg"></p>
     </section>
   </main>
 
-  <footer class="main-footer">&copy; SuperCode</footer>
-  <script type="module" src="app-1.js"></script>
-  <script type="module" src="app-2.js"></script>
+  <!-- Modales auxiliares -->
+  <div id="modal-eliminar" class="modal hidden"></div>
+  <div id="modal-pago" class="modal hidden"></div>
+  <div id="modal-editar" class="modal hidden"></div>
+
+  <!-- Firebase SDK -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzbtibp4-myG8SNY6Irrb7-nuoyP1535g",
+      authDomain: "supercode-ctes.firebaseapp.com",
+      databaseURL: "https://supercode-ctes-default-rtdb.firebaseio.com",
+      projectId: "supercode-ctes",
+      storageBucket: "supercode-ctes.firebasestorage.app",
+      messagingSenderId: "1034642261455",
+      appId: "1:1034642261455:web:f60232b259997fd0e5feba"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    window.db = db; // lo exponemos globalmente para app-1.js y app-2.js
+  </script>
+
+  <!-- Scripts principales -->
+  <script src="app-1.js"></script>
+  <script src="app-2.js"></script>
 </body>
 </html>
