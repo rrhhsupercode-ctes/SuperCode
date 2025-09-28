@@ -3,170 +3,138 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sistema POS</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>SuperCode POS</title>
+
+  <style>
+    /* --- ESTILOS básicos compatibles --- */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f4f4f9; color: #333; padding: 20px; }
+    nav { margin-bottom: 20px; }
+    nav button { margin-right: 5px; padding: 6px 10px; }
+    section { background: #fff; padding: 15px; margin-bottom: 20px; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .hidden { display: none; }
+    h2 { margin-bottom: 10px; font-size: 1.3rem; }
+    input, select, button { padding: 6px 10px; margin: 5px 0; border-radius: 4px; border: 1px solid #ccc; }
+    input:focus, select:focus { outline: none; border-color: #666; }
+    label { display: block; margin-top: 8px; font-size: 0.9rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    thead { background: #eee; }
+    th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; font-size: 0.9rem; }
+    tbody tr:nth-child(even) { background: #fafafa; }
+    button { cursor: pointer; }
+    #modal-editar { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); min-width: 300px; z-index: 1000; }
+    #modal-editar.hidden { display: none; }
+    #modal-editar h3 { margin-bottom: 10px; }
+    #modal-editar input { width: 100%; margin-bottom: 10px; }
+  </style>
 </head>
 <body>
-  <h1>Sistema POS</h1>
 
-  <!-- Navegación -->
+  <h1>SuperCode POS</h1>
+
   <nav>
-    <button class="nav-btn" data-target="seccion-cobro">Cobro</button>
-    <button class="nav-btn" data-target="seccion-movimientos">Movimientos</button>
-    <button class="nav-btn" data-target="seccion-stock">Stock</button>
-    <button class="nav-btn" data-target="seccion-cajeros">Cajeros</button>
-    <button class="nav-btn" data-target="seccion-config">Configuración</button>
+    <button class="nav-btn" data-section="cobrar">Cobrar</button>
+    <button class="nav-btn" data-section="movimientos">Movimientos</button>
+    <button class="nav-btn" data-section="stock">Stock</button>
+    <button class="nav-btn" data-section="cajeros">Cajeros</button>
+    <button class="nav-btn" data-section="configuracion">Configuración</button>
   </nav>
 
-  <!-- Sección: Cobro -->
-  <section id="seccion-cobro" class="seccion">
-    <h2>Cobro</h2>
-    <div>
-      <label for="login-nro">Cajero Nro:</label>
-      <input type="text" id="login-nro" />
-      <label for="login-pass">Contraseña:</label>
-      <input type="password" id="login-pass" />
-      <button id="btn-login">Ingresar</button>
-    </div>
+  <main>
+    <section id="cobrar" class="hidden">
+      <h2>Cobrar</h2>
+      <div>
+        <label>Usuario (2 dígitos): <input type="text" id="login-usuario" maxlength="2"></label>
+        <label>Contraseña: <input type="password" id="login-pass" maxlength="4"></label>
+        <button id="btn-login">Ingresar</button>
+        <p id="login-msg"></p>
+      </div>
+      <div id="cobro-controles" class="hidden">
+        <label>Producto código: <input type="text" id="cobro-codigo"></label>
+        <label>Cantidad: <select id="cobro-cantidad"></select></label>
+      </div>
+      <table id="tabla-cobro">
+        <thead><tr><th>Cant</th><th>Nombre</th><th>Precio</th><th>Subtotal</th><th>Acción</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p id="total-div">Total: $0,00</p>
+      <button id="btn-cobrar" class="hidden">Cobrar</button>
+    </section>
 
-    <h3>Carrito</h3>
-    <input type="text" id="codigo-producto" placeholder="Código producto" />
-    <select id="combo-cantidad"></select>
-    <button id="btn-agregar">Agregar</button>
-    <table id="tabla-cobro">
-      <thead>
-        <tr>
-          <th>Código</th>
-          <th>Nombre</th>
-          <th>Cantidad</th>
-          <th>Precio</th>
-          <th>Subtotal</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <p id="total">Total: $0,00</p>
-    <button id="btn-cobrar">Cobrar</button>
-  </section>
+    <section id="movimientos" class="hidden">
+      <h2>Movimientos</h2>
+      <button id="btn-tirar-z">Tirar Z</button>
+      <table id="tabla-movimientos">
+        <thead><tr><th>ID</th><th>Total</th><th>Tipo</th><th>Acción</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
 
-  <!-- Sección: Movimientos -->
-  <section id="seccion-movimientos" class="seccion hidden">
-    <h2>Movimientos</h2>
-    <table id="tabla-movimientos">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Total</th>
-          <th>Tipo</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <button id="btn-tirar-z">Tirar Z</button>
-  </section>
+    <section id="stock" class="hidden">
+      <h2>Stock</h2>
+      <label>Código: <input id="stock-codigo" type="text"></label>
+      <label>Cantidad: <select id="stock-cantidad"></select></label>
+      <button id="agregar-stock">Agregar stock</button>
+      <table id="tabla-stock">
+        <thead><tr><th>Código</th><th>Nombre</th><th>Cant</th><th>Ingreso</th><th>Precio</th><th>Acción</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
 
-  <!-- Sección: Stock -->
-  <section id="seccion-stock" class="seccion hidden">
-    <h2>Stock</h2>
-    <input type="text" id="stock-codigo" placeholder="Código producto" />
-    <select id="stock-cantidad">
-      <option value="1">+1</option>
-      <option value="5">+5</option>
-      <option value="10">+10</option>
-    </select>
-    <button id="agregar-stock">Agregar stock</button>
+    <section id="cajeros" class="hidden">
+      <h2>Cajeros</h2>
+      <label>Nro: <select id="cajero-nro"></select></label>
+      <label>Nombre: <input id="cajero-nombre" type="text"></label>
+      <label>DNI: <input id="cajero-dni" type="text"></label>
+      <label>Pass: <input id="cajero-pass" type="password"></label>
+      <button id="agregar-cajero">Agregar</button>
+      <table id="tabla-cajeros">
+        <thead><tr><th>Nro</th><th>Nombre</th><th>DNI</th><th>Acción</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
 
-    <table id="tabla-stock">
-      <thead>
-        <tr>
-          <th>Código</th>
-          <th>Nombre</th>
-          <th>Cantidad</th>
-          <th>Fecha ingreso</th>
-          <th>Precio</th>
-          <th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <section id="configuracion" class="hidden">
+      <h2>Configuración</h2>
+      <label>Nombre comercio: <input id="config-nombre" type="text"></label>
+      <label>Contraseña admin: <input id="config-pass" type="password"></label>
+      <button id="guardar-config">Guardar</button>
+      <p id="config-msg"></p>
+      <hr>
+      <label>Master pass: <input id="master-pass" type="password"></label>
+      <button id="btn-restaurar">Restaurar admin</button>
+    </section>
+  </main>
 
-    <div id="modal-editar" class="hidden"></div>
-  </section>
+  <div id="modal-editar" class="hidden"></div>
 
-  <!-- Sección: Cajeros -->
-  <section id="seccion-cajeros" class="seccion hidden">
-    <h2>Cajeros</h2>
-    <select id="cajero-nro"></select>
-    <input type="text" id="cajero-nombre" placeholder="Nombre" />
-    <input type="text" id="cajero-dni" placeholder="DNI" />
-    <input type="password" id="cajero-pass" placeholder="Contraseña" />
-    <button id="agregar-cajero">Agregar cajero</button>
-
-    <table id="tabla-cajeros">
-      <thead>
-        <tr>
-          <th>Nro</th>
-          <th>Nombre</th>
-          <th>DNI</th>
-          <th>Acción</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </section>
-
-  <!-- Sección: Configuración -->
-  <section id="seccion-config" class="seccion hidden">
-    <h2>Configuración</h2>
-    <input type="text" id="config-nombre" placeholder="Nombre comercio" />
-    <input type="password" id="config-pass" placeholder="Contraseña admin" />
-    <button id="guardar-config">Guardar configuración</button>
-    <p id="config-msg"></p>
-    <hr />
-    <input type="password" id="master-pass" placeholder="Clave maestra" />
-    <button id="btn-restaurar">Restaurar contraseña admin</button>
-  </section>
-
-  <!-- Firebase SDK -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
-    import {
-      getDatabase,
-      ref,
-      set,
-      update,
-      get,
-      remove,
-      onValue
-    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getDatabase, ref, set, get, update, remove, onValue, push } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-    // Configuración Firebase (no necesitas panel, esto se carga directo desde JS)
     const firebaseConfig = {
-      apiKey: "AIzaSyXXXXXXX",
-      authDomain: "tu-proyecto.firebaseapp.com",
-      databaseURL: "https://tu-proyecto-default-rtdb.firebaseio.com",
-      projectId: "tu-proyecto",
-      storageBucket: "tu-proyecto.appspot.com",
-      messagingSenderId: "123456789",
-      appId: "1:123456789:web:abcdef"
+      apiKey: "AIzaSyAzbtibp4-myG8SNY6Irrb7-nuoyP1535g",
+      authDomain: "supercode-ctes.firebaseapp.com",
+      databaseURL: "https://supercode-ctes-default-rtdb.firebaseio.com",
+      projectId: "supercode-ctes",
+      storageBucket: "supercode-ctes.firebasestorage.app",
+      messagingSenderId: "1034642261455",
+      appId: "1:1034642261455:web:f60232b259997fd0e5feba"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Hacemos accesibles las funciones en window para app-1.js y app-2.js
     window.db = db;
     window.ref = ref;
     window.set = set;
-    window.update = update;
     window.get = get;
+    window.update = update;
     window.remove = remove;
     window.onValue = onValue;
+    window.push = push;
   </script>
 
-  <!-- Scripts -->
   <script src="app-1.js"></script>
   <script src="app-2.js"></script>
 </body>
