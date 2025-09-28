@@ -1,122 +1,144 @@
 /*****************************************************
  * app-1.js
- * Funciones principales: 
- * - Navegación entre secciones
- * - Login de cajeros (Firebase Realtime Database)
- * - Inicialización de combos dinámicos
+ * Funciones de COBRAR (cajeros, cobro, tabla de cobro)
  *****************************************************/
+(() => {
+  // === REFERENCIAS DOM ===
+  const loginModal = document.getElementById("login-modal");
+  const loginUsuario = document.getElementById("login-usuario");
+  const loginPass = document.getElementById("login-pass");
+  const btnLogin = document.getElementById("btn-login");
+  const loginMsg = document.getElementById("login-msg");
 
-// === NAVEGACIÓN ENTRE SECCIONES ===
-const navBtns = document.querySelectorAll(".nav-btn");
-const sections = document.querySelectorAll("main section");
+  const cobroControles = document.getElementById("cobro-controles");
+  const cantidadSelect = document.getElementById("cobro-cantidad");
+  const codigoInput = document.getElementById("cobro-codigo");
+  const tablaCobro = document.querySelector("#tabla-cobro tbody");
+  const totalDiv = document.getElementById("total-div");
+  const btnCobrar = document.getElementById("btn-cobrar");
 
-navBtns.forEach(btn => {
-  btn.addEventListener("click", () => {
-    const target = btn.getAttribute("data-section");
+  // === VARIABLES ===
+  let usuarioActual = null;
+  let carrito = [];
+  let total = 0;
 
-    // Ocultar todas las secciones
-    sections.forEach(sec => sec.classList.add("hidden"));
-
-    // Mostrar la seleccionada
-    document.getElementById(target).classList.remove("hidden");
-  });
-});
-
-// === LOGIN DE CAJEROS ===
-const usuarioInput = document.getElementById("login-usuario");
-const passInput = document.getElementById("login-pass");
-const btnLogin = document.getElementById("btn-login");
-const loginMsg = document.getElementById("login-msg");
-
-const loginModal = document.getElementById("login-modal");
-const cobroControles = document.getElementById("cobro-controles");
-const btnCobrar = document.getElementById("btn-cobrar");
-
-let cajeroActivo = null; // se guarda el cajero logueado
-
-btnLogin.addEventListener("click", async () => {
-  const usuario = usuarioInput.value.padStart(2, "0"); // siempre 2 dígitos
-  const pass = passInput.value;
-
-  if (usuario.length !== 2 || pass.length !== 4) {
-    loginMsg.textContent = "Formato de usuario o contraseña inválido";
-    loginMsg.style.color = "red";
-    return;
+  // === FUNCIONES AUXILIARES ===
+  function formatoPrecio(num) {
+    return `$${parseFloat(num).toFixed(2).replace(".", ",")}`;
   }
 
-  try {
-    const snapshot = await window.get(
-      window.child(window.ref(window.db), `cajeros/${usuario}`)
-    );
+  function actualizarTablaCobro() {
+    tablaCobro.innerHTML = "";
+    total = 0;
 
-    if (snapshot.exists()) {
-      const cajero = snapshot.val();
+    carrito.forEach((item, idx) => {
+      const tr = document.createElement("tr");
+      total += item.precio * item.cantidad;
 
-      if (cajero.pass === pass) {
-        // Login correcto
-        cajeroActivo = { nro: usuario, ...cajero };
-        loginMsg.textContent = `Bienvenido ${cajero.nombre}`;
-        loginMsg.style.color = "green";
+      tr.innerHTML = `
+        <td>${item.cantidad}</td>
+        <td>${item.nombre}</td>
+        <td>${formatoPrecio(item.precio * item.cantidad)}</td>
+        <td><button data-idx="${idx}" class="btn-eliminar-item">X</button></td>
+      `;
+      tablaCobro.appendChild(tr);
+    });
 
-        // Mostrar controles de cobro
-        loginModal.classList.add("hidden");
-        cobroControles.classList.remove("hidden");
-        btnCobrar.classList.remove("hidden");
-      } else {
-        loginMsg.textContent = "Contraseña incorrecta";
-        loginMsg.style.color = "red";
-      }
-    } else {
-      loginMsg.textContent = "Usuario no encontrado";
-      loginMsg.style.color = "red";
-    }
-  } catch (err) {
-    console.error("Error al iniciar sesión:", err);
-    loginMsg.textContent = "Error de conexión con Firebase";
-    loginMsg.style.color = "red";
-  }
-});
+    totalDiv.textContent = `TOTAL: ${formatoPrecio(total)}`;
+    btnCobrar.classList.toggle("hidden", carrito.length === 0);
 
-// === COMBOS DINÁMICOS ===
-
-// Cantidades 01–99 para sección COBRAR
-const cantidadSelect = document.getElementById("cobro-cantidad");
-for (let i = 1; i <= 99; i++) {
-  const opt = document.createElement("option");
-  opt.value = i;
-  opt.textContent = i.toString().padStart(2, "0");
-  cantidadSelect.appendChild(opt);
-}
-
-// Cantidades 01–999 para sección STOCK
-const stockCantidadSelect = document.getElementById("stock-cantidad");
-for (let i = 1; i <= 999; i++) {
-  const opt = document.createElement("option");
-  opt.value = i;
-  opt.textContent = i.toString().padStart(3, "0");
-  stockCantidadSelect.appendChild(opt);
-}
-
-// === CARGAR NROS DE CAJEROS DESDE FIREBASE ===
-const cajeroNroSelect = document.getElementById("cajero-nro");
-
-async function cargarSelectCajeros() {
-  cajeroNroSelect.innerHTML = ""; // limpiar antes
-
-  const snap = await window.get(window.ref(window.db, "cajeros"));
-  if (snap.exists()) {
-    const datos = snap.val();
-    Object.keys(datos).forEach(nro => {
-      // Asegurar que siempre sean 2 dígitos
-      const nro2 = nro.toString().padStart(2, "0");
-      const opt = document.createElement("option");
-      opt.value = nro2;
-      opt.textContent = nro2;
-      cajeroNroSelect.appendChild(opt);
+    document.querySelectorAll(".btn-eliminar-item").forEach(btn => {
+      btn.onclick = () => {
+        carrito.splice(btn.dataset.idx, 1);
+        actualizarTablaCobro();
+      };
     });
   }
-}
 
-cargarSelectCajeros();
+  // === LOGIN DE CAJERO ===
+  btnLogin.addEventListener("click", async () => {
+    const nro = loginUsuario.value.trim().padStart(2, "0");
+    const pass = loginPass.value.trim();
 
-console.log("✅ app-1.js cargado correctamente");
+    if (!nro || !pass) {
+      loginMsg.textContent = "Complete usuario y contraseña";
+      return;
+    }
+
+    const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
+    if (snap.exists()) {
+      const cajero = snap.val();
+      if (cajero.pass === pass) {
+        usuarioActual = cajero;
+        loginModal.classList.add("hidden");
+        cobroControles.classList.remove("hidden");
+      } else {
+        loginMsg.textContent = "Contraseña incorrecta";
+      }
+    } else {
+      loginMsg.textContent = "Cajero no encontrado";
+    }
+  });
+
+  // === GENERAR SELECT DE CANTIDADES ===
+  for (let i = 1; i <= 99; i++) {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = i.toString().padStart(2, "0");
+    cantidadSelect.appendChild(opt);
+  }
+
+  // === ESCANEAR PRODUCTO ===
+  codigoInput.addEventListener("change", async () => {
+    const codigo = codigoInput.value.trim();
+    const cantidad = parseInt(cantidadSelect.value, 10);
+    if (!codigo) return;
+
+    const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
+    if (snap.exists()) {
+      const prod = snap.val();
+      carrito.push({
+        codigo,
+        nombre: prod.nombre,
+        precio: prod.precio,
+        cantidad
+      });
+      actualizarTablaCobro();
+    } else {
+      alert("Producto no encontrado en stock");
+    }
+    codigoInput.value = "";
+  });
+
+  // === COBRAR ===
+  btnCobrar.addEventListener("click", async () => {
+    if (!usuarioActual || carrito.length === 0) return;
+
+    const movRef = window.push(window.ref(window.db, "movimientos"));
+    await window.set(movRef, {
+      id: movRef.key,
+      cajero: usuarioActual.nro,
+      total,
+      tipo: "venta",
+      fecha: new Date().toISOString(),
+      items: carrito
+    });
+
+    // Actualizar stock
+    for (const item of carrito) {
+      const snap = await window.get(window.ref(window.db, `stock/${item.codigo}`));
+      if (snap.exists()) {
+        const prod = snap.val();
+        await window.update(window.ref(window.db, `stock/${item.codigo}`), {
+          cantidad: Math.max(0, prod.cantidad - item.cantidad)
+        });
+      }
+    }
+
+    carrito = [];
+    actualizarTablaCobro();
+    alert("Venta registrada ✅");
+  });
+
+  console.log("✅ app-1.js cargado correctamente");
+})();
