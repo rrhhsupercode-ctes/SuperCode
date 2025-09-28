@@ -1,144 +1,160 @@
 /*****************************************************
  * app-1.js
- * Funciones de COBRAR (cajeros, cobro, tabla de cobro)
+ * Funciones de:
+ * - NAVEGACIÓN
+ * - LOGIN CAJEROS
+ * - TABLA CAJEROS en tiempo real
  *****************************************************/
-(() => {
-  // === REFERENCIAS DOM ===
-  const loginModal = document.getElementById("login-modal");
-  const loginUsuario = document.getElementById("login-usuario");
-  const loginPass = document.getElementById("login-pass");
-  const btnLogin = document.getElementById("btn-login");
-  const loginMsg = document.getElementById("login-msg");
 
-  const cobroControles = document.getElementById("cobro-controles");
-  const cantidadSelect = document.getElementById("cobro-cantidad");
-  const codigoInput = document.getElementById("cobro-codigo");
-  const tablaCobro = document.querySelector("#tabla-cobro tbody");
-  const totalDiv = document.getElementById("total-div");
-  const btnCobrar = document.getElementById("btn-cobrar");
+// === REFERENCIAS DOM ===
+const navBtns = document.querySelectorAll(".nav-btn");
+const sections = document.querySelectorAll("main section");
 
-  // === VARIABLES ===
-  let usuarioActual = null;
-  let carrito = [];
-  let total = 0;
+// Login
+const loginModal = document.getElementById("login-modal");
+const inputLoginUsuario = document.getElementById("login-usuario");
+const inputLoginPass = document.getElementById("login-pass");
+const btnLogin = document.getElementById("btn-login");
+const loginMsg = document.getElementById("login-msg");
 
-  // === FUNCIONES AUXILIARES ===
-  function formatoPrecio(num) {
-    return `$${parseFloat(num).toFixed(2).replace(".", ",")}`;
-  }
+// Cobrar
+const cobroControles = document.getElementById("cobro-controles");
+const cantidadSelect = document.getElementById("cobro-cantidad");
+const inputCodigoCobro = document.getElementById("cobro-codigo");
+const tablaCobro = document.querySelector("#tabla-cobro tbody");
+const totalDiv = document.getElementById("total-div");
+const btnCobrar = document.getElementById("btn-cobrar");
 
-  function actualizarTablaCobro() {
-    tablaCobro.innerHTML = "";
-    total = 0;
+// Cajeros
+const cajeroNroSelect = document.getElementById("cajero-nro");
+const inputCajeroNombre = document.getElementById("cajero-nombre");
+const inputCajeroDni = document.getElementById("cajero-dni");
+const inputCajeroPass = document.getElementById("cajero-pass");
+const btnAgregarCajero = document.getElementById("agregar-cajero");
+const tablaCajeros = document.querySelector("#tabla-cajeros tbody");
 
-    carrito.forEach((item, idx) => {
-      const tr = document.createElement("tr");
-      total += item.precio * item.cantidad;
+// === VARIABLES ===
+let cajeroActivo = null;
 
-      tr.innerHTML = `
-        <td>${item.cantidad}</td>
-        <td>${item.nombre}</td>
-        <td>${formatoPrecio(item.precio * item.cantidad)}</td>
-        <td><button data-idx="${idx}" class="btn-eliminar-item">X</button></td>
-      `;
-      tablaCobro.appendChild(tr);
+// === NAVEGACIÓN ENTRE SECCIONES ===
+navBtns.forEach(btn => {
+  btn.addEventListener("click", () => {
+    const target = btn.dataset.section;
+    sections.forEach(sec => {
+      sec.classList.add("hidden");
+      if (sec.id === target) sec.classList.remove("hidden");
     });
-
-    totalDiv.textContent = `TOTAL: ${formatoPrecio(total)}`;
-    btnCobrar.classList.toggle("hidden", carrito.length === 0);
-
-    document.querySelectorAll(".btn-eliminar-item").forEach(btn => {
-      btn.onclick = () => {
-        carrito.splice(btn.dataset.idx, 1);
-        actualizarTablaCobro();
-      };
-    });
-  }
-
-  // === LOGIN DE CAJERO ===
-  btnLogin.addEventListener("click", async () => {
-    const nro = loginUsuario.value.trim().padStart(2, "0");
-    const pass = loginPass.value.trim();
-
-    if (!nro || !pass) {
-      loginMsg.textContent = "Complete usuario y contraseña";
-      return;
-    }
-
-    const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
-    if (snap.exists()) {
-      const cajero = snap.val();
-      if (cajero.pass === pass) {
-        usuarioActual = cajero;
-        loginModal.classList.add("hidden");
-        cobroControles.classList.remove("hidden");
-      } else {
-        loginMsg.textContent = "Contraseña incorrecta";
-      }
-    } else {
-      loginMsg.textContent = "Cajero no encontrado";
-    }
   });
+});
 
-  // === GENERAR SELECT DE CANTIDADES ===
+// === LOGIN DE CAJEROS ===
+btnLogin.addEventListener("click", async () => {
+  const nro = inputLoginUsuario.value.padStart(2, "0");
+  const pass = inputLoginPass.value;
+
+  if (!nro || !pass) {
+    loginMsg.textContent = "Complete usuario y contraseña";
+    return;
+  }
+
+  const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
+  if (snap.exists()) {
+    const cajero = snap.val();
+    if (cajero.pass === pass) {
+      cajeroActivo = cajero;
+      loginMsg.textContent = `Bienvenido ${cajero.nombre}`;
+      loginModal.classList.add("hidden");
+      cobroControles.classList.remove("hidden");
+      btnCobrar.classList.remove("hidden");
+    } else {
+      loginMsg.textContent = "Contraseña incorrecta";
+    }
+  } else {
+    loginMsg.textContent = "Usuario no encontrado";
+  }
+});
+
+// === CARGA SELECT DE CANTIDADES ===
+function cargarCantidades() {
+  cantidadSelect.innerHTML = "";
   for (let i = 1; i <= 99; i++) {
     const opt = document.createElement("option");
     opt.value = i;
     opt.textContent = i.toString().padStart(2, "0");
     cantidadSelect.appendChild(opt);
   }
+}
+cargarCantidades();
 
-  // === ESCANEAR PRODUCTO ===
-  codigoInput.addEventListener("change", async () => {
-    const codigo = codigoInput.value.trim();
-    const cantidad = parseInt(cantidadSelect.value, 10);
-    if (!codigo) return;
+// === CAJEROS: SELECT Y TABLA EN TIEMPO REAL ===
+function cargarCajerosTiempoReal() {
+  const cajerosRef = window.ref(window.db, "cajeros");
 
-    const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
-    if (snap.exists()) {
-      const prod = snap.val();
-      carrito.push({
-        codigo,
-        nombre: prod.nombre,
-        precio: prod.precio,
-        cantidad
-      });
-      actualizarTablaCobro();
-    } else {
-      alert("Producto no encontrado en stock");
-    }
-    codigoInput.value = "";
-  });
+  window.onValue(cajerosRef, snap => {
+    const cajeros = snap.exists() ? snap.val() : {};
 
-  // === COBRAR ===
-  btnCobrar.addEventListener("click", async () => {
-    if (!usuarioActual || carrito.length === 0) return;
-
-    const movRef = window.push(window.ref(window.db, "movimientos"));
-    await window.set(movRef, {
-      id: movRef.key,
-      cajero: usuarioActual.nro,
-      total,
-      tipo: "venta",
-      fecha: new Date().toISOString(),
-      items: carrito
+    // --- Poblar tabla de cajeros ---
+    tablaCajeros.innerHTML = "";
+    Object.values(cajeros).forEach(caj => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${caj.nro}</td>
+        <td>${caj.nombre}</td>
+        <td>${caj.dni}</td>
+        <td><button class="btn-eliminar-cajero" data-nro="${caj.nro}">Eliminar</button></td>
+      `;
+      tablaCajeros.appendChild(tr);
     });
 
-    // Actualizar stock
-    for (const item of carrito) {
-      const snap = await window.get(window.ref(window.db, `stock/${item.codigo}`));
-      if (snap.exists()) {
-        const prod = snap.val();
-        await window.update(window.ref(window.db, `stock/${item.codigo}`), {
-          cantidad: Math.max(0, prod.cantidad - item.cantidad)
-        });
+    // Botones eliminar
+    document.querySelectorAll(".btn-eliminar-cajero").forEach(btn => {
+      btn.onclick = async () => {
+        const pass = prompt("Ingrese contraseña administrativa:");
+        const snapConfig = await window.get(window.ref(window.db, "config/passAdmin"));
+        const adminPass = snapConfig.exists() ? snapConfig.val() : "0123456789";
+
+        if (pass === adminPass) {
+          await window.remove(window.ref(window.db, `cajeros/${btn.dataset.nro}`));
+        } else {
+          alert("Contraseña incorrecta");
+        }
+      };
+    });
+
+    // --- Poblar select de Nro disponibles ---
+    cajeroNroSelect.innerHTML = "";
+    for (let i = 1; i <= 99; i++) {
+      const nro = i.toString().padStart(2, "0");
+      if (!cajeros[nro]) {
+        const opt = document.createElement("option");
+        opt.value = nro;
+        opt.textContent = nro;
+        cajeroNroSelect.appendChild(opt);
       }
     }
+  });
+}
+cargarCajerosTiempoReal();
 
-    carrito = [];
-    actualizarTablaCobro();
-    alert("Venta registrada ✅");
+// === AGREGAR CAJERO ===
+btnAgregarCajero.addEventListener("click", async () => {
+  const nro = cajeroNroSelect.value;
+  const nombre = inputCajeroNombre.value.trim();
+  const dni = inputCajeroDni.value.trim();
+  const pass = inputCajeroPass.value.trim();
+
+  if (!nro || !nombre || !dni || !pass) {
+    alert("Complete todos los campos");
+    return;
+  }
+
+  await window.set(window.ref(window.db, `cajeros/${nro}`), {
+    nro, nombre, dni, pass
   });
 
-  console.log("✅ app-1.js cargado correctamente");
-})();
+  inputCajeroNombre.value = "";
+  inputCajeroDni.value = "";
+  inputCajeroPass.value = "";
+});
+
+console.log("✅ app-1.js cargado correctamente");
