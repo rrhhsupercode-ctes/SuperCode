@@ -1,6 +1,6 @@
 /*****************************************************
  * app-1.js
- * Sección COBRAR: login, carrito, cobro
+ * Funciones de COBRAR (cajeros, cobro, tabla de cobro)
  *****************************************************/
 (() => {
   // === REFERENCIAS DOM ===
@@ -32,8 +32,9 @@
     total = 0;
 
     carrito.forEach((item, idx) => {
-      total += item.precio * item.cantidad;
       const tr = document.createElement("tr");
+      total += item.precio * item.cantidad;
+
       tr.innerHTML = `
         <td>${item.cantidad}</td>
         <td>${item.nombre}</td>
@@ -64,28 +65,22 @@
       return;
     }
 
-    try {
-      const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
-      if (snap.exists()) {
-        const cajero = snap.val();
-        if (cajero.pass === pass) {
-          usuarioActual = cajero;
-          loginModal.classList.add("hidden");
-          cobroControles.classList.remove("hidden");
-          loginMsg.textContent = "";
-        } else {
-          loginMsg.textContent = "Contraseña incorrecta";
-        }
+    const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
+    if (snap.exists()) {
+      const cajero = snap.val();
+      if (cajero.pass === pass) {
+        usuarioActual = cajero;
+        loginModal.classList.add("hidden");
+        cobroControles.classList.remove("hidden");
       } else {
-        loginMsg.textContent = "Cajero no encontrado";
+        loginMsg.textContent = "Contraseña incorrecta";
       }
-    } catch (err) {
-      loginMsg.textContent = "Error al conectar con Firebase";
-      console.error(err);
+    } else {
+      loginMsg.textContent = "Cajero no encontrado";
     }
   });
 
-  // === GENERAR SELECT DE CANTIDADES (01–99) ===
+  // === GENERAR SELECT DE CANTIDADES ===
   for (let i = 1; i <= 99; i++) {
     const opt = document.createElement("option");
     opt.value = i;
@@ -99,24 +94,19 @@
     const cantidad = parseInt(cantidadSelect.value, 10);
     if (!codigo) return;
 
-    try {
-      const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
-      if (snap.exists()) {
-        const prod = snap.val();
-        carrito.push({
-          codigo,
-          nombre: prod.nombre,
-          precio: prod.precio,
-          cantidad
-        });
-        actualizarTablaCobro();
-      } else {
-        alert("Producto no encontrado en stock");
-      }
-    } catch (err) {
-      console.error("Error al buscar producto:", err);
+    const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
+    if (snap.exists()) {
+      const prod = snap.val();
+      carrito.push({
+        codigo,
+        nombre: prod.nombre,
+        precio: prod.precio,
+        cantidad
+      });
+      actualizarTablaCobro();
+    } else {
+      alert("Producto no encontrado en stock");
     }
-
     codigoInput.value = "";
   });
 
@@ -124,36 +114,52 @@
   btnCobrar.addEventListener("click", async () => {
     if (!usuarioActual || carrito.length === 0) return;
 
-    try {
-      const movRef = window.push(window.ref(window.db, "movimientos"));
-      await window.set(movRef, {
-        id: movRef.key,
-        cajero: usuarioActual.nro,
-        total,
-        tipo: "venta",
-        fecha: new Date().toISOString(),
-        items: carrito
-      });
+    const movRef = window.push(window.ref(window.db, "movimientos"));
+    await window.set(movRef, {
+      id: movRef.key,
+      cajero: usuarioActual.nro,
+      total,
+      tipo: "venta",
+      fecha: new Date().toISOString(),
+      items: carrito
+    });
 
-      // Actualizar stock
-      for (const item of carrito) {
-        const snap = await window.get(window.ref(window.db, `stock/${item.codigo}`));
-        if (snap.exists()) {
-          const prod = snap.val();
-          await window.update(window.ref(window.db, `stock/${item.codigo}`), {
-            cantidad: Math.max(0, (prod.cantidad || 0) - item.cantidad)
+    // Actualizar stock
+    for (const item of carrito) {
+      const snap = await window.get(window.ref(window.db, `stock/${item.codigo}`));
+      if (snap.exists()) {
+        const prod = snap.val();
+        await window.update(window.ref(window.db, `stock/${item.codigo}`), {
+          cantidad: Math.max(0, prod.cantidad - item.cantidad)
+        });
+      }
+    }
+
+    carrito = [];
+    actualizarTablaCobro();
+    alert("Venta registrada ✅");
+  });
+
+  // === AUTO-CREAR ESTRUCTURA BÁSICA EN FIREBASE ===
+  async function inicializarEstructura() {
+    const ramas = ["cajeros", "stock", "movimientos", "config"];
+    for (const rama of ramas) {
+      const snap = await window.get(window.ref(window.db, rama));
+      if (!snap.exists()) {
+        if (rama === "config") {
+          await window.set(window.ref(window.db, rama), {
+            shopName: "SUPERCODE",
+            passAdmin: "0123456789",
+            masterPass: "9999"
           });
+        } else {
+          await window.set(window.ref(window.db, rama), {});
         }
       }
-
-      carrito = [];
-      actualizarTablaCobro();
-      alert("Venta registrada ✅");
-    } catch (err) {
-      console.error("Error al registrar venta:", err);
-      alert("Error al registrar venta ❌");
     }
-  });
+  }
+
+  inicializarEstructura();
 
   console.log("✅ app-1.js cargado correctamente");
 })();
