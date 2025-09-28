@@ -1,174 +1,143 @@
 /*****************************************************
  * app-1.js
- * Funciones de:
- * - Navegación
- * - Login de cajeros
- * - Carrito de cobro
- * - Registro de movimientos en Firebase
+ * Funciones de COBRAR + Navegación + Inicialización
  *****************************************************/
-
 (() => {
-  // === REFERENCIAS DOM ===
+  // === NAV ===
   const navBtns = document.querySelectorAll(".nav-btn");
-  const secciones = document.querySelectorAll(".seccion");
+  const sections = document.querySelectorAll("main section");
 
-  // Cobro
-  const inputLoginNro = document.getElementById("login-nro");
-  const inputLoginPass = document.getElementById("login-pass");
-  const btnLogin = document.getElementById("btn-login");
-
-  const inputCodigoProd = document.getElementById("codigo-producto");
-  const comboCantidad = document.getElementById("combo-cantidad");
-  const btnAgregar = document.getElementById("btn-agregar");
-  const tablaCobro = document.querySelector("#tabla-cobro tbody");
-  const totalEl = document.getElementById("total");
-  const btnCobrar = document.getElementById("btn-cobrar");
-
-  // === VARIABLES ===
-  let cajeroActual = null;
-  let carrito = {};
-
-  // === NAVEGACIÓN ===
   navBtns.forEach(btn => {
     btn.addEventListener("click", () => {
-      const target = btn.dataset.target;
-      secciones.forEach(sec => sec.classList.add("hidden"));
+      const target = btn.dataset.section;
+      sections.forEach(sec => sec.classList.add("hidden"));
       document.getElementById(target).classList.remove("hidden");
     });
   });
 
-  // === COMBO CANTIDADES ===
-  for (let i = 1; i <= 50; i++) {
-    const opt = document.createElement("option");
-    opt.value = i;
-    opt.textContent = i;
-    comboCantidad.appendChild(opt);
+  // === COBRAR ===
+  const loginModal = document.getElementById("login-modal");
+  const loginUsuario = document.getElementById("login-usuario");
+  const loginPass = document.getElementById("login-pass");
+  const btnLogin = document.getElementById("btn-login");
+  const loginMsg = document.getElementById("login-msg");
+
+  const cobroControles = document.getElementById("cobro-controles");
+  const cantidadSelect = document.getElementById("cobro-cantidad");
+  const codigoInput = document.getElementById("cobro-codigo");
+  const tablaCobro = document.querySelector("#tabla-cobro tbody");
+  const totalDiv = document.getElementById("total-div");
+  const btnCobrar = document.getElementById("btn-cobrar");
+
+  let usuarioActual = null;
+  let carrito = [];
+  let total = 0;
+
+  function formatoPrecio(num) {
+    return `$${parseFloat(num).toFixed(2).replace(".", ",")}`;
   }
 
-  // === LOGIN ===
-  btnLogin.addEventListener("click", async () => {
-    const nro = inputLoginNro.value.trim();
-    const pass = inputLoginPass.value.trim();
-
-    if (!nro || !pass) {
-      alert("Complete los campos");
-      return;
-    }
-
-    const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
-    if (snap.exists()) {
-      const caj = snap.val();
-      if (caj.pass === pass) {
-        cajeroActual = caj;
-        alert(`Bienvenido ${caj.nombre}`);
-      } else {
-        alert("Contraseña incorrecta");
-      }
-    } else {
-      alert("Cajero no encontrado");
-    }
-  });
-
-  // === CARRITO ===
-  function renderCarrito() {
+  function actualizarTablaCobro() {
     tablaCobro.innerHTML = "";
-    let total = 0;
-
-    Object.entries(carrito).forEach(([codigo, item]) => {
-      const subtotal = item.precio * item.cantidad;
-      total += subtotal;
-
+    total = 0;
+    carrito.forEach((item, idx) => {
       const tr = document.createElement("tr");
+      total += item.precio * item.cantidad;
       tr.innerHTML = `
-        <td>${codigo}</td>
-        <td>${item.nombre}</td>
         <td>${item.cantidad}</td>
-        <td>$${item.precio.toFixed(2)}</td>
-        <td>$${subtotal.toFixed(2)}</td>
-        <td><button class="btn-quitar" data-codigo="${codigo}">Quitar</button></td>
+        <td>${item.nombre}</td>
+        <td>${formatoPrecio(item.precio * item.cantidad)}</td>
+        <td><button data-idx="${idx}" class="btn-eliminar-item">X</button></td>
       `;
       tablaCobro.appendChild(tr);
     });
-
-    totalEl.textContent = `Total: $${total.toFixed(2)}`;
-
-    document.querySelectorAll(".btn-quitar").forEach(btn => {
+    totalDiv.textContent = `TOTAL: ${formatoPrecio(total)}`;
+    btnCobrar.classList.toggle("hidden", carrito.length === 0);
+    document.querySelectorAll(".btn-eliminar-item").forEach(btn => {
       btn.onclick = () => {
-        delete carrito[btn.dataset.codigo];
-        renderCarrito();
+        carrito.splice(btn.dataset.idx, 1);
+        actualizarTablaCobro();
       };
     });
   }
 
-  btnAgregar.addEventListener("click", async () => {
-    const codigo = inputCodigoProd.value.trim();
-    const cant = parseInt(comboCantidad.value, 10);
+  btnLogin.addEventListener("click", async () => {
+    const nro = loginUsuario.value.trim().padStart(2, "0");
+    const pass = loginPass.value.trim();
+    if (!nro || !pass) {
+      loginMsg.textContent = "Complete usuario y contraseña";
+      return;
+    }
+    const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
+    if (snap.exists()) {
+      const cajero = snap.val();
+      if (cajero.pass === pass) {
+        usuarioActual = cajero;
+        loginModal.classList.add("hidden");
+        cobroControles.classList.remove("hidden");
+      } else loginMsg.textContent = "Contraseña incorrecta";
+    } else loginMsg.textContent = "Cajero no encontrado";
+  });
 
+  for (let i = 1; i <= 99; i++) {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = i.toString().padStart(2, "0");
+    cantidadSelect.appendChild(opt);
+  }
+
+  codigoInput.addEventListener("change", async () => {
+    const codigo = codigoInput.value.trim();
+    const cantidad = parseInt(cantidadSelect.value, 10);
     if (!codigo) return;
-
     const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
     if (snap.exists()) {
       const prod = snap.val();
-      if (prod.cantidad >= cant) {
-        if (!carrito[codigo]) {
-          carrito[codigo] = { ...prod, cantidad: 0 };
-        }
-        carrito[codigo].cantidad += cant;
-        renderCarrito();
-      } else {
-        alert("Stock insuficiente");
-      }
-    } else {
-      alert("Producto no encontrado");
-    }
-
-    inputCodigoProd.value = "";
+      carrito.push({ codigo, nombre: prod.nombre, precio: prod.precio, cantidad });
+      actualizarTablaCobro();
+    } else alert("Producto no encontrado en stock");
+    codigoInput.value = "";
   });
 
-  // === COBRAR ===
   btnCobrar.addEventListener("click", async () => {
-    if (!cajeroActual) {
-      alert("Debe iniciar sesión");
-      return;
-    }
-    if (Object.keys(carrito).length === 0) {
-      alert("El carrito está vacío");
-      return;
-    }
-
-    // Calcular total
-    let total = 0;
-    Object.values(carrito).forEach(item => {
-      total += item.precio * item.cantidad;
-    });
-
-    // Generar ID de movimiento
-    const id = "mov-" + Date.now();
-
-    // Guardar en Firebase
-    await window.set(window.ref(window.db, `movimientos/${id}`), {
-      id,
-      cajero: cajeroActual.nro,
+    if (!usuarioActual || carrito.length === 0) return;
+    const movRef = window.push(window.ref(window.db, "movimientos"));
+    await window.set(movRef, {
+      id: movRef.key,
+      cajero: usuarioActual.nro,
       total,
       tipo: "venta",
-      fecha: new Date().toLocaleString()
+      fecha: new Date().toISOString(),
+      items: carrito
     });
-
-    // Actualizar stock
-    for (const [codigo, item] of Object.entries(carrito)) {
-      const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
+    for (const item of carrito) {
+      const snap = await window.get(window.ref(window.db, `stock/${item.codigo}`));
       if (snap.exists()) {
         const prod = snap.val();
-        await window.update(window.ref(window.db, `stock/${codigo}`), {
-          cantidad: prod.cantidad - item.cantidad
+        await window.update(window.ref(window.db, `stock/${item.codigo}`), {
+          cantidad: Math.max(0, prod.cantidad - item.cantidad)
         });
       }
     }
-
-    carrito = {};
-    renderCarrito();
+    carrito = [];
+    actualizarTablaCobro();
     alert("Venta registrada ✅");
   });
+
+  // Inicializar ramas
+  (async () => {
+    const ramas = ["cajeros", "stock", "movimientos", "config"];
+    for (const rama of ramas) {
+      const snap = await window.get(window.ref(window.db, rama));
+      if (!snap.exists()) {
+        if (rama === "config") {
+          await window.set(window.ref(window.db, rama), {
+            shopName: "SUPERCODE", passAdmin: "0123456789", masterPass: "9999"
+          });
+        } else await window.set(window.ref(window.db, rama), {});
+      }
+    }
+  })();
 
   console.log("✅ app-1.js cargado correctamente");
 })();
