@@ -1,205 +1,173 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SuperCode</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistema POS</title>
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- === HEADER PRINCIPAL === -->
-  <header>
-    <nav>
-      <button class="nav-btn" data-section="cobrar">COBRAR</button>
-      <button class="nav-btn" data-section="movimientos">MOVIMIENTOS</button>
-      <button class="nav-btn" data-section="stock">STOCK</button>
-      <button class="nav-btn" data-section="cajeros">CAJEROS</button>
-      <button class="nav-btn" data-section="configuracion">CONFIGURACIÓN</button>
-    </nav>
-  </header>
+  <h1>Sistema POS</h1>
 
-  <main>
-    <!-- --- SECCIÓN: COBRAR --- -->
-    <section id="cobrar" class="hidden">
-      <h2>Cobrar</h2>
+  <!-- Navegación -->
+  <nav>
+    <button class="nav-btn" data-target="seccion-cobro">Cobro</button>
+    <button class="nav-btn" data-target="seccion-movimientos">Movimientos</button>
+    <button class="nav-btn" data-target="seccion-stock">Stock</button>
+    <button class="nav-btn" data-target="seccion-cajeros">Cajeros</button>
+    <button class="nav-btn" data-target="seccion-config">Configuración</button>
+  </nav>
 
-      <!-- Modal de login cajero -->
-      <div id="login-modal" class="modal">
-        <h3>Iniciar Sesión Cajero</h3>
-        <input type="number" id="login-usuario" placeholder="Usuario (2 dígitos)" maxlength="2">
-        <input type="number" id="login-pass" placeholder="Contraseña (4 dígitos)" maxlength="4">
-        <button id="btn-login">ACCEDER</button>
-        <p id="login-msg"></p>
-      </div>
+  <!-- Sección: Cobro -->
+  <section id="seccion-cobro" class="seccion">
+    <h2>Cobro</h2>
+    <div>
+      <label for="login-nro">Cajero Nro:</label>
+      <input type="text" id="login-nro" />
+      <label for="login-pass">Contraseña:</label>
+      <input type="password" id="login-pass" />
+      <button id="btn-login">Ingresar</button>
+    </div>
 
-      <!-- Controles de cobro -->
-      <div id="cobro-controles" class="hidden">
-        <label>
-          Cantidad:
-          <select id="cobro-cantidad"></select>
-          <!-- Opciones 01–99 se generarán dinámicamente en app-1.js -->
-        </label>
-        <label>
-          Escanear producto:
-          <input type="number" id="cobro-codigo" placeholder="Código de barras">
-        </label>
-      </div>
+    <h3>Carrito</h3>
+    <input type="text" id="codigo-producto" placeholder="Código producto" />
+    <select id="combo-cantidad"></select>
+    <button id="btn-agregar">Agregar</button>
+    <table id="tabla-cobro">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Cantidad</th>
+          <th>Precio</th>
+          <th>Subtotal</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <p id="total">Total: $0,00</p>
+    <button id="btn-cobrar">Cobrar</button>
+  </section>
 
-      <!-- Tabla de cobros -->
-      <table id="tabla-cobro">
-        <thead>
-          <tr>
-            <th>CANTIDAD</th>
-            <th>PRODUCTO</th>
-            <th>PRECIO</th>
-            <th>ACCIÓN</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+  <!-- Sección: Movimientos -->
+  <section id="seccion-movimientos" class="seccion hidden">
+    <h2>Movimientos</h2>
+    <table id="tabla-movimientos">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Total</th>
+          <th>Tipo</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <button id="btn-tirar-z">Tirar Z</button>
+  </section>
 
-      <!-- Total y botón cobrar -->
-      <div id="total-div">TOTAL: $0,00</div>
-      <button id="btn-cobrar" class="hidden">COBRAR</button>
-    </section>
+  <!-- Sección: Stock -->
+  <section id="seccion-stock" class="seccion hidden">
+    <h2>Stock</h2>
+    <input type="text" id="stock-codigo" placeholder="Código producto" />
+    <select id="stock-cantidad">
+      <option value="1">+1</option>
+      <option value="5">+5</option>
+      <option value="10">+10</option>
+    </select>
+    <button id="agregar-stock">Agregar stock</button>
 
-    <!-- --- SECCIÓN: MOVIMIENTOS --- -->
-    <section id="movimientos" class="hidden">
-      <h2>Movimientos</h2>
-      <table id="tabla-movimientos">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>TOTAL</th>
-            <th>TIPO</th>
-            <th>ACCIÓN</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <button id="btn-tirar-z">TIRAR Z</button>
-    </section>
+    <table id="tabla-stock">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Nombre</th>
+          <th>Cantidad</th>
+          <th>Fecha ingreso</th>
+          <th>Precio</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
 
-    <!-- --- SECCIÓN: STOCK --- -->
-    <section id="stock" class="hidden">
-      <h2>Gestión de Stock</h2>
-      <div class="stock-inputs">
-        <label>
-          Escanear código de barras:
-          <input type="number" id="stock-codigo" placeholder="Código de barras">
-        </label>
-        <label>
-          Cantidad a cargar:
-          <select id="stock-cantidad"></select>
-          <!-- Opciones 01–999 generadas desde JS -->
-        </label>
-        <button id="agregar-stock">Agregar al stock</button>
-      </div>
-      <table id="tabla-stock">
-        <thead>
-          <tr>
-            <th>Cód. Barras</th>
-            <th>Nombre</th>
-            <th>Cantidad</th>
-            <th>Fecha de Ingreso</th>
-            <th>Precio</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+    <div id="modal-editar" class="hidden"></div>
+  </section>
 
-    <!-- --- SECCIÓN: CAJEROS --- -->
-    <section id="cajeros" class="hidden">
-      <h2>Gestión de Cajeros</h2>
-      <div class="cajero-form">
-        <label>Nro:
-          <select id="cajero-nro"></select>
-          <!-- Opciones 01–99 cargadas desde Firebase -->
-        </label>
-        <label>Nombre Completo:
-          <input type="text" id="cajero-nombre" maxlength="15">
-        </label>
-        <label>DNI:
-          <input type="number" id="cajero-dni" maxlength="8">
-        </label>
-        <label>Contraseña:
-          <input type="number" id="cajero-pass" maxlength="4">
-        </label>
-        <button id="agregar-cajero">Agregar Cajero</button>
-      </div>
-      <table id="tabla-cajeros">
-        <thead>
-          <tr>
-            <th>Nro</th>
-            <th>Nombre</th>
-            <th>DNI</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+  <!-- Sección: Cajeros -->
+  <section id="seccion-cajeros" class="seccion hidden">
+    <h2>Cajeros</h2>
+    <select id="cajero-nro"></select>
+    <input type="text" id="cajero-nombre" placeholder="Nombre" />
+    <input type="text" id="cajero-dni" placeholder="DNI" />
+    <input type="password" id="cajero-pass" placeholder="Contraseña" />
+    <button id="agregar-cajero">Agregar cajero</button>
 
-    <!-- --- SECCIÓN: CONFIGURACIÓN --- -->
-    <section id="configuracion" class="hidden">
-      <h2>Configuración</h2>
-      <label>Nombre del Establecimiento:
-        <input type="text" id="config-nombre">
-      </label>
-      <label>Contraseña Administrativa:
-        <input type="password" id="config-pass" maxlength="10">
-      </label>
-      <button id="guardar-config">Guardar Configuración</button>
+    <table id="tabla-cajeros">
+      <thead>
+        <tr>
+          <th>Nro</th>
+          <th>Nombre</th>
+          <th>DNI</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </section>
 
-      <div class="restaurar-admin">
-        <button id="btn-restaurar">RESTAURAR CONTRASEÑA</button>
-        <input type="password" id="master-pass" placeholder="Contraseña Maestra (9999)">
-      </div>
-      <p id="config-msg"></p>
-    </section>
-  </main>
-
-  <!-- Modales auxiliares -->
-  <div id="modal-eliminar" class="modal hidden"></div>
-  <div id="modal-pago" class="modal hidden"></div>
-  <div id="modal-editar" class="modal hidden"></div>
+  <!-- Sección: Configuración -->
+  <section id="seccion-config" class="seccion hidden">
+    <h2>Configuración</h2>
+    <input type="text" id="config-nombre" placeholder="Nombre comercio" />
+    <input type="password" id="config-pass" placeholder="Contraseña admin" />
+    <button id="guardar-config">Guardar configuración</button>
+    <p id="config-msg"></p>
+    <hr />
+    <input type="password" id="master-pass" placeholder="Clave maestra" />
+    <button id="btn-restaurar">Restaurar contraseña admin</button>
+  </section>
 
   <!-- Firebase SDK -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { 
-      getDatabase, ref, set, push, update, remove, get, onValue 
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+    import {
+      getDatabase,
+      ref,
+      set,
+      update,
+      get,
+      remove,
+      onValue
+    } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-database.js";
 
+    // Configuración Firebase (no necesitas panel, esto se carga directo desde JS)
     const firebaseConfig = {
-      apiKey: "AIzaSyAzbtibp4-myG8SNY6Irrb7-nuoyP1535g",
-      authDomain: "supercode-ctes.firebaseapp.com",
-      databaseURL: "https://supercode-ctes-default-rtdb.firebaseio.com",
-      projectId: "supercode-ctes",
-      storageBucket: "supercode-ctes.firebasestorage.app",
-      messagingSenderId: "1034642261455",
-      appId: "1:1034642261455:web:f60232b259997fd0e5feba"
+      apiKey: "AIzaSyXXXXXXX",
+      authDomain: "tu-proyecto.firebaseapp.com",
+      databaseURL: "https://tu-proyecto-default-rtdb.firebaseio.com",
+      projectId: "tu-proyecto",
+      storageBucket: "tu-proyecto.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
 
-    // Exponer todo a window
+    // Hacemos accesibles las funciones en window para app-1.js y app-2.js
     window.db = db;
     window.ref = ref;
     window.set = set;
-    window.push = push;
     window.update = update;
-    window.remove = remove;
     window.get = get;
+    window.remove = remove;
     window.onValue = onValue;
   </script>
 
-  <!-- Scripts principales -->
+  <!-- Scripts -->
   <script src="app-1.js"></script>
   <script src="app-2.js"></script>
-  <script src="app-3.js"></script>
 </body>
 </html>
