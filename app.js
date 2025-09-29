@@ -28,16 +28,6 @@
   const totalDiv = document.getElementById("total-div");
   const btnCobrar = document.getElementById("btn-cobrar");
 
-  // llenar desplegable con 01 al 99 para iniciar sesión cajero
-if (loginUsuario) {
-  for (let i = 1; i <= 99; i++) {
-    const opt = document.createElement("option");
-    opt.value = i.toString().padStart(2, "0");
-    opt.textContent = opt.value;
-    loginUsuario.appendChild(opt);
-  }
-}
-
   // Stock
   const inputStockCodigo = document.getElementById("stock-codigo");
   const stockCantidadSelect = document.getElementById("stock-cantidad");
@@ -81,13 +71,10 @@ if (loginUsuario) {
   // Utilidades
   // -----------------------
   function formatoPrecioNumeroToString(num) {
-    // num as number, return "00000,00" style with no $ here
     const n = Number(num) || 0;
-    // ensure two decimals, comma as decimal separator
     const parts = n.toFixed(2).split(".");
     let int = parts[0];
     let dec = parts[1];
-    // pad int to up to 5 digits (not strictly necessary)
     int = int.padStart(1, "0");
     return `${int},${dec}`;
   }
@@ -113,7 +100,6 @@ if (loginUsuario) {
   }
 
   function formatFechaParaHeader(iso) {
-    // produce dd/mm/yyyy (HH:MM) exact for ticket header
     return formatoFechaIsoToDisplay(iso);
   }
 
@@ -128,7 +114,6 @@ if (loginUsuario) {
   }
 
   async function verificarPassAdmin(pass) {
-    // obtiene config desde DB y compara
     const snap = await window.get(window.ref(window.db, "config"));
     if (!snap.exists()) return false;
     const conf = snap.val();
@@ -136,7 +121,6 @@ if (loginUsuario) {
   }
 
   function requireAdminConfirm(actionCallback) {
-    // muestra modal pidiendo contraseña admin, si OK ejecuta callback
     mostrarModal(`
       <h3>Contraseña Administrador</h3>
       <input type="password" id="__admin_input" placeholder="Contraseña admin">
@@ -187,7 +171,6 @@ if (loginUsuario) {
         showSection(target);
       });
     });
-    // default open 'cobro' if exists, else first
     const defaultBtn = document.querySelector('.nav-btn[data-section="cobro"]') || navBtns[0];
     if (defaultBtn) defaultBtn.click();
   })();
@@ -224,6 +207,16 @@ if (loginUsuario) {
         o.value = i.toString().padStart(2, "0");
         o.textContent = i.toString().padStart(2, "0");
         cajeroNroSelect.appendChild(o);
+      }
+    }
+    // login cajero nro 01..99
+    if (loginUsuario) {
+      loginUsuario.innerHTML = "";
+      for (let i = 1; i <= 99; i++) {
+        const o = document.createElement("option");
+        o.value = i.toString().padStart(2, "0");
+        o.textContent = i.toString().padStart(2, "0");
+        loginUsuario.appendChild(o);
       }
     }
   })();
