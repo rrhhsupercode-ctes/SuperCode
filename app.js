@@ -1,346 +1,228 @@
-/*****************************************************
- * app.js
- * Lógica principal de la app POS
- *****************************************************/
+// === Firebase SDK ===
+import { initializeApp } from "firebase/app";
+import {
+  getDatabase,
+  ref,
+  get,
+  set,
+  update,
+  push,
+  remove,
+  onValue
+} from "firebase/database";
 
-// === NAV ===
+// Configuración Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyAzbtibp4-myG8SNY6Irrb7-nuoyP1535g",
+  authDomain: "supercode-ctes.firebaseapp.com",
+  databaseURL: "https://supercode-ctes-default-rtdb.firebaseio.com",
+  projectId: "supercode-ctes",
+  storageBucket: "supercode-ctes.firebasestorage.app",
+  messagingSenderId: "1034642261455",
+  appId: "1:1034642261455:web:f60232b259997fd0e5feba"
+};
+
+// Inicializar Firebase
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// === NAVEGACIÓN ENTRE SECCIONES ===
+const sections = document.querySelectorAll("main section");
 document.querySelectorAll(".nav-btn").forEach(btn => {
   btn.addEventListener("click", () => {
-    document.querySelectorAll("main section").forEach(s => s.classList.add("hidden"));
-    document.getElementById(btn.dataset.section).classList.remove("hidden");
+    const target = btn.dataset.target;
+    sections.forEach(s =>
+      s.id === target ? s.classList.remove("hidden") : s.classList.add("hidden")
+    );
   });
 });
 
-// === LOGIN ===
-let usuarioActivo = null;
-
-const loginUsuario = document.getElementById("login-usuario");
-const loginPass = document.getElementById("login-pass");
-const loginMsg = document.getElementById("login-msg");
-const btnLogin = document.getElementById("btn-login");
-const cobroControles = document.getElementById("cobro-controles");
-
-btnLogin.addEventListener("click", async () => {
-  const nro = loginUsuario.value;
-  const pass = loginPass.value;
-
-  const snap = await window.get(window.ref(window.db, "cajeros/" + nro));
-  if (!snap.exists()) {
-    loginMsg.textContent = "Cajero no existe";
-    return;
-  }
-  const cajero = snap.val();
-  if (cajero.pass !== pass) {
-    loginMsg.textContent = "Contraseña incorrecta";
-    return;
-  }
-
-  usuarioActivo = { nro, ...cajero };
-  loginMsg.textContent = "Bienvenido " + cajero.nombre;
-  document.getElementById("login-modal").classList.add("hidden");
-  cobroControles.classList.remove("hidden");
-});
-
-// Cargar lista de cajeros al login
-window.onValue(window.ref(window.db, "cajeros"), snap => {
-  loginUsuario.innerHTML = "";
-  snap.forEach(child => {
-    const opt = document.createElement("option");
-    opt.value = child.key;
-    opt.textContent = `${child.key} - ${child.val().nombre}`;
-    loginUsuario.appendChild(opt);
-  });
-});
-
-// === COBRO ===
-const tablaCobro = document.querySelector("#tabla-cobro tbody");
-const inputCodigo = document.getElementById("cobro-codigo");
-const selectCantidad = document.getElementById("cobro-cantidad");
-const btnCobrar = document.getElementById("btn-cobrar");
-const totalDiv = document.getElementById("total-div");
-
+// === VARIABLES ===
 let carrito = [];
 
-// llenar cantidades 1–20
-for (let i = 1; i <= 20; i++) {
-  const opt = document.createElement("option");
-  opt.value = i;
-  opt.textContent = i;
-  selectCantidad.appendChild(opt);
+// === UTILIDAD ===
+const formatDate = ts => new Date(ts).toLocaleString();
+
+// === COBRO ===
+const carritoBody = document.querySelector("#carrito tbody");
+const totalDiv = document.querySelector("#total-div");
+const btnCobrar = document.querySelector("#btn-cobrar");
+
+function renderCarrito() {
+  carritoBody.innerHTML = "";
+  let total = 0;
+  carrito.forEach((item, i) => {
+    total += item.total;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${item.codigo}</td>
+      <td>${item.nombre}</td>
+      <td>${item.cantidad}</td>
+      <td>$${item.precio}</td>
+      <td>$${item.total}</td>
+      <td><button data-i="${i}" class="btn-remove">X</button></td>
+    `;
+    carritoBody.appendChild(tr);
+  });
+  totalDiv.textContent = `TOTAL: $${total}`;
 }
 
-inputCodigo.addEventListener("keypress", async e => {
-  if (e.key === "Enter") {
-    const codigo = inputCodigo.value.trim();
-    const cantidad = parseInt(selectCantidad.value);
-
-    if (!codigo) return;
-
-    const snap = await window.get(window.ref(window.db, "stock/" + codigo));
-    if (!snap.exists()) {
-      alert("Producto no encontrado en stock");
-      return;
-    }
-
-    const producto = snap.val();
-    carrito.push({ codigo, nombre: producto.nombre, precio: producto.precio, cantidad });
+carritoBody.addEventListener("click", e => {
+  if (e.target.classList.contains("btn-remove")) {
+    const idx = e.target.dataset.i;
+    carrito.splice(idx, 1);
     renderCarrito();
-    inputCodigo.value = "";
   }
 });
 
-function renderCarrito() {
-  tablaCobro.innerHTML = "";
-  let total = 0;
-
-  carrito.forEach((item, idx) => {
-    const tr = document.createElement("tr");
-    const subtotal = item.precio * item.cantidad;
-    total += subtotal;
-
-    tr.innerHTML = `
-      <td>${item.cantidad}</td>
-      <td>${item.nombre}</td>
-      <td>${item.precio}</td>
-      <td>${subtotal}</td>
-      <td><button data-idx="${idx}" class="btn-borrar">X</button></td>
-    `;
-
-    tablaCobro.appendChild(tr);
-  });
-
-  totalDiv.textContent = "TOTAL: $" + total;
-  btnCobrar.classList.toggle("hidden", carrito.length === 0);
-
-  tablaCobro.querySelectorAll(".btn-borrar").forEach(b => {
-    b.addEventListener("click", () => {
-      carrito.splice(b.dataset.idx, 1);
-      renderCarrito();
-    });
-  });
-}
-
 btnCobrar.addEventListener("click", async () => {
-  if (!usuarioActivo) {
-    alert("Debe iniciar sesión");
-    return;
-  }
-  if (carrito.length === 0) return;
+  const total = carrito.reduce((acc, it) => acc + it.total, 0);
+  if (!total) return;
 
-  const total = carrito.reduce((acc, it) => acc + it.precio * it.cantidad, 0);
-  const movRef = window.push(window.ref(window.db, "movimientos"));
-  const id = movRef.key;
-
-  await window.set(movRef, {
+  const id = push(ref(db, "movimientos")).key;
+  const venta = {
     id,
-    cajero: usuarioActivo.nro,
-    items: carrito,
     total,
     tipo: "VENTA",
-    fecha: Date.now()
-  });
+    fecha: Date.now(),
+    items: carrito
+  };
 
-  // guardar también en historial
-  const histRef = window.push(window.ref(window.db, "historial"));
-  await window.set(histRef, {
-    id,
-    cajero: usuarioActivo.nro,
-    total,
-    fecha: Date.now()
-  });
+  // Guardar en movimientos
+  await set(ref(db, "movimientos/" + id), venta);
 
-  alert("Venta registrada");
+  // Guardar también en historial por día
+  const hoy = new Date();
+  const fechaKey = `${hoy.getFullYear()}${String(hoy.getMonth()+1).padStart(2,"0")}${String(hoy.getDate()).padStart(2,"0")}`;
+  await set(ref(db, `historial/${fechaKey}/${id}`), venta);
+
   carrito = [];
   renderCarrito();
 });
 
-// === MOVIMIENTOS ===
-const tablaMov = document.querySelector("#tabla-movimientos tbody");
-const filtroCajero = document.getElementById("filtroCajero");
-
-window.onValue(window.ref(window.db, "cajeros"), snap => {
-  filtroCajero.innerHTML = '<option value="TODOS">TODOS</option>';
-  snap.forEach(child => {
-    const opt = document.createElement("option");
-    opt.value = child.key;
-    opt.textContent = child.key;
-    filtroCajero.appendChild(opt);
-  });
-});
-
-window.onValue(window.ref(window.db, "movimientos"), snap => {
-  tablaMov.innerHTML = "";
-  snap.forEach(child => {
-    const mov = child.val();
-    if (filtroCajero.value !== "TODOS" && filtroCajero.value !== mov.cajero) return;
-
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${mov.id}</td>
-      <td>${mov.total}</td>
-      <td>${mov.tipo}</td>
-      <td><button data-id="${mov.id}" class="btn-borrar-mov">X</button></td>
-    `;
-    tablaMov.appendChild(tr);
-  });
-
-  tablaMov.querySelectorAll(".btn-borrar-mov").forEach(b => {
-    b.addEventListener("click", async () => {
-      await window.remove(window.ref(window.db, "movimientos/" + b.dataset.id));
-    });
-  });
-});
-
 // === STOCK ===
-const stockCodigo = document.getElementById("stock-codigo");
-const stockCantidad = document.getElementById("stock-cantidad");
-const btnAgregarStock = document.getElementById("agregar-stock");
-const tablaStock = document.querySelector("#tabla-stock tbody");
+const stockBody = document.querySelector("#tabla-stock tbody");
+const formStock = document.querySelector("#form-stock");
 
-// llenar cantidades 1–50
-for (let i = 1; i <= 50; i++) {
-  const opt = document.createElement("option");
-  opt.value = i;
-  opt.textContent = i;
-  stockCantidad.appendChild(opt);
-}
+formStock.addEventListener("submit", async e => {
+  e.preventDefault();
+  const codigo = formStock.codigo.value.trim();
+  const cantidad = parseInt(formStock.cantidad.value);
+  if (!codigo || isNaN(cantidad)) return;
 
-btnAgregarStock.addEventListener("click", async () => {
-  const codigo = stockCodigo.value.trim();
-  const cantidad = parseInt(stockCantidad.value);
-
-  if (!codigo) return;
-
-  const prodRef = window.ref(window.db, "stock/" + codigo);
-  const snap = await window.get(prodRef);
-
+  const productoRef = ref(db, "stock/" + codigo);
+  const snap = await get(productoRef);
   if (snap.exists()) {
     const prod = snap.val();
-    await window.update(prodRef, { cantidad: (prod.cantidad || 0) + cantidad });
+    prod.cantidad += cantidad;
+    await update(productoRef, prod);
   } else {
-    await window.set(prodRef, {
+    await set(productoRef, {
+      codigo,
       nombre: "PRODUCTO NUEVO",
       cantidad,
-      fecha: new Date().toLocaleDateString(),
       precio: 0
     });
   }
-
-  stockCodigo.value = "";
+  formStock.reset();
 });
 
-window.onValue(window.ref(window.db, "stock"), snap => {
-  tablaStock.innerHTML = "";
-  snap.forEach(child => {
-    const prod = child.val();
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${child.key}</td>
-      <td>${prod.nombre}</td>
-      <td>${prod.cantidad}</td>
-      <td>${prod.fecha || ""}</td>
-      <td>${prod.precio || 0}</td>
-      <td><button data-id="${child.key}" class="btn-borrar-stock">X</button></td>
-    `;
-    tablaStock.appendChild(tr);
-  });
-
-  tablaStock.querySelectorAll(".btn-borrar-stock").forEach(b => {
-    b.addEventListener("click", async () => {
-      await window.remove(window.ref(window.db, "stock/" + b.dataset.id));
+onValue(ref(db, "stock"), snap => {
+  stockBody.innerHTML = "";
+  if (snap.exists()) {
+    Object.values(snap.val()).forEach(prod => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${prod.codigo}</td>
+        <td>${prod.nombre}</td>
+        <td>${prod.cantidad}</td>
+        <td>$${prod.precio}</td>
+      `;
+      stockBody.appendChild(tr);
     });
-  });
+  }
+});
+
+// === MOVIMIENTOS ===
+const movBody = document.querySelector("#tabla-movimientos tbody");
+
+onValue(ref(db, "movimientos"), snap => {
+  movBody.innerHTML = "";
+  if (snap.exists()) {
+    Object.values(snap.val()).forEach(mov => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${mov.id}</td>
+        <td>${mov.tipo}</td>
+        <td>$${mov.total}</td>
+        <td>${formatDate(mov.fecha)}</td>
+      `;
+      movBody.appendChild(tr);
+    });
+  }
+});
+
+// === HISTORIAL ===
+const tablaHist = document.querySelector("#tabla-historial tbody");
+
+onValue(ref(db, "historial"), snap => {
+  tablaHist.innerHTML = "";
+  if (snap.exists()) {
+    Object.entries(snap.val()).forEach(([fecha, ventas]) => {
+      Object.values(ventas).forEach(venta => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${fecha}</td>
+          <td>${venta.id}</td>
+          <td>$${venta.total}</td>
+        `;
+        tablaHist.appendChild(tr);
+      });
+    });
+  }
 });
 
 // === CAJEROS ===
-const cajeroNro = document.getElementById("cajero-nro");
-const cajeroNombre = document.getElementById("cajero-nombre");
-const cajeroDni = document.getElementById("cajero-dni");
-const cajeroPass = document.getElementById("cajero-pass");
-const btnAgregarCajero = document.getElementById("agregar-cajero");
-const tablaCajeros = document.querySelector("#tabla-cajeros tbody");
+const cajerosBody = document.querySelector("#tabla-cajeros tbody");
+const formCajero = document.querySelector("#form-cajero");
 
-btnAgregarCajero.addEventListener("click", async () => {
-  const nro = cajeroNro.value.trim();
-  if (!nro) return;
-
-  await window.set(window.ref(window.db, "cajeros/" + nro), {
-    nombre: cajeroNombre.value,
-    dni: cajeroDni.value,
-    pass: cajeroPass.value
-  });
-
-  cajeroNro.value = "";
-  cajeroNombre.value = "";
-  cajeroDni.value = "";
-  cajeroPass.value = "";
+formCajero.addEventListener("submit", async e => {
+  e.preventDefault();
+  const nombre = formCajero.nombre.value.trim();
+  if (!nombre) return;
+  const id = push(ref(db, "cajeros")).key;
+  await set(ref(db, "cajeros/" + id), { id, nombre });
+  formCajero.reset();
 });
 
-window.onValue(window.ref(window.db, "cajeros"), snap => {
-  tablaCajeros.innerHTML = "";
-  cajeroNro.innerHTML = "";
-  snap.forEach(child => {
-    const caj = child.val();
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${child.key}</td>
-      <td>${caj.nombre}</td>
-      <td>${caj.dni}</td>
-      <td><button data-id="${child.key}" class="btn-borrar-cajero">X</button></td>
-    `;
-    tablaCajeros.appendChild(tr);
-
-    const opt = document.createElement("option");
-    opt.value = child.key;
-    opt.textContent = child.key;
-    cajeroNro.appendChild(opt);
-  });
-
-  tablaCajeros.querySelectorAll(".btn-borrar-cajero").forEach(b => {
-    b.addEventListener("click", async () => {
-      await window.remove(window.ref(window.db, "cajeros/" + b.dataset.id));
+onValue(ref(db, "cajeros"), snap => {
+  cajerosBody.innerHTML = "";
+  if (snap.exists()) {
+    Object.values(snap.val()).forEach(caj => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${caj.id}</td><td>${caj.nombre}</td>`;
+      cajerosBody.appendChild(tr);
     });
-  });
+  }
 });
 
 // === CONFIG ===
-const configNombre = document.getElementById("config-nombre");
-const passActual = document.getElementById("config-pass-actual");
-const passNueva = document.getElementById("config-pass-nueva");
-const btnGuardarConfig = document.getElementById("guardar-config");
-const configMsg = document.getElementById("config-msg");
-const masterPass = document.getElementById("master-pass");
-const btnRestaurar = document.getElementById("btn-restaurar");
+const formConfig = document.querySelector("#form-config");
+const configMsg = document.querySelector("#config-msg");
 
-btnGuardarConfig.addEventListener("click", async () => {
-  const snap = await window.get(window.ref(window.db, "config"));
-  if (!snap.exists()) return;
-
-  const cfg = snap.val();
-  if (cfg.passAdmin !== passActual.value) {
-    configMsg.textContent = "Contraseña incorrecta";
-    return;
-  }
-
-  await window.update(window.ref(window.db, "config"), {
-    shopName: configNombre.value,
-    passAdmin: passNueva.value
-  });
-  configMsg.textContent = "Configuración guardada";
+formConfig.addEventListener("submit", async e => {
+  e.preventDefault();
+  const empresa = formConfig.empresa.value.trim();
+  const direccion = formConfig.direccion.value.trim();
+  if (!empresa) return;
+  await set(ref(db, "config"), { empresa, direccion });
+  configMsg.textContent = "Configuración guardada.";
+  setTimeout(() => (configMsg.textContent = ""), 2000);
 });
 
-btnRestaurar.addEventListener("click", async () => {
-  const snap = await window.get(window.ref(window.db, "config"));
-  if (!snap.exists()) return;
-
-  const cfg = snap.val();
-  if (cfg.masterPass !== masterPass.value) {
-    alert("Contraseña maestra incorrecta");
-    return;
+onValue(ref(db, "config"), snap => {
+  if (snap.exists()) {
+    formConfig.empresa.value = snap.val().empresa || "";
+    formConfig.direccion.value = snap.val().direccion || "";
   }
-
-  await window.update(window.ref(window.db, "config"), {
-    passAdmin: "0123456789"
-  });
-  alert("Contraseña restaurada");
 });
