@@ -353,7 +353,7 @@
 
   async function finalizarCobro(tipoPago) {
     cerrarModal();
-    const movId = `mov_${Date.now()}`;
+    const movId = `ID_${Date.now()}`;
     const mov = {
       id: movId,
       cajero: cajeroActivo ? (cajeroActivo.nro || cajeroActivo.nombre) : "N/A",
@@ -675,7 +675,7 @@ if (btnTirarZ) {
     // Abrir modal para pedir pass admin
     mostrarModal(`
       <h3>Confirmar Tirar Z</h3>
-      <p>Ingrese contraseña de administrador:</p>
+      <p>Contraseña de Encargado:</p>
       <input id="z-pass" type="password" style="width:100%; margin:10px 0; padding:6px">
       <div style="text-align:right">
         <button id="z-cancel">Cancelar</button>
@@ -688,7 +688,7 @@ if (btnTirarZ) {
       const inputPass = document.getElementById("z-pass").value.trim();
       const snapConfig = await window.get(window.ref(window.db, "config"));
       const config = snapConfig.exists() ? snapConfig.val() : {};
-      const adminPass = config.passAdmin || "1234"; // por defecto
+      const adminPass = config.passAdmin || "0123456789"; // por defecto
 
       if (inputPass !== adminPass) {
         alert("Contraseña incorrecta");
@@ -787,7 +787,7 @@ if (btnTirarZ) {
       if (!snap.exists()) return alert("Error leyendo configuración");
       const conf = snap.val();
       if (actual !== conf.passAdmin) return alert("Contraseña actual incorrecta");
-      if (nueva.length < 4 || nueva.length > 50) return alert("La nueva contraseña debe tener entre 4 y 50 caracteres");
+      if (nueva.length < 4 || nueva.length > 10) return alert("La nueva contraseña debe tener entre 4 y 10 caracteres");
       await window.update(window.ref(window.db, "config"), { shopName, passAdmin: nueva });
       if (configMsg) configMsg.textContent = "Configuración guardada ✅";
       inputConfigPassActual.value = "";
