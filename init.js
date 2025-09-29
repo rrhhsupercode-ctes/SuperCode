@@ -1,6 +1,7 @@
 /*****************************************************
  * init.js
  * Inicialización de la base en Realtime Database
+ * Asegura ramas iniciales y crea 'historial' si falta
  *****************************************************/
 (() => {
   const ramasIniciales = {
@@ -8,26 +9,29 @@
     cajeros: {},
     stock: {},
     movimientos: {},
-    historial: {} // rama de historial
+    historial: {}
   };
 
   (async () => {
-    const rootSnap = await window.get(window.ref(window.db, "/"));
-    if (!rootSnap.exists() || rootSnap.val() === null) {
-      await window.set(window.ref(window.db, "/"), ramasIniciales);
-      console.log("✅ Base inicializada en Firebase con historial");
-    } else {
-      console.log("ℹ️ Base ya existente, no se sobrescribió");
-      // aseguro que las ramas existan aunque la base sea vieja
-      const val = rootSnap.val();
-      if (!val.historial) {
-        await window.set(window.ref(window.db, "/historial"), {});
-        console.log("📌 Rama 'historial' creada en base existente");
+    try {
+      const rootSnap = await window.get(window.ref(window.db, "/"));
+      if (!rootSnap.exists() || rootSnap.val() === null) {
+        await window.set(window.ref(window.db, "/"), ramasIniciales);
+        console.log("✅ Base inicializada en Firebase (ramas iniciales creadas)");
+      } else {
+        console.log("ℹ️ Base ya existente, no se sobrescribió");
+        const val = rootSnap.val() || {};
+        if (!val.historial) {
+          await window.set(window.ref(window.db, "/historial"), {});
+          console.log("📌 Rama 'historial' creada en base existente");
+        }
+        if (!val.config) {
+          await window.set(window.ref(window.db, "/config"), ramasIniciales.config);
+          console.log("📌 Rama 'config' creada en base existente");
+        }
       }
-      if (!val.movimientos) {
-        await window.set(window.ref(window.db, "/movimientos"), {});
-        console.log("📌 Rama 'movimientos' creada en base existente");
-      }
+    } catch (e) {
+      console.error("init.js error:", e);
     }
   })();
 })();
