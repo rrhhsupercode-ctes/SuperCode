@@ -292,11 +292,12 @@
       const rowTotal = Number(it.precio) * Number(it.cantidad);
       total += rowTotal;
       tr.innerHTML = `
-        <td>${it.cantidad}</td>
-        <td>${it.nombre}</td>
-        <td>${formatoPrecioParaPantalla(rowTotal)}</td>
-        <td><button class="btn-delete-cart" data-i="${i}">Eliminar</button></td>
-      `;
+  <td>${it.cantidad}</td>
+  <td>${it.nombre}</td>
+  <td>${formatoPrecioParaPantalla(it.precio)}</td>
+  <td>${formatoPrecioParaPantalla(rowTotal)}</td>
+  <td><button class="btn-delete-cart" data-i="${i}">Eliminar</button></td>
+`;
       tablaCobro.appendChild(tr);
     });
     totalDiv.textContent = `TOTAL: ${formatoPrecioParaPantalla(total)}`;
