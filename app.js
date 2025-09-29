@@ -558,136 +558,142 @@ if (loginUsuario) {
   }
 
   // -----------------------
-  // MOVIMIENTOS
-  // -----------------------
-  window.onValue(window.ref(window.db, "movimientos"), snap => {
-    tablaMovimientos.innerHTML = "";
-    if (!snap.exists()) return;
-    const data = snap.val();
-    Object.values(data).forEach(mov => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${mov.id}</td>
-        <td>${formatoPrecioParaPantalla(mov.total)}</td>
-        <td>${mov.tipo}</td>
-        <td>
-          <button class="btn-ver-mov" data-id="${mov.id}">Ver</button>
-          <button class="btn-del-mov" data-id="${mov.id}">Eliminar</button>
-        </td>
-      `;
-      tablaMovimientos.appendChild(tr);
-    });
+// MOVIMIENTOS
+// -----------------------
+window.onValue(window.ref(window.db, "movimientos"), snap => {
+  tablaMovimientos.innerHTML = "";
+  if (!snap.exists()) return;
+  const data = snap.val();
+  Object.values(data).forEach(mov => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${mov.id}</td>
+      <td>${formatoPrecioParaPantalla(mov.total)}</td>
+      <td>${mov.tipo}</td>
+      <td>
+        <button class="btn-ver-mov" data-id="${mov.id}">Ver</button>
+        <button class="btn-del-mov" data-id="${mov.id}">Eliminar</button>
+      </td>
+    `;
+    tablaMovimientos.appendChild(tr);
+  });
 
-    document.querySelectorAll(".btn-del-mov").forEach(btn => {
-      btn.onclick = () => requireAdminConfirm(async () => {
-        await window.remove(window.ref(window.db, `movimientos/${btn.dataset.id}`));
-      });
-    });
-    document.querySelectorAll(".btn-ver-mov").forEach(btn => {
-      btn.onclick = () => verMovimientoModal(btn.dataset.id);
+  document.querySelectorAll(".btn-del-mov").forEach(btn => {
+    btn.onclick = () => requireAdminConfirm(async () => {
+      await window.remove(window.ref(window.db, `movimientos/${btn.dataset.id}`));
     });
   });
 
-  function verMovimientoModal(id) {
-    (async () => {
-      const snap = await window.get(window.ref(window.db, `movimientos/${id}`));
-      if (!snap.exists()) return alert("Movimiento no encontrado");
-      const mov = snap.val();
-      let html = `<h3>Ticket ${mov.id}</h3>`;
-      html += `<p>${formatFechaParaHeader(mov.fecha)}</p>`;
-      html += `<p>Cajero: ${mov.cajero}</p><hr>`;
-      mov.items.forEach(it => {
-        html += `<p>${it.nombre} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
-      });
-      html += `<hr><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${mov.tipo}</p>`;
-      html += `<div style="margin-top:10px"><button id="__print_copy">Imprimir Copia</button><button id="__close_mov">Cerrar</button></div>`;
-      mostrarModal(html);
-      document.getElementById("__close_mov").onclick = cerrarModal;
-      document.getElementById("__print_copy").onclick = () => {
-        imprimirTicketMov(mov);
-      };
-    })();
-  }
+  document.querySelectorAll(".btn-ver-mov").forEach(btn => {
+    btn.onclick = () => verMovimientoModal(btn.dataset.id);
+  });
+});
 
-  // Print ticket with pagination into print-area elements.
-  function imprimirTicketMov(mov) {
-    // mov: object with items array
-    // We'll paginate by itemsPerPage depending on length. Choose conservative 20 per page.
-    const itemsPerPage = 20;
-    const items = mov.items || [];
-    const totalParts = Math.max(1, Math.ceil(items.length / itemsPerPage));
-    const printAreas = [];
-
-    for (let p = 0; p < totalParts; p++) {
-      const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
-      const header = `<div style="text-align:center"><h3>SUPERCODE</h3><p>ID:${mov.id} - Parte ${p + 1}/${totalParts} - ${formatFechaParaHeader(mov.fecha)} - Cajero:${mov.cajero}</p><hr></div>`;
-      let body = "";
-      slice.forEach(it => {
-        body += `<p>${it.nombre} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
-      });
-      const footer = `<hr><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${mov.tipo}</p><p>ID:${mov.id} - Parte ${p + 1}/${totalParts} - ${formatFechaParaHeader(mov.fecha)} - Cajero:${mov.cajero}</p>`;
-      const area = document.createElement("div");
-      area.className = "print-area";
-      area.style.width = "5cm";
-      area.innerHTML = header + body + footer;
-      printAreas.push(area);
-    }
-
-    // append all to body, print, then remove
-    printAreas.forEach(a => document.body.appendChild(a));
-    window.print();
-    printAreas.forEach(a => document.body.removeChild(a));
-  }
-
-  // Tirar Z: print summary grouped by cajero and type, then delete all movimientos
-  btnTirarZ && btnTirarZ.addEventListener("click", async () => {
-    const snap = await window.get(window.ref(window.db, "movimientos"));
-    if (!snap.exists()) return alert("No hay movimientos para tirar Z");
-    const data = Object.values(snap.val());
-    // group by cajero and type
-    const grouped = {}; // { cajero: {Efectivo: [mov], Tarjeta: [mov]} }
-    data.forEach(m => {
-      const caj = m.cajero || "N/A";
-      if (!grouped[caj]) grouped[caj] = { Efectivo: [], Tarjeta: [], otros: [] };
-      if (m.tipo === "Efectivo") grouped[caj].Efectivo.push(m);
-      else if (m.tipo === "Tarjeta") grouped[caj].Tarjeta.push(m);
-      else grouped[caj].otros.push(m);
+function verMovimientoModal(id) {
+  (async () => {
+    const snap = await window.get(window.ref(window.db, `movimientos/${id}`));
+    if (!snap.exists()) return alert("Movimiento no encontrado");
+    const mov = snap.val();
+    let html = `<h3>Ticket ${mov.id}</h3>`;
+    html += `<p>${formatFechaParaHeader(mov.fecha)}</p>`;
+    html += `<p>Cajero: ${mov.cajero}</p><hr>`;
+    mov.items.forEach(it => {
+      html += `<p>${it.nombre} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
     });
+    html += `<hr><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${mov.tipo}</p>`;
+    html += `<div style="margin-top:10px"><button id="__print_copy">Imprimir Copia</button><button id="__close_mov">Cerrar</button></div>`;
+    mostrarModal(html);
+    document.getElementById("__close_mov").onclick = cerrarModal;
+    document.getElementById("__print_copy").onclick = () => {
+      imprimirTicketMov(mov);
+    };
+  })();
+}
 
-    // build html
-    let html = `<h2>Reporte Z - ${new Date().toLocaleString()}</h2>`;
-    let grandTotal = 0;
-    Object.keys(grouped).forEach(caj => {
-      html += `<h3>Cajero: ${caj}</h3>`;
-      let totalEf = 0, totalTar = 0;
-      html += `<h4>Efectivo</h4>`;
-      grouped[caj].Efectivo.forEach(m => { html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`; totalEf += Number(m.total); });
-      html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p>`;
-      html += `<h4>Tarjeta</h4>`;
-      grouped[caj].Tarjeta.forEach(m => { html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`; totalTar += Number(m.total); });
-      html += `<p><b>Total Tarjeta Cajero: ${formatoPrecioParaPantalla(totalTar)}</b></p>`;
-      html += `<p><b>Subtotal Cajero: ${formatoPrecioParaPantalla(totalEf + totalTar)}</b></p>`;
-      grandTotal += totalEf + totalTar;
+// Print ticket with pagination into print-area elements.
+function imprimirTicketMov(mov) {
+  const itemsPerPage = 20;
+  const items = mov.items || [];
+  const totalParts = Math.max(1, Math.ceil(items.length / itemsPerPage));
+  const printAreas = [];
+
+  for (let p = 0; p < totalParts; p++) {
+    const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
+    const header = `<div style="text-align:center"><h3>SUPERCODE</h3><p>ID:${mov.id} - Parte ${p + 1}/${totalParts} - ${formatFechaParaHeader(mov.fecha)} - Cajero:${mov.cajero}</p><hr></div>`;
+    let body = "";
+    slice.forEach(it => {
+      body += `<p>${it.nombre} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
     });
-
-    html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
-
-    // empty signature tables
-    html += `<br><table border="1" style="width:100%; margin-top:20px"><tr><th>Efectivo Cobrado</th><th>Firma de Cajero</th><th>Firma de Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
-    html += `<br><table border="1" style="width:100%; margin-top:10px"><tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
-
+    const footer = `<hr><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${mov.tipo}</p><p>ID:${mov.id} - Parte ${p + 1}/${totalParts} - ${formatFechaParaHeader(mov.fecha)} - Cajero:${mov.cajero}</p>`;
     const area = document.createElement("div");
     area.className = "print-area";
-    area.style.width = "21cm"; // A4 landscape-ish so it prints okay
-    area.innerHTML = html;
-    document.body.appendChild(area);
-    window.print();
-    document.body.removeChild(area);
+    area.style.width = "5cm";
+    area.innerHTML = header + body + footer;
+    printAreas.push(area);
+  }
 
-    // delete movimientos
-    await window.set(window.ref(window.db, "movimientos"), {});
-    alert("Tirar Z completado: movimientos impresos y eliminados");
+  printAreas.forEach(a => document.body.appendChild(a));
+  window.print();
+  printAreas.forEach(a => document.body.removeChild(a));
+}
+
+// Tirar Z: print summary grouped by cajero and type, then delete movimientos
+btnTirarZ && btnTirarZ.addEventListener("click", async () => {
+  const snap = await window.get(window.ref(window.db, "movimientos"));
+  if (!snap.exists()) return alert("No hay movimientos para tirar Z");
+  let data = Object.values(snap.val());
+
+  // aplicar filtro de cajero
+  const cajeroSel = filtroCajero ? filtroCajero.value : "TODOS";
+  if (cajeroSel !== "TODOS") {
+    data = data.filter(m => (m.cajero || "N/A") === cajeroSel);
+    if (data.length === 0) return alert(`No hay movimientos para el cajero ${cajeroSel}`);
+  }
+
+  // group by cajero and type
+  const grouped = {};
+  data.forEach(m => {
+    const caj = m.cajero || "N/A";
+    if (!grouped[caj]) grouped[caj] = { Efectivo: [], Tarjeta: [], otros: [] };
+    if (m.tipo === "Efectivo") grouped[caj].Efectivo.push(m);
+    else if (m.tipo === "Tarjeta") grouped[caj].Tarjeta.push(m);
+    else grouped[caj].otros.push(m);
   });
+
+  // build html
+  let html = `<h2>Reporte Z - ${new Date().toLocaleString()}</h2>`;
+  let grandTotal = 0;
+  Object.keys(grouped).forEach(caj => {
+    html += `<h3>Cajero: ${caj}</h3>`;
+    let totalEf = 0, totalTar = 0;
+    html += `<h4>Efectivo</h4>`;
+    grouped[caj].Efectivo.forEach(m => { html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`; totalEf += Number(m.total); });
+    html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p>`;
+    html += `<h4>Tarjeta</h4>`;
+    grouped[caj].Tarjeta.forEach(m => { html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`; totalTar += Number(m.total); });
+    html += `<p><b>Total Tarjeta Cajero: ${formatoPrecioParaPantalla(totalTar)}</b></p>`;
+    html += `<p><b>Subtotal Cajero: ${formatoPrecioParaPantalla(totalEf + totalTar)}</b></p>`;
+    grandTotal += totalEf + totalTar;
+  });
+
+  html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
+
+  // signature tables
+  html += `<br><table border="1" style="width:100%; margin-top:20px"><tr><th>Efectivo Cobrado</th><th>Firma de Cajero</th><th>Firma de Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
+  html += `<br><table border="1" style="width:100%; margin-top:10px"><tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
+
+  const area = document.createElement("div");
+  area.className = "print-area";
+  area.style.width = "21cm";
+  area.innerHTML = html;
+  document.body.appendChild(area);
+  window.print();
+  document.body.removeChild(area);
+
+  // delete movimientos
+  await window.set(window.ref(window.db, "movimientos"), {});
+  alert("Tirar Z completado: movimientos impresos y eliminados");
+});
 
   // -----------------------
   // CONFIG
