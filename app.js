@@ -667,12 +667,36 @@
     printAreas.forEach(a => document.body.removeChild(a));
   }
 
-  // -----------------------
-  // TIRAR Z (por cajero o TODOS)
-  // -----------------------
-  if (btnTirarZ) {
-    btnTirarZ.addEventListener("click", async () => {
-      // get full movimientos snapshot
+// -----------------------
+// TIRAR Z (por cajero o TODOS)
+// -----------------------
+if (btnTirarZ) {
+  btnTirarZ.addEventListener("click", async () => {
+    // Abrir modal para pedir pass admin
+    mostrarModal(`
+      <h3>Confirmar Tirar Z</h3>
+      <p>Ingrese contraseña de administrador:</p>
+      <input id="z-pass" type="password" style="width:100%; margin:10px 0; padding:6px">
+      <div style="text-align:right">
+        <button id="z-cancel">Cancelar</button>
+        <button id="z-ok">Aceptar</button>
+      </div>
+    `);
+
+    document.getElementById("z-cancel").onclick = cerrarModal;
+    document.getElementById("z-ok").onclick = async () => {
+      const inputPass = document.getElementById("z-pass").value.trim();
+      const snapConfig = await window.get(window.ref(window.db, "config"));
+      const config = snapConfig.exists() ? snapConfig.val() : {};
+      const adminPass = config.passAdmin || "1234"; // por defecto
+
+      if (inputPass !== adminPass) {
+        alert("Contraseña incorrecta");
+        return;
+      }
+      cerrarModal();
+
+      // === Tirar Z real ===
       const snap = await window.get(window.ref(window.db, "movimientos"));
       if (!snap.exists()) return alert("No hay movimientos para tirar Z");
       const allMovArr = Object.values(snap.val());
@@ -694,25 +718,29 @@
         else grouped[caj].otros.push(m);
       });
 
-      // build html
       let html = `<h2>Reporte Z - ${new Date().toLocaleString()}</h2>`;
       let grandTotal = 0;
       Object.keys(grouped).forEach(caj => {
-        html += `<h3>Cajero: ${escapeHtml(caj)}</h3>`;
+        html += `<h3>Cajero: ${caj}</h3>`;
         let totalEf = 0, totalTar = 0;
         html += `<h4>Efectivo</h4>`;
-        grouped[caj].Efectivo.forEach(m => { html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`; totalEf += Number(m.total); });
+        grouped[caj].Efectivo.forEach(m => { 
+          html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
+          totalEf += Number(m.total); 
+        });
         html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p>`;
         html += `<h4>Tarjeta</h4>`;
-        grouped[caj].Tarjeta.forEach(m => { html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`; totalTar += Number(m.total); });
+        grouped[caj].Tarjeta.forEach(m => { 
+          html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
+          totalTar += Number(m.total); 
+        });
         html += `<p><b>Total Tarjeta Cajero: ${formatoPrecioParaPantalla(totalTar)}</b></p>`;
         html += `<p><b>Subtotal Cajero: ${formatoPrecioParaPantalla(totalEf + totalTar)}</b></p>`;
         grandTotal += totalEf + totalTar;
       });
-      html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
 
-      // signature tables
-      html += `<br><table border="1" style="width:100%; margin-top:20px"><tr><th>Efectivo Cobrado</th><th>Firma de Cajero</th><th>Firma de Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
+      html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
+      html += `<br><table border="1" style="width:100%; margin-top:20px"><tr><th>Efectivo Cobrado</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
       html += `<br><table border="1" style="width:100%; margin-top:10px"><tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
 
       const area = document.createElement("div");
@@ -723,25 +751,20 @@
       window.print();
       document.body.removeChild(area);
 
-      // borrar movimientos: si TODOS => borrar todo, si cajero específico => borrar solo los movimientos de ese cajero
+      // borrar movimientos
       if (cajSel === "TODOS") {
         await window.set(window.ref(window.db, "movimientos"), {});
       } else {
-        // build updates object with keys to null
-        const snapAll = await window.get(window.ref(window.db, "movimientos"));
-        if (snapAll.exists()) {
-          const all = snapAll.val();
-          const updates = {};
-          Object.values(all).forEach(m => {
-            if ((m.cajero || "") === cajSel) updates[m.id] = null;
-          });
-          if (Object.keys(updates).length) await window.update(window.ref(window.db, "movimientos"), updates);
-        }
+        const updates = {};
+        Object.values(snap.val()).forEach(m => {
+          if ((m.cajero || "") === cajSel) updates[m.id] = null;
+        });
+        await window.update(window.ref(window.db, "movimientos"), updates);
       }
-
       alert(`Tirar Z completado para ${cajSel}`);
-    });
-  }
+    };
+  });
+}
 
   // -----------------------
   // CONFIG
