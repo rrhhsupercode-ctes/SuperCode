@@ -17,7 +17,6 @@
       <button class="nav-btn" data-section="movimientos">Movimientos</button>
       <button class="nav-btn" data-section="stock">Stock</button>
       <button class="nav-btn" data-section="cajeros">Cajeros</button>
-      <button class="nav-btn" data-section="historial">Historial</button>
       <button class="nav-btn" data-section="config">Config</button>
     </nav>
   </header>
@@ -63,23 +62,6 @@
         <thead>
           <tr>
             <th>ID</th><th>Total</th><th>Tipo</th><th>Acción</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-
-    <!-- HISTORIAL -->
-    <section id="historial" class="hidden">
-      <h2>Historial (últimos 60 días)</h2>
-      <table id="tabla-historial">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Total</th>
-            <th>Tipo</th>
-            <th>Fecha</th>
-            <th>Acción</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -159,7 +141,6 @@
     window.remove = ref => ref.remove();
     window.onValue = (ref, cb) => ref.on("value", cb);
   </script>
-  <script src="init.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
