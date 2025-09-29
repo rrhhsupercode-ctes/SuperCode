@@ -1,146 +1,203 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <title>SuperCode POS</title>
-  <link rel="stylesheet" href="styles.css">
+// -----------------------
+// VARIABLES GLOBALES
+// -----------------------
+const tablaMovimientos = document.querySelector("#tabla-movimientos tbody");
+const filtroCajero = document.getElementById("filtroCajero");
+const btnTirarZ = document.getElementById("btn-tirar-z");
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-</head>
-<body>
-  <header>
-    <h1 id="app-title">SUPERCODE</h1>
-    <nav>
-      <button class="nav-btn" data-section="cobro">Cobrar</button>
-      <button class="nav-btn" data-section="movimientos">Movimientos</button>
-      <button class="nav-btn" data-section="stock">Stock</button>
-      <button class="nav-btn" data-section="cajeros">Cajeros</button>
-      <button class="nav-btn" data-section="config">Config</button>
-    </nav>
-  </header>
+// -----------------------
+// FORMATEOS
+// -----------------------
+function formatoPrecioParaPantalla(v) {
+  return "$" + Number(v).toFixed(2);
+}
+function formatFechaParaHeader(ts) {
+  return new Date(ts).toLocaleString();
+}
 
-  <main>
-    <!-- COBRAR -->
-    <section id="cobro">
-      <div id="login-modal">
-        <h2>Login Cajero</h2>
-        <select id="login-usuario"></select>
-        <input id="login-pass" type="password" placeholder="Contraseña">
-        <button id="btn-login">Entrar</button>
-        <p id="login-msg"></p>
-      </div>
+// -----------------------
+// LLENAR SELECT DE CAJEROS
+// -----------------------
+window.onValue(window.ref(window.db, "cajeros"), snap => {
+  filtroCajero.innerHTML = `<option value="TODOS">TODOS</option>`;
+  if (!snap.exists()) return;
+  const data = snap.val();
+  Object.values(data).forEach(c => {
+    const opt = document.createElement("option");
+    opt.value = c.nro;
+    opt.textContent = `${c.nro} - ${c.nombre}`;
+    filtroCajero.appendChild(opt);
+  });
+});
 
-      <div id="cobro-controles" class="hidden">
-        <select id="cobro-cantidad"></select>
-        <input id="cobro-codigo" placeholder="Código producto">
-        <table id="tabla-cobro">
-          <thead>
-            <tr>
-              <th>Cant</th><th>Producto</th><th>Precio Unidad</th><th>Total</th><th>Acción</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <div id="total-div">TOTAL: $0</div>
-        <button id="btn-cobrar" class="hidden">Cobrar</button>
-      </div>
-    </section>
+// -----------------------
+// MOVIMIENTOS
+// -----------------------
+window.onValue(window.ref(window.db, "movimientos"), snap => {
+  renderMovimientos(snap);
+});
+filtroCajero.addEventListener("change", async () => {
+  const snap = await window.get(window.ref(window.db, "movimientos"));
+  renderMovimientos(snap);
+});
 
-    <!-- MOVIMIENTOS -->
-    <section id="movimientos" class="hidden">
-      <h2>Movimientos</h2>
+function renderMovimientos(snap) {
+  tablaMovimientos.innerHTML = "";
+  if (!snap.exists()) return;
+  let data = Object.values(snap.val());
 
-      <label for="filtroCajero">Nro Cajero:</label>
-      <select id="filtroCajero">
-        <option value="TODOS">TODOS</option>
-      </select>
-      
-      <button id="btn-tirar-z">Tirar Z</button>
-      <table id="tabla-movimientos">
-        <thead>
-          <tr>
-            <th>ID</th><th>Total</th><th>Tipo</th><th>Acción</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+  const cajSel = filtroCajero.value;
+  if (cajSel !== "TODOS") {
+    data = data.filter(m => (m.cajero || "N/A") == cajSel);
+  }
 
-    <!-- STOCK -->
-    <section id="stock" class="hidden">
-      <h2>Stock</h2>
-      <input id="stock-codigo" placeholder="Código producto">
-      <select id="stock-cantidad"></select>
-      <button id="agregar-stock">Agregar Stock</button>
-      <table id="tabla-stock">
-        <thead>
-          <tr>
-            <th>Código</th><th>Nombre</th><th>Cant</th><th>Fecha</th><th>Precio</th><th>Acción</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+  data.forEach(mov => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${mov.id}</td>
+      <td>${formatoPrecioParaPantalla(mov.total)}</td>
+      <td>${mov.tipo}</td>
+      <td>
+        <button class="btn-ver-mov" data-id="${mov.id}">Ver</button>
+        <button class="btn-del-mov" data-id="${mov.id}">Eliminar</button>
+      </td>
+    `;
+    tablaMovimientos.appendChild(tr);
+  });
 
-    <!-- CAJEROS -->
-    <section id="cajeros" class="hidden">
-      <h2>Cajeros</h2>
-      <select id="cajero-nro"></select>
-      <input id="cajero-nombre" placeholder="Nombre">
-      <input id="cajero-dni" placeholder="DNI">
-      <input id="cajero-pass" type="password" placeholder="Contraseña">
-      <button id="agregar-cajero">Agregar Cajero</button>
-      <table id="tabla-cajeros">
-        <thead>
-          <tr>
-            <th>Nro</th><th>Nombre</th><th>DNI</th><th>Acción</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+  document.querySelectorAll(".btn-del-mov").forEach(btn => {
+    btn.onclick = () => requireAdminConfirm(async () => {
+      await window.remove(window.ref(window.db, `movimientos/${btn.dataset.id}`));
+    });
+  });
 
-    <!-- CONFIG -->
-    <section id="config" class="hidden">
-      <h2>Configuración</h2>
-      <input id="config-nombre" placeholder="Nombre Tienda">
-      <div id="admin-pass-config">
-        <input id="config-pass-actual" type="password" placeholder="Contraseña actual">
-        <input id="config-pass-nueva" type="password" placeholder="Nueva contraseña">
-      </div>
-      <button id="guardar-config">Guardar</button>
-      <p id="config-msg"></p>
-      <input id="master-pass" placeholder="Master Pass">
-      <button id="btn-restaurar">Restaurar Pass</button>
-    </section>
-  </main>
+  document.querySelectorAll(".btn-ver-mov").forEach(btn => {
+    btn.onclick = () => verMovimientoModal(btn.dataset.id);
+  });
+}
 
-  <!-- Modales reutilizables -->
-  <div id="modal-overlay" class="modal hidden"></div>
-
-  <!-- Scripts -->
-  <script>
-    const firebaseConfig = {
-      apiKey: "YOUR-API-KEY",
-      authDomain: "supercode-ctes.firebaseapp.com",
-      databaseURL: "https://supercode-ctes-default-rtdb.firebaseio.com",
-      projectId: "supercode-ctes",
-      storageBucket: "supercode-ctes.appspot.com",
-      messagingSenderId: "000000000",
-      appId: "1:000000000:web:xxxx"
+function verMovimientoModal(id) {
+  (async () => {
+    const snap = await window.get(window.ref(window.db, `movimientos/${id}`));
+    if (!snap.exists()) return alert("Movimiento no encontrado");
+    const mov = snap.val();
+    let html = `<h3>Ticket ${mov.id}</h3>`;
+    html += `<p>${formatFechaParaHeader(mov.fecha)}</p>`;
+    html += `<p>Cajero: ${mov.cajero}</p><hr>`;
+    mov.items.forEach(it => {
+      html += `<p>${it.nombre} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
+    });
+    html += `<hr><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${mov.tipo}</p>`;
+    html += `<div style="margin-top:10px"><button id="__print_copy">Imprimir Copia</button><button id="__close_mov">Cerrar</button></div>`;
+    mostrarModal(html);
+    document.getElementById("__close_mov").onclick = cerrarModal;
+    document.getElementById("__print_copy").onclick = () => {
+      imprimirTicketMov(mov);
     };
-    const app = firebase.initializeApp(firebaseConfig);
-    window.db = firebase.database();
-    window.ref = (db, path) => db.ref(path);
-    window.get = async ref => (await ref.get());
-    window.set = async (ref, val) => ref.set(val);
-    window.update = async (ref, val) => ref.update(val);
-    window.push = ref => ref.push();
-    window.remove = ref => ref.remove();
-    window.onValue = (ref, cb) => ref.on("value", cb);
-  </script>
-  <script src="app.js"></script>
-</body>
-</html>
+  })();
+}
+
+function imprimirTicketMov(mov) {
+  const itemsPerPage = 20;
+  const items = mov.items || [];
+  const totalParts = Math.max(1, Math.ceil(items.length / itemsPerPage));
+  const printAreas = [];
+
+  for (let p = 0; p < totalParts; p++) {
+    const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
+    const header = `<div style="text-align:center"><h3>SUPERCODE</h3><p>ID:${mov.id} - Parte ${p + 1}/${totalParts} - ${formatFechaParaHeader(mov.fecha)} - Cajero:${mov.cajero}</p><hr></div>`;
+    let body = "";
+    slice.forEach(it => {
+      body += `<p>${it.nombre} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
+    });
+    const footer = `<hr><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${mov.tipo}</p><p>ID:${mov.id} - Parte ${p + 1}/${totalParts} - ${formatFechaParaHeader(mov.fecha)} - Cajero:${mov.cajero}</p>`;
+    const area = document.createElement("div");
+    area.className = "print-area";
+    area.style.width = "5cm";
+    area.innerHTML = header + body + footer;
+    printAreas.push(area);
+  }
+
+  printAreas.forEach(a => document.body.appendChild(a));
+  window.print();
+  printAreas.forEach(a => document.body.removeChild(a));
+}
+
+// -----------------------
+// TIRAR Z (POR CAJERO O TODOS)
+// -----------------------
+btnTirarZ && btnTirarZ.addEventListener("click", async () => {
+  const snap = await window.get(window.ref(window.db, "movimientos"));
+  if (!snap.exists()) return alert("No hay movimientos para tirar Z");
+  let data = Object.values(snap.val());
+
+  const cajSel = filtroCajero.value || "TODOS";
+  if (cajSel !== "TODOS") {
+    data = data.filter(m => (m.cajero || "N/A") === cajSel);
+    if (data.length === 0) return alert(`No hay movimientos para el cajero ${cajSel}`);
+  }
+
+  // group by cajero y tipo
+  const grouped = {};
+  data.forEach(m => {
+    const caj = m.cajero || "N/A";
+    if (!grouped[caj]) grouped[caj] = { Efectivo: [], Tarjeta: [], otros: [] };
+    if (m.tipo === "Efectivo") grouped[caj].Efectivo.push(m);
+    else if (m.tipo === "Tarjeta") grouped[caj].Tarjeta.push(m);
+    else grouped[caj].otros.push(m);
+  });
+
+  let html = `<h2>Reporte Z - ${new Date().toLocaleString()}</h2>`;
+  let grandTotal = 0;
+  Object.keys(grouped).forEach(caj => {
+    html += `<h3>Cajero: ${caj}</h3>`;
+    let totalEf = 0, totalTar = 0;
+    html += `<h4>Efectivo</h4>`;
+    grouped[caj].Efectivo.forEach(m => { html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`; totalEf += Number(m.total); });
+    html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p>`;
+    html += `<h4>Tarjeta</h4>`;
+    grouped[caj].Tarjeta.forEach(m => { html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`; totalTar += Number(m.total); });
+    html += `<p><b>Total Tarjeta Cajero: ${formatoPrecioParaPantalla(totalTar)}</b></p>`;
+    html += `<p><b>Subtotal Cajero: ${formatoPrecioParaPantalla(totalEf + totalTar)}</b></p>`;
+    grandTotal += totalEf + totalTar;
+  });
+
+  html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
+  html += `<br><table border="1" style="width:100%; margin-top:20px"><tr><th>Efectivo Cobrado</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
+  html += `<br><table border="1" style="width:100%; margin-top:10px"><tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
+
+  const area = document.createElement("div");
+  area.className = "print-area";
+  area.style.width = "21cm";
+  area.innerHTML = html;
+  document.body.appendChild(area);
+  window.print();
+  document.body.removeChild(area);
+
+  // Borrar movimientos del cajero seleccionado
+  if (cajSel === "TODOS") {
+    await window.set(window.ref(window.db, "movimientos"), {});
+  } else {
+    const updates = {};
+    Object.values(snap.val()).forEach(m => {
+      if ((m.cajero || "N/A") === cajSel) updates[m.id] = null;
+    });
+    await window.update(window.ref(window.db, "movimientos"), updates);
+  }
+  alert(`Tirar Z completado para ${cajSel}`);
+});
+
+// -----------------------
+// FUNCIONES DE MODAL
+// -----------------------
+function mostrarModal(html) {
+  const overlay = document.getElementById("modal-overlay");
+  overlay.innerHTML = html;
+  overlay.classList.remove("hidden");
+}
+function cerrarModal() {
+  document.getElementById("modal-overlay").classList.add("hidden");
+}
+function requireAdminConfirm(cb) {
+  if (confirm("¿Seguro que quieres eliminar?")) cb();
+}
