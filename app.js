@@ -105,7 +105,7 @@
   // Modal helpers (modalOverlay must exist)
   function mostrarModal(html) {
     if (!modalOverlay) return alert("Modal no disponible");
-    modalOverlay.innerHTML = html;
+    modalOverlay.innerHTML = `<div class="modal">${html}</div>`;
     modalOverlay.classList.remove("hidden");
   }
   function cerrarModal() {
@@ -207,7 +207,7 @@
         cajeroNroSelect.appendChild(o);
       }
     }
-    // loginUsuario 01..99 (IMPORTANT: fixed to be numeric IDs, not names)
+    // loginUsuario 01..99 (IMPORTANT: numeric IDs)
     if (loginUsuario) {
       loginUsuario.innerHTML = "";
       for (let i = 1; i <= 99; i++) {
