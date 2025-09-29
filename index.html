@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>SuperCode POS</title>
   <link rel="stylesheet" href="styles.css">
+
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -35,7 +36,11 @@
         <select id="cobro-cantidad"></select>
         <input id="cobro-codigo" placeholder="Código producto">
         <table id="tabla-cobro">
-          <thead><tr><th>Cant</th><th>Producto</th><th>Precio</th><th>Acción</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Cant</th><th>Producto</th><th>Precio</th><th>Acción</th>
+            </tr>
+          </thead>
           <tbody></tbody>
         </table>
         <div id="total-div">TOTAL: $0</div>
@@ -48,7 +53,11 @@
       <h2>Movimientos</h2>
       <button id="btn-tirar-z">Tirar Z</button>
       <table id="tabla-movimientos">
-        <thead><tr><th>ID</th><th>Total</th><th>Tipo</th><th>Acción</th><th>Ver</th></tr></thead>
+        <thead>
+          <tr>
+            <th>ID</th><th>Total</th><th>Tipo</th><th>Acción</th><th>Ver</th>
+          </tr>
+        </thead>
         <tbody></tbody>
       </table>
     </section>
@@ -75,11 +84,13 @@
       <select id="cajero-nro"></select>
       <input id="cajero-nombre" placeholder="Nombre">
       <input id="cajero-dni" placeholder="DNI">
-      <input id="cajero-pass" placeholder="Contraseña">
+      <input id="cajero-pass" type="password" placeholder="Contraseña">
       <button id="agregar-cajero">Agregar Cajero</button>
       <table id="tabla-cajeros">
         <thead>
-          <tr><th>Nro</th><th>Nombre</th><th>DNI</th><th>Acción</th></tr>
+          <tr>
+            <th>Nro</th><th>Nombre</th><th>DNI</th><th>Acción</th>
+          </tr>
         </thead>
         <tbody></tbody>
       </table>
@@ -126,7 +137,6 @@
     window.onValue = (ref, cb) => ref.on("value", cb);
   </script>
   <script src="init.js"></script>
-  <script src="app-1.js"></script>
-  <script src="app-2.js"></script>
+  <script src="app.js"></script> <!-- ✅ único archivo JS -->
 </body>
 </html>
