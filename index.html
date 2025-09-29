@@ -3,144 +3,151 @@
 <head>
   <meta charset="UTF-8">
   <title>SuperCode POS</title>
-  <link rel="stylesheet" href="styles.css">
-
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; margin:0; padding:0; }
+    header { background:#222; color:#fff; padding:10px; text-align:center; }
+    nav { background:#eee; padding:5px; }
+    nav button { margin:5px; }
+    main { padding:10px; }
+    section { display:none; }
+    section:not(.hidden) { display:block; }
+    table { border-collapse:collapse; width:100%; margin-top:10px; }
+    th, td { border:1px solid #ccc; padding:6px; text-align:left; }
+    .hidden { display:none; }
+    #modal-overlay { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; }
+    .modal-content { background:#fff; padding:20px; border-radius:6px; min-width:300px; }
+  </style>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
 <body>
   <header>
-    <h1 id="app-title">SUPERCODE</h1>
-    <nav>
-      <button class="nav-btn" data-section="cobro">Cobrar</button>
-      <button class="nav-btn" data-section="movimientos">Movimientos</button>
-      <button class="nav-btn" data-section="stock">Stock</button>
-      <button class="nav-btn" data-section="cajeros">Cajeros</button>
-      <button class="nav-btn" data-section="config">Config</button>
-    </nav>
+    <h1>SuperCode POS</h1>
   </header>
 
-  <main>
-    <!-- COBRAR -->
-    <section id="cobro">
-      <div id="login-modal">
-        <h2>Login Cajero</h2>
-        <select id="login-usuario"></select>
-        <input id="login-pass" type="password" placeholder="Contraseña">
-        <button id="btn-login">Entrar</button>
-        <p id="login-msg"></p>
-      </div>
+  <nav>
+    <button class="nav-btn" data-section="sec-cobro">Cobro</button>
+    <button class="nav-btn" data-section="sec-stock">Stock</button>
+    <button class="nav-btn" data-section="sec-cajeros">Cajeros</button>
+    <button class="nav-btn" data-section="sec-movimientos">Movimientos</button>
+    <button class="nav-btn" data-section="sec-config">Configuración</button>
+  </nav>
 
+  <main>
+    <!-- COBRO -->
+    <section id="sec-cobro">
+      <h2>Cobro</h2>
       <div id="cobro-controles" class="hidden">
+        <label>Cantidad</label>
         <select id="cobro-cantidad"></select>
-        <input id="cobro-codigo" placeholder="Código producto">
+        <label>Código</label>
+        <input id="cobro-codigo" placeholder="Código de barras">
         <table id="tabla-cobro">
           <thead>
-            <tr>
-              <th>Cant</th><th>Producto</th><th>Precio Unidad</th><th>Total</th><th>Acción</th>
-            </tr>
+            <tr><th>Cant</th><th>Producto</th><th>Precio</th><th>Subtotal</th><th></th></tr>
           </thead>
           <tbody></tbody>
         </table>
-        <div id="total-div">TOTAL: $0</div>
+        <div id="total-div">TOTAL: $0.00</div>
         <button id="btn-cobrar" class="hidden">Cobrar</button>
       </div>
     </section>
 
-    <!-- MOVIMIENTOS -->
-    <section id="movimientos" class="hidden">
-      <h2>Movimientos</h2>
-
-      <label for="filtroCajero">Nro Cajero:</label>
-      <select id="filtroCajero">
-        <option value="TODOS">TODOS</option>
-      </select>
-      
-      <button id="btn-tirar-z">Tirar Z</button>
-      <table id="tabla-movimientos">
-        <thead>
-          <tr>
-            <th>ID</th><th>Total</th><th>Tipo</th><th>Acción</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
-
     <!-- STOCK -->
-    <section id="stock" class="hidden">
+    <section id="sec-stock" class="hidden">
       <h2>Stock</h2>
-      <input id="stock-codigo" placeholder="Código producto">
-      <select id="stock-cantidad"></select>
-      <button id="agregar-stock">Agregar Stock</button>
+      <label>Código</label><input id="stock-codigo">
+      <label>Cantidad</label><select id="stock-cantidad"></select>
+      <button id="agregar-stock">Agregar</button>
       <table id="tabla-stock">
         <thead>
-          <tr>
-            <th>Código</th><th>Nombre</th><th>Cant</th><th>Fecha</th><th>Precio</th><th>Acción</th>
-          </tr>
+          <tr><th>Código</th><th>Nombre</th><th>Precio</th><th>Cantidad</th><th>Acción</th></tr>
         </thead>
         <tbody></tbody>
       </table>
     </section>
 
     <!-- CAJEROS -->
-    <section id="cajeros" class="hidden">
+    <section id="sec-cajeros" class="hidden">
       <h2>Cajeros</h2>
-      <select id="cajero-nro"></select>
-      <input id="cajero-nombre" placeholder="Nombre">
-      <input id="cajero-dni" placeholder="DNI">
-      <input id="cajero-pass" type="password" placeholder="Contraseña">
-      <button id="agregar-cajero">Agregar Cajero</button>
+      <label>Número</label><input id="cajero-nro">
+      <label>Nombre</label><input id="cajero-nombre">
+      <label>DNI</label><input id="cajero-dni">
+      <label>Pass</label><input id="cajero-pass" type="password">
+      <button id="agregar-cajero">Agregar</button>
       <table id="tabla-cajeros">
         <thead>
-          <tr>
-            <th>Nro</th><th>Nombre</th><th>DNI</th><th>Acción</th>
-          </tr>
+          <tr><th>Nro</th><th>Nombre</th><th>DNI</th><th>Acción</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- MOVIMIENTOS -->
+    <section id="sec-movimientos" class="hidden">
+      <h2>Movimientos</h2>
+      <label>Filtrar por cajero</label>
+      <select id="filtroCajero"><option value="TODOS">TODOS</option></select>
+      <button id="btn-tirar-z">Tirar Z</button>
+      <table id="tabla-movimientos">
+        <thead>
+          <tr><th>Fecha</th><th>Cajero</th><th>Total</th><th>Medio</th></tr>
         </thead>
         <tbody></tbody>
       </table>
     </section>
 
     <!-- CONFIG -->
-    <section id="config" class="hidden">
+    <section id="sec-config" class="hidden">
       <h2>Configuración</h2>
-      <input id="config-nombre" placeholder="Nombre Tienda">
-      <div id="admin-pass-config">
-        <input id="config-pass-actual" type="password" placeholder="Contraseña actual">
-        <input id="config-pass-nueva" type="password" placeholder="Nueva contraseña">
-      
+      <label>Nombre Comercio</label><input id="config-nombre">
+      <label>Pass actual</label><input id="config-pass-actual" type="password">
+      <label>Pass nueva</label><input id="config-pass-nueva" type="password">
       <button id="guardar-config">Guardar</button>
-      <p id="config-msg"></p></div>
-      <input id="master-pass" placeholder="Contraseña Maestra">
-      <button id="btn-restaurar">Restaurar Contraseña</button>
+      <div id="config-msg"></div>
+      <h3>Restaurar</h3>
+      <label>Master Pass</label><input id="master-pass" type="password">
+      <button id="btn-restaurar">Restaurar</button>
     </section>
   </main>
 
-  <!-- Modales reutilizables -->
-  <div id="modal-overlay" class="modal hidden"></div>
+  <!-- MODALES -->
+  <div id="modal-overlay" class="hidden"></div>
 
-  <!-- Scripts -->
+  <!-- Login -->
+  <div id="login-modal">
+    <h3>Login Cajero</h3>
+    <label>Nro</label><select id="login-usuario"></select>
+    <label>Pass</label><input id="login-pass" type="password">
+    <button id="btn-login">Ingresar</button>
+    <div id="login-msg"></div>
+  </div>
+
+  <!-- Inicialización Firebase y lógica -->
   <script>
     const firebaseConfig = {
-      apiKey: "YOUR-API-KEY",
-      authDomain: "supercode-ctes.firebaseapp.com",
-      databaseURL: "https://supercode-ctes-default-rtdb.firebaseio.com",
-      projectId: "supercode-ctes",
-      storageBucket: "supercode-ctes.appspot.com",
-      messagingSenderId: "000000000",
-      appId: "1:000000000:web:xxxx"
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_PROJECT.firebaseapp.com",
+      databaseURL: "https://TU_PROJECT.firebaseio.com",
+      projectId: "TU_PROJECT",
+      storageBucket: "TU_PROJECT.appspot.com",
+      messagingSenderId: "123456789",
+      appId: "1:123456789:web:abcdef"
     };
     const app = firebase.initializeApp(firebaseConfig);
-    window.db = firebase.database();
-    window.ref = (db, path) => db.ref(path);
-    window.get = async ref => (await ref.get());
-    window.set = async (ref, val) => ref.set(val);
-    window.update = async (ref, val) => ref.update(val);
-    window.push = ref => ref.push();
-    window.remove = ref => ref.remove();
-    window.onValue = (ref, cb) => ref.on("value", cb);
+    const db = firebase.database();
+
+    window.db = db;
+    window.ref = (d, path) => d.ref(path);
+    window.get = async (r) => await r.get();
+    window.set = async (r, v) => await r.set(v);
+    window.update = async (r, v) => await r.update(v);
+    window.remove = async (r) => await r.remove();
+    window.onValue = (r, cb) => r.on("value", cb);
   </script>
+
+  <script src="init.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
