@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <title>SuperCode POS</title>
   <link rel="stylesheet" href="styles.css">
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
   <header>
@@ -106,9 +110,8 @@
         <input id="config-pass-actual" type="password" placeholder="Contraseña actual">
         <input id="config-pass-nueva" type="password" placeholder="Nueva contraseña">
       
-        <button id="guardar-config">Guardar</button>
-        <p id="config-msg"></p>
-      </div>
+      <button id="guardar-config">Guardar</button>
+      <p id="config-msg"></p></div>
       <input id="master-pass" placeholder="Contraseña Maestra">
       <button id="btn-restaurar">Restaurar Contraseña</button>
     </section>
@@ -118,7 +121,26 @@
   <div id="modal-overlay" class="modal hidden"></div>
 
   <!-- Scripts -->
-  <script type="module" src="init.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "YOUR-API-KEY",
+      authDomain: "supercode-ctes.firebaseapp.com",
+      databaseURL: "https://supercode-ctes-default-rtdb.firebaseio.com",
+      projectId: "supercode-ctes",
+      storageBucket: "supercode-ctes.appspot.com",
+      messagingSenderId: "000000000",
+      appId: "1:000000000:web:xxxx"
+    };
+    const app = firebase.initializeApp(firebaseConfig);
+    window.db = firebase.database();
+    window.ref = (db, path) => db.ref(path);
+    window.get = async ref => (await ref.get());
+    window.set = async (ref, val) => ref.set(val);
+    window.update = async (ref, val) => ref.update(val);
+    window.push = ref => ref.push();
+    window.remove = ref => ref.remove();
+    window.onValue = (ref, cb) => ref.on("value", cb);
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
