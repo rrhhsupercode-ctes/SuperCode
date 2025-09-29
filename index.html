@@ -5,9 +5,38 @@
   <title>SuperCode POS</title>
   <link rel="stylesheet" href="styles.css">
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <!-- Firebase SDK modular -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { 
+      getDatabase, ref, get, set, update, remove, onValue, push 
+    } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+    // Tu configuración EXACTA
+    const firebaseConfig = {
+      apiKey: "AIzaSyAzbtibp4-myG8SNY6Irrb7-nuoyP1535g",
+      authDomain: "supercode-ctes.firebaseapp.com",
+      databaseURL: "https://supercode-ctes-default-rtdb.firebaseio.com",
+      projectId: "supercode-ctes",
+      storageBucket: "supercode-ctes.firebasestorage.app",
+      messagingSenderId: "1034642261455",
+      appId: "1:1034642261455:web:f60232b259997fd0e5feba"
+    };
+
+    // Inicializar Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // Exponer funciones a window para que app.js siga funcionando sin cambios
+    window.db = db;
+    window.ref = (db, path) => ref(db, path);
+    window.get = async (r) => await get(r);
+    window.set = async (r, v) => await set(r, v);
+    window.update = async (r, v) => await update(r, v);
+    window.remove = async (r) => await remove(r);
+    window.onValue = (r, cb) => onValue(r, cb);
+    window.push = (r) => push(r);
+  </script>
 </head>
 <body>
   <header>
@@ -51,12 +80,10 @@
     <!-- MOVIMIENTOS -->
     <section id="movimientos" class="hidden">
       <h2>Movimientos</h2>
-
       <label for="filtroCajero">Nro Cajero:</label>
       <select id="filtroCajero">
         <option value="TODOS">TODOS</option>
       </select>
-      
       <button id="btn-tirar-z">Tirar Z</button>
       <table id="tabla-movimientos">
         <thead>
@@ -109,38 +136,19 @@
       <div id="admin-pass-config">
         <input id="config-pass-actual" type="password" placeholder="Contraseña actual">
         <input id="config-pass-nueva" type="password" placeholder="Nueva contraseña">
-      
-      <button id="guardar-config">Guardar</button>
-      <p id="config-msg"></p></div>
+        <button id="guardar-config">Guardar</button>
+        <p id="config-msg"></p>
+      </div>
       <input id="master-pass" placeholder="Contraseña Maestra">
       <button id="btn-restaurar">Restaurar Contraseña</button>
     </section>
   </main>
 
-  <!-- Modales reutilizables -->
+  <!-- Modales -->
   <div id="modal-overlay" class="modal hidden"></div>
 
-  <!-- Scripts -->
-  <script>
-    const firebaseConfig = {
-      apiKey: "YOUR-API-KEY",
-      authDomain: "supercode-ctes.firebaseapp.com",
-      databaseURL: "https://supercode-ctes-default-rtdb.firebaseio.com",
-      projectId: "supercode-ctes",
-      storageBucket: "supercode-ctes.appspot.com",
-      messagingSenderId: "000000000",
-      appId: "1:000000000:web:xxxx"
-    };
-    const app = firebase.initializeApp(firebaseConfig);
-    window.db = firebase.database();
-    window.ref = (db, path) => db.ref(path);
-    window.get = async ref => (await ref.get());
-    window.set = async (ref, val) => ref.set(val);
-    window.update = async (ref, val) => ref.update(val);
-    window.push = ref => ref.push();
-    window.remove = ref => ref.remove();
-    window.onValue = (ref, cb) => ref.on("value", cb);
-  </script>
+  <!-- Lógica de la app -->
+  <script src="init.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
