@@ -550,14 +550,55 @@
     })();
   }
 
-  // -----------------------
+// -----------------------
 // MOVIMIENTOS
 // -----------------------
+const tablaMovimientos = document.querySelector("#tabla-movimientos tbody");
+const filtroCajero = document.getElementById("filtro-cajero");
+let movimientosCache = {};
+
+// === CARGAR SELECT CON CAJEROS DESDE FIREBASE ===
+if (filtroCajero) {
+  filtroCajero.innerHTML = `<option value="TODOS">TODOS</option>`;
+  window.onValue(window.ref(window.db, "cajeros"), snap => {
+    filtroCajero.innerHTML = `<option value="TODOS">TODOS</option>`;
+    if (!snap.exists()) return;
+    const cajeros = snap.val();
+    Object.values(cajeros).forEach(c => {
+      const opt = document.createElement("option");
+      opt.value = c.nro;
+      opt.textContent = `${c.nro} - ${c.nombre}`;
+      filtroCajero.appendChild(opt);
+    });
+  });
+}
+
+// === ESCUCHAR MOVIMIENTOS ===
 window.onValue(window.ref(window.db, "movimientos"), snap => {
+  if (!snap.exists()) {
+    movimientosCache = {};
+    renderMovimientos("TODOS");
+    return;
+  }
+  movimientosCache = snap.val();
+  const filtro = filtroCajero ? filtroCajero.value : "TODOS";
+  renderMovimientos(filtro);
+});
+
+if (filtroCajero) {
+  filtroCajero.addEventListener("change", () => {
+    renderMovimientos(filtroCajero.value);
+  });
+}
+
+function renderMovimientos(filtro) {
   tablaMovimientos.innerHTML = "";
-  if (!snap.exists()) return;
-  const data = snap.val();
-  Object.values(data).forEach(mov => {
+  const data = Object.values(movimientosCache);
+  const filtrados = filtro === "TODOS"
+    ? data
+    : data.filter(m => (m.cajero || "") === filtro);
+
+  filtrados.forEach(mov => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${mov.id}</td>
@@ -580,7 +621,7 @@ window.onValue(window.ref(window.db, "movimientos"), snap => {
   document.querySelectorAll(".btn-ver-mov").forEach(btn => {
     btn.onclick = () => verMovimientoModal(btn.dataset.id);
   });
-});
+}
 
 function verMovimientoModal(id) {
   (async () => {
