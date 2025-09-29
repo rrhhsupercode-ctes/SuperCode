@@ -28,6 +28,16 @@
   const totalDiv = document.getElementById("total-div");
   const btnCobrar = document.getElementById("btn-cobrar");
 
+  // llenar desplegable con 01 al 99 para iniciar sesión cajero
+if (loginUsuario) {
+  for (let i = 1; i <= 99; i++) {
+    const opt = document.createElement("option");
+    opt.value = i.toString().padStart(2, "0");
+    opt.textContent = opt.value;
+    loginUsuario.appendChild(opt);
+  }
+}
+
   // Stock
   const inputStockCodigo = document.getElementById("stock-codigo");
   const stockCantidadSelect = document.getElementById("stock-cantidad");
