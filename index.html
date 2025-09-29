@@ -35,7 +35,7 @@
         <select id="cobro-cantidad"></select>
         <input id="cobro-codigo" placeholder="Código producto">
         <table id="tabla-cobro">
-          <thead><tr><th>Cant</th><th>Producto</th><th>Precio</th><th>X</th></tr></thead>
+          <thead><tr><th>Cant</th><th>Producto</th><th>Precio</th><th>Acción</th></tr></thead>
           <tbody></tbody>
         </table>
         <div id="total-div">TOTAL: $0</div>
@@ -48,7 +48,7 @@
       <h2>Movimientos</h2>
       <button id="btn-tirar-z">Tirar Z</button>
       <table id="tabla-movimientos">
-        <thead><tr><th>ID</th><th>Total</th><th>Tipo</th><th>X</th></tr></thead>
+        <thead><tr><th>ID</th><th>Total</th><th>Tipo</th><th>Acción</th><th>Ver</th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
@@ -60,7 +60,11 @@
       <select id="stock-cantidad"></select>
       <button id="agregar-stock">Agregar Stock</button>
       <table id="tabla-stock">
-        <thead><tr><th>Código</th><th>Nombre</th><th>Cant</th><th>Fecha</th><th>Precio</th><th>X</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Código</th><th>Nombre</th><th>Cant</th><th>Fecha</th><th>Precio</th><th>Acción</th>
+          </tr>
+        </thead>
         <tbody></tbody>
       </table>
     </section>
@@ -74,7 +78,9 @@
       <input id="cajero-pass" placeholder="Contraseña">
       <button id="agregar-cajero">Agregar Cajero</button>
       <table id="tabla-cajeros">
-        <thead><tr><th>Nro</th><th>Nombre</th><th>DNI</th><th>X</th></tr></thead>
+        <thead>
+          <tr><th>Nro</th><th>Nombre</th><th>DNI</th><th>Acción</th></tr>
+        </thead>
         <tbody></tbody>
       </table>
     </section>
@@ -83,13 +89,19 @@
     <section id="config" class="hidden">
       <h2>Configuración</h2>
       <input id="config-nombre" placeholder="Nombre Tienda">
-      <input id="config-pass" placeholder="Pass Admin">
+      <div id="admin-pass-config">
+        <input id="config-pass-actual" type="password" placeholder="Contraseña actual">
+        <input id="config-pass-nueva" type="password" placeholder="Nueva contraseña">
+      </div>
       <button id="guardar-config">Guardar</button>
       <p id="config-msg"></p>
       <input id="master-pass" placeholder="Master Pass">
       <button id="btn-restaurar">Restaurar Pass</button>
     </section>
   </main>
+
+  <!-- Modales reutilizables -->
+  <div id="modal-overlay" class="modal hidden"></div>
 
   <!-- Scripts -->
   <script>
