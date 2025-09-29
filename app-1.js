@@ -185,3 +185,20 @@
 
   console.log("✅ app-1.js cargado correctamente");
 })();
+
+// === NAVEGACIÓN ENTRE SECCIONES ===
+document.querySelectorAll("#header button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    // Quitar activo de todos
+    document.querySelectorAll("#header button").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".section").forEach(sec => sec.classList.remove("active"));
+
+    // Activar el botón y la sección correspondiente
+    btn.classList.add("active");
+    const targetId = btn.getAttribute("data-target");
+    const targetSec = document.getElementById(targetId);
+    if (targetSec) {
+      targetSec.classList.add("active");
+    }
+  });
+});
