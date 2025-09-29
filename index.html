@@ -23,7 +23,7 @@
 
   <main>
     
-    <!-- COBRAR -->
+<!-- COBRAR -->
 <section id="cobro">
   <div id="login-modal">
     <h2>Login Cajero</h2>
@@ -48,6 +48,52 @@
     <button id="btn-cobrar" class="hidden">Cobrar</button>
   </div>
 </section>
+
+<!-- MOVIMIENTOS -->
+<section id="movimientos">
+  <h2>Movimientos</h2>
+
+  <!-- Select de cajeros -->
+  <label for="filtroCajero">Nro Cajero:</label>
+  <select id="filtroCajero">
+    <option value="TODOS">TODOS</option>
+    <!-- Se llenará con 01–99 vía JS -->
+  </select>
+
+  <!-- Botón Tirar Z -->
+  <button id="btn-tirar-z">Tirar Z</button>
+
+  <!-- Tabla de movimientos -->
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Total</th>
+        <th>Tipo</th>
+        <th>Acciones</th>
+      </tr>
+    </thead>
+    <tbody id="tabla-movimientos"></tbody>
+  </table>
+</section>
+
+<script>
+// Llenar desplegable de cajeros con 01 al 99
+const filtroCajero = document.getElementById("filtroCajero");
+if (filtroCajero) {
+  for (let i = 1; i <= 99; i++) {
+    const opt = document.createElement("option");
+    opt.value = i.toString().padStart(2, "0"); // 01, 02, ..., 99
+    opt.textContent = opt.value;
+    filtroCajero.appendChild(opt);
+  }
+}
+
+// Definir referencia al botón Tirar Z (para tu JS)
+const btnTirarZ = document.getElementById("btn-tirar-z");
+// Definir referencia a la tabla de movimientos
+const tablaMovimientos = document.getElementById("tabla-movimientos");
+</script>
 
     <!-- MOVIMIENTOS -->
     <section id="movimientos" class="hidden">
