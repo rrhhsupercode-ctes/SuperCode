@@ -803,7 +803,7 @@ if (btnTirarZ) {
       const conf = snap.val();
       if (m === conf.masterPass) {
         await window.update(window.ref(window.db, "config"), { passAdmin: "0123456789" });
-        if (configMsg) configMsg.textContent = "Contraseña restaurada ✅";
+        if (configMsg) configMsg.textContent = "Contraseña restaurada a 0123456789 ✅";
         inputMasterPass.value = "";
       } else {
         if (configMsg) configMsg.textContent = "Contraseña maestra incorrecta";
