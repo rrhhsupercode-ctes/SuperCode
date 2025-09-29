@@ -22,31 +22,32 @@
   </header>
 
   <main>
+    
     <!-- COBRAR -->
-    <section id="cobro">
-      <div id="login-modal">
-        <h2>Login Cajero</h2>
-        <input id="login-usuario" placeholder="Nro Cajero">
-        <input id="login-pass" type="password" placeholder="Contraseña">
-        <button id="btn-login">Entrar</button>
-        <p id="login-msg"></p>
-      </div>
+<section id="cobro">
+  <div id="login-modal">
+    <h2>Login Cajero</h2>
+    <select id="login-usuario"></select>
+    <input id="login-pass" type="password" placeholder="Contraseña">
+    <button id="btn-login">Entrar</button>
+    <p id="login-msg"></p>
+  </div>
 
-      <div id="cobro-controles" class="hidden">
-        <select id="cobro-cantidad"></select>
-        <input id="cobro-codigo" placeholder="Código producto">
-        <table id="tabla-cobro">
-          <thead>
-            <tr>
-              <th>Cant</th><th>Producto</th><th>Precio Unidad</th><th>Total</th><th>Acción</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <div id="total-div">TOTAL: $0</div>
-        <button id="btn-cobrar" class="hidden">Cobrar</button>
-      </div>
-    </section>
+  <div id="cobro-controles" class="hidden">
+    <select id="cobro-cantidad"></select>
+    <input id="cobro-codigo" placeholder="Código producto">
+    <table id="tabla-cobro">
+      <thead>
+        <tr>
+          <th>Cant</th><th>Producto</th><th>Precio Unidad</th><th>Total</th><th>Acción</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="total-div">TOTAL: $0</div>
+    <button id="btn-cobrar" class="hidden">Cobrar</button>
+  </div>
+</section>
 
     <!-- MOVIMIENTOS -->
     <section id="movimientos" class="hidden">
