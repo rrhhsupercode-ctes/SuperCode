@@ -2,48 +2,131 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>SuperCode POS</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>SUPERCODE</title>
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Import Map Firebase -->
+  <script type="importmap">
+  {
+    "imports": {
+      "firebase/app": "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js",
+      "firebase/database": "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js"
+    }
+  }
+  </script>
 </head>
 <body>
   <header>
-    <h1 id="app-title">SUPERCODE</h1>
     <nav>
-      <button class="nav-btn" data-section="cobro">Cobrar</button>
-      <button class="nav-btn" data-section="movimientos">Movimientos</button>
-      <button class="nav-btn" data-section="stock">Stock</button>
-      <button class="nav-btn" data-section="cajeros">Cajeros</button>
-      <button class="nav-btn" data-section="config">Config</button>
+      <button class="nav-btn" data-target="seccion-cobro">Cobro</button>
+      <button class="nav-btn" data-target="seccion-stock">Stock</button>
+      <button class="nav-btn" data-target="seccion-movimientos">Movimientos</button>
+      <button class="nav-btn" data-target="seccion-historial">Historial</button>
+      <button class="nav-btn" data-target="seccion-cajeros">Cajeros</button>
+      <button class="nav-btn" data-target="seccion-config">Config</button>
     </nav>
   </header>
 
   <main>
-    <!-- tus secciones iguales, no toqué nada -->
+    <!-- COBRO -->
+    <section id="seccion-cobro">
+      <h2>Cobro</h2>
+      <table id="carrito">
+        <thead>
+          <tr>
+            <th>Código</th><th>Nombre</th><th>Cantidad</th><th>Precio</th><th>Total</th><th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div id="total-div">TOTAL: $0</div>
+      <button id="btn-cobrar">Cobrar</button>
+    </section>
+
+    <!-- STOCK -->
+    <section id="seccion-stock" class="hidden">
+      <h2>Stock</h2>
+      <form id="form-stock">
+        <label>Código de barras:
+          <input type="text" name="codigo" required>
+        </label>
+        <label>Cantidad:
+          <input type="number" name="cantidad" required>
+        </label>
+        <button type="submit">Agregar al stock</button>
+      </form>
+      <table id="tabla-stock">
+        <thead>
+          <tr>
+            <th>Código</th><th>Nombre</th><th>Cantidad</th><th>Precio</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- MOVIMIENTOS -->
+    <section id="seccion-movimientos" class="hidden">
+      <h2>Movimientos</h2>
+      <table id="tabla-movimientos">
+        <thead>
+          <tr>
+            <th>ID</th><th>Tipo</th><th>Total</th><th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- HISTORIAL -->
+    <section id="seccion-historial" class="hidden">
+      <h2>Historial</h2>
+      <table id="tabla-historial">
+        <thead>
+          <tr>
+            <th>Fecha</th><th>ID Venta</th><th>Total</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- CAJEROS -->
+    <section id="seccion-cajeros" class="hidden">
+      <h2>Cajeros</h2>
+      <form id="form-cajero">
+        <label>Nombre:
+          <input type="text" name="nombre" required>
+        </label>
+        <button type="submit">Agregar cajero</button>
+      </form>
+      <table id="tabla-cajeros">
+        <thead>
+          <tr>
+            <th>ID</th><th>Nombre</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- CONFIG -->
+    <section id="seccion-config" class="hidden">
+      <h2>Configuración</h2>
+      <form id="form-config">
+        <label>Empresa:
+          <input type="text" name="empresa">
+        </label>
+        <label>Dirección:
+          <input type="text" name="direccion">
+        </label>
+        <button type="submit">Guardar</button>
+      </form>
+      <div id="config-msg"></div>
+    </section>
   </main>
 
-  <div id="modal-overlay" class="modal hidden"></div>
-
-  <!-- Import modular Firebase (CDN) -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getDatabase } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyAzbtibp4-myG8SNY6Irrb7-nuoyP1535g",
-      authDomain: "supercode-ctes.firebaseapp.com",
-      databaseURL: "https://supercode-ctes-default-rtdb.firebaseio.com",
-      projectId: "supercode-ctes",
-      storageBucket: "supercode-ctes.firebasestorage.app",
-      messagingSenderId: "1034642261455",
-      appId: "1:1034642261455:web:f60232b259997fd0e5feba"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    window.db = db; // 👈 para que app.js pueda usarlo
-
-    import "./init.js"; // 👈 inicializa ramas
-    import "./app.js";  // 👈 tu lógica principal
-  </script>
+  <!-- Script principal -->
+  <script type="module" src="app.js"></script>
 </body>
 </html>
