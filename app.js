@@ -1,8 +1,7 @@
 /*****************************************************
- * app.js (reemplazo completo)
+ * app.js (COMPLETO)
  * Funcional: Cobrar, Stock, Cajeros, Movimientos, Config
- * Requiere en index.html: elementos con los IDs usados abajo
- * Requiere helpers de Firebase expuestos en window: ref,get,set,update,remove,onValue
+ * Historial en Firebase que se limpia automáticamente cada mes
  *****************************************************/
 (() => {
   "use strict";
@@ -42,7 +41,6 @@
   // Movimientos
   const tablaMovimientosBody = document.querySelector("#tabla-movimientos tbody");
   const btnTirarZ = document.getElementById("btn-tirar-z");
-  // filtro en el HTML tiene id "filtroCajero"
   const filtroCajero = document.getElementById("filtroCajero");
 
   // Config
@@ -62,757 +60,305 @@
   // Estado local
   // -----------------------
   let cajeroActivo = null;
-  let carrito = []; // {codigo, nombre, precio:number, cantidad:number}
+  let carrito = [];
   let total = 0;
-  let movimientosCache = {}; // cache para movimientos -> {id: mov}
-  let cajerosCache = {}; // cache cajeros -> {nro: caj}
+  let movimientosCache = {};
+  let cajerosCache = {};
   let configCache = null;
 
   // -----------------------
   // Utilidades
   // -----------------------
-  function escapeHtml(str) {
-    return String(str || "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[m]);
-  }
+  const escapeHtml = str =>
+    String(str || "").replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m]));
 
-  function formatoPrecioParaPantalla(num) {
-    const n = Number(num) || 0;
-    return `$${n.toFixed(2).replace(".", ",")}`;
-  }
+  const formatoPrecio = num => `$${(Number(num) || 0).toFixed(2).replace(".", ",")}`;
+  const ahoraISO = () => new Date().toISOString();
 
-  function ahoraISO() {
-    return new Date().toISOString();
-  }
-
-  function formatoFechaIsoToDisplay(iso) {
+  const formatoFechaIso = iso => {
     if (!iso) return "";
     const d = new Date(iso);
-    const dd = d.getDate().toString().padStart(2, "0");
-    const mm = (d.getMonth() + 1).toString().padStart(2, "0");
-    const yyyy = d.getFullYear();
-    const hh = d.getHours().toString().padStart(2, "0");
-    const mi = d.getMinutes().toString().padStart(2, "0");
-    return `${dd}/${mm}/${yyyy} (${hh}:${mi})`;
-  }
+    return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}/${d.getFullYear()} (${d.getHours().toString().padStart(2, "0")}:${d
+      .getMinutes()
+      .toString()
+      .padStart(2, "0")})`;
+  };
 
-  function formatFechaParaHeader(iso) {
-    return formatoFechaIsoToDisplay(iso);
-  }
-
-  function safeNumber(x) {
-    const n = Number(x);
-    return Number.isFinite(n) ? n : 0;
-  }
-
-  // Modal helpers (modalOverlay must exist)
-  function mostrarModal(html) {
-    if (!modalOverlay) return alert("Modal no disponible");
+  const mostrarModal = html => {
     modalOverlay.innerHTML = html;
     modalOverlay.classList.remove("hidden");
-  }
-  function cerrarModal() {
-    if (!modalOverlay) return;
+  };
+  const cerrarModal = () => {
     modalOverlay.innerHTML = "";
     modalOverlay.classList.add("hidden");
-  }
+  };
 
-  // verifica pass admin consultando config en DB
-  async function verificarPassAdmin(pass) {
-    try {
-      const snap = await window.get(window.ref(window.db, "config"));
-      if (!snap.exists()) return false;
-      const conf = snap.val();
-      configCache = conf;
-      return pass === conf.passAdmin;
-    } catch (e) {
-      console.error("verificarPassAdmin error", e);
-      return false;
-    }
-  }
+  const verificarPassAdmin = async pass => {
+    const snap = await window.get(window.ref(window.db, "config"));
+    if (!snap.exists()) return false;
+    configCache = snap.val();
+    return pass === configCache.passAdmin;
+  };
 
-  // require admin via modal input (calls callback only when ok)
-  function requireAdminConfirm(actionCallback) {
+  const requireAdminConfirm = cb => {
     mostrarModal(`
       <h3>Contraseña Administrador</h3>
       <input type="password" id="__admin_input" placeholder="Contraseña admin">
-      <div style="margin-top:10px">
-        <button id="__admin_ok">Aceptar</button>
-        <button id="__admin_cancel">Cancelar</button>
-      </div>
+      <div><button id="__admin_ok">Aceptar</button><button id="__admin_cancel">Cancelar</button></div>
     `);
     document.getElementById("__admin_ok").onclick = async () => {
-      const v = (document.getElementById("__admin_input").value || "").trim();
-      const ok = await verificarPassAdmin(v);
-      if (ok) {
+      const v = document.getElementById("__admin_input").value.trim();
+      if (await verificarPassAdmin(v)) {
         cerrarModal();
-        actionCallback();
-      } else {
-        alert("Contraseña incorrecta");
-      }
+        cb();
+      } else alert("Contraseña incorrecta");
     };
     document.getElementById("__admin_cancel").onclick = cerrarModal;
-  }
+  };
 
   // -----------------------
-  // NAVIGATION
+  // AUTO LIMPIEZA HISTORIAL MENSUAL
   // -----------------------
-  (function initNavigation() {
-    if (!navBtns.length || !sections.length) return;
+  (async () => {
+    const hoy = new Date();
+    const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`;
+    const refMeta = window.ref(window.db, "meta/ultimoMesHistorial");
+    const snap = await window.get(refMeta);
+    if (!snap.exists() || snap.val() !== mesActual) {
+      await window.set(window.ref(window.db, "movimientos"), {});
+      await window.set(refMeta, mesActual);
+      console.log("🧹 Historial reseteado para mes:", mesActual);
+    }
+  })();
+
+  // -----------------------
+  // Navegación
+  // -----------------------
+  (() => {
     function showSection(id) {
       sections.forEach(s => s.classList.add("hidden"));
       navBtns.forEach(b => b.classList.remove("active"));
-      const sec = document.getElementById(id);
-      if (sec) sec.classList.remove("hidden");
-      const btn = Array.from(navBtns).find(b => b.dataset.section === id);
-      if (btn) btn.classList.add("active");
+      document.getElementById(id)?.classList.remove("hidden");
+      document.querySelector(`.nav-btn[data-section="${id}"]`)?.classList.add("active");
     }
-    navBtns.forEach(btn => btn.addEventListener("click", () => {
-      if (btn.dataset && btn.dataset.section) showSection(btn.dataset.section);
-    }));
-    // default
-    const defaultBtn = document.querySelector('.nav-btn[data-section="cobro"]') || navBtns[0];
-    if (defaultBtn) defaultBtn.click();
+    navBtns.forEach(btn => btn.addEventListener("click", () => showSection(btn.dataset.section)));
+    document.querySelector('.nav-btn[data-section="cobro"]')?.click();
   })();
 
   // -----------------------
-  // Inicializacion selects
+  // Cajeros
   // -----------------------
-  (function initSelects() {
-    // cobro cantidad 1..99
-    if (cobroCantidadSelect) {
-      cobroCantidadSelect.innerHTML = "";
-      for (let i = 1; i <= 99; i++) {
-        const o = document.createElement("option");
-        o.value = i;
-        o.textContent = i.toString().padStart(2, "0");
-        cobroCantidadSelect.appendChild(o);
-      }
-    }
-    // stock cantidad 1..999
-    if (stockCantidadSelect) {
-      stockCantidadSelect.innerHTML = "";
-      for (let i = 1; i <= 999; i++) {
-        const o = document.createElement("option");
-        o.value = i;
-        o.textContent = i.toString().padStart(3, "0");
-        stockCantidadSelect.appendChild(o);
-      }
-    }
-    // cajero nro select used when adding cajero
-    if (cajeroNroSelect) {
-      cajeroNroSelect.innerHTML = "";
-      for (let i = 1; i <= 99; i++) {
-        const v = i.toString().padStart(2, "0");
-        const o = document.createElement("option");
-        o.value = v;
-        o.textContent = v;
-        cajeroNroSelect.appendChild(o);
-      }
-    }
-    // loginUsuario 01..99
-    if (loginUsuario) {
-      loginUsuario.innerHTML = "";
-      for (let i = 1; i <= 99; i++) {
-        const v = i.toString().padStart(2, "0");
-        const o = document.createElement("option");
-        o.value = v;
-        o.textContent = v;
-        loginUsuario.appendChild(o);
-      }
-    }
-    // filtroCajero will be filled by DB listener (includes TODOS)
-  })();
+  const cargarCajeros = () => {
+    window.onValue(window.ref(window.db, "cajeros"), snap => {
+      cajerosCache = snap.exists() ? snap.val() : {};
+      loginUsuario.innerHTML = Object.keys(cajerosCache)
+        .map(n => `<option value="${n}">${escapeHtml(cajerosCache[n].nombre || n)}</option>`)
+        .join("");
+      cajeroNroSelect.innerHTML =
+        `<option value="">Nuevo</option>` +
+        Object.keys(cajerosCache)
+          .map(n => `<option value="${n}">${n}</option>`)
+          .join("");
+      filtroCajero.innerHTML = `<option value="TODOS">TODOS</option>` + Object.keys(cajerosCache).map(n => `<option>${n}</option>`).join("");
+      tablaCajerosBody.innerHTML = Object.keys(cajerosCache)
+        .map(
+          n => `
+        <tr>
+          <td>${n}</td><td>${escapeHtml(cajerosCache[n].nombre)}</td><td>${escapeHtml(cajerosCache[n].dni)}</td>
+          <td><button data-nro="${n}" class="del-cajero">Eliminar</button></td>
+        </tr>`
+        )
+        .join("");
+      document.querySelectorAll(".del-cajero").forEach(btn =>
+        btn.addEventListener("click", () => requireAdminConfirm(() => window.remove(window.ref(window.db, "cajeros/" + btn.dataset.nro))))
+      );
+    });
+  };
+  cargarCajeros();
+
+  btnAgregarCajero.onclick = () => {
+    requireAdminConfirm(async () => {
+      const nro = cajeroNroSelect.value || Date.now().toString();
+      const cajero = { nombre: inputCajeroNombre.value, dni: inputCajeroDni.value, pass: inputCajeroPass.value };
+      await window.update(window.ref(window.db, "cajeros/" + nro), cajero);
+    });
+  };
 
   // -----------------------
-  // COBRAR (login + cart)
+  // Login / Cobrar
   // -----------------------
-  if (btnLogin) {
-    btnLogin.addEventListener("click", async () => {
-      const nro = (loginUsuario.value || "").trim();
-      const pass = (loginPass.value || "").trim();
-      loginMsg.textContent = "";
-      if (!nro || !pass) {
-        loginMsg.textContent = "Complete usuario y contraseña";
-        return;
-      }
-      const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
-      if (!snap.exists()) {
-        loginMsg.textContent = "Cajero no encontrado";
-        return;
-      }
-      const caj = snap.val();
-      if (caj.pass !== pass) {
-        loginMsg.textContent = "Contraseña incorrecta";
-        return;
-      }
-      cajeroActivo = caj;
+  btnLogin.onclick = () => {
+    const user = cajerosCache[loginUsuario.value];
+    if (user && user.pass === loginPass.value) {
+      cajeroActivo = loginUsuario.value;
       loginModal.classList.add("hidden");
       cobroControles.classList.remove("hidden");
-      const appTitle = document.getElementById("app-title");
-      if (appTitle) appTitle.textContent = `SUPERCODE - Cajero ${cajeroActivo.nro}`;
-    });
-  }
+    } else loginMsg.textContent = "Error de login";
+  };
 
-  if (cobroCodigo) {
-    cobroCodigo.addEventListener("keydown", async (e) => {
-      if (e.key !== "Enter") return;
-      const codigo = (cobroCodigo.value || "").trim();
-      const cantidad = safeNumber(cobroCantidadSelect.value);
+  cobroCantidadSelect.innerHTML = Array.from({ length: 10 }, (_, i) => `<option>${i + 1}</option>`).join("");
+
+  cobroCodigo.addEventListener("keydown", e => {
+    if (e.key === "Enter") {
+      const codigo = cobroCodigo.value.trim();
       if (!codigo) return;
-      const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
-      if (!snap.exists()) {
-        alert("Producto no encontrado en stock");
-        cobroCodigo.value = "";
-        return;
-      }
-      const prod = snap.val();
-      // normalize price to number
-      const precioNumber = (typeof prod.precio === "number") ? prod.precio : Number(String(prod.precio).replace(",", "."));
-      if (Number(prod.cantidad) < cantidad) {
-        alert("Stock insuficiente");
-        return;
-      }
-
-      // If product already in carrito, sum quantities
-      const idx = carrito.findIndex(it => it.codigo === codigo);
-      if (idx >= 0) {
-        carrito[idx].cantidad += cantidad;
-      } else {
-        carrito.push({
-          codigo,
-          nombre: prod.nombre,
-          precio: Number(precioNumber) || 0,
-          cantidad
-        });
-      }
-
-      // update stock quantity in DB
-      await window.update(window.ref(window.db, `stock/${codigo}`), { cantidad: Math.max(0, Number(prod.cantidad) - cantidad) });
-
-      renderCarrito();
+      window.get(window.ref(window.db, "stock/" + codigo)).then(snap => {
+        if (!snap.exists()) return alert("No existe en stock");
+        const prod = snap.val();
+        const cant = Number(cobroCantidadSelect.value);
+        carrito.push({ codigo, nombre: prod.nombre, precio: Number(prod.precio), cantidad: cant });
+        renderCarrito();
+      });
       cobroCodigo.value = "";
-    });
-  }
+    }
+  });
 
-  function renderCarrito() {
-    if (!tablaCobroBody) return;
-    tablaCobroBody.innerHTML = "";
-    total = 0;
-    carrito.forEach((it, i) => {
-      const tr = document.createElement("tr");
-      const rowTotal = Number(it.precio) * Number(it.cantidad);
-      total += rowTotal;
-      tr.innerHTML = `
-        <td>${it.cantidad}</td>
-        <td>${escapeHtml(it.nombre)}</td>
-        <td>${formatoPrecioParaPantalla(it.precio)}</td>
-        <td>${formatoPrecioParaPantalla(rowTotal)}</td>
-        <td><button class="btn-delete-cart" data-i="${i}">Eliminar</button></td>
-      `;
-      tablaCobroBody.appendChild(tr);
-    });
-    if (totalDiv) totalDiv.textContent = `TOTAL: ${formatoPrecioParaPantalla(total)}`;
-    if (btnCobrar) btnCobrar.classList.toggle("hidden", carrito.length === 0);
+  const renderCarrito = () => {
+    total = carrito.reduce((s, p) => s + p.precio * p.cantidad, 0);
+    tablaCobroBody.innerHTML = carrito
+      .map(
+        (p, i) => `
+      <tr>
+        <td>${p.cantidad}</td><td>${escapeHtml(p.nombre)}</td><td>${formatoPrecio(p.precio)}</td><td>${formatoPrecio(p.precio * p.cantidad)}</td>
+        <td><button data-i="${i}" class="del-item">X</button></td>
+      </tr>`
+      )
+      .join("");
+    totalDiv.textContent = `TOTAL: ${formatoPrecio(total)}`;
+    btnCobrar.classList.toggle("hidden", carrito.length === 0);
+    document.querySelectorAll(".del-item").forEach(btn =>
+      btn.addEventListener("click", () => {
+        carrito.splice(btn.dataset.i, 1);
+        renderCarrito();
+      })
+    );
+  };
 
-    // attach delete handlers (requires admin)
-    document.querySelectorAll(".btn-delete-cart").forEach(btn => {
-      btn.onclick = () => {
-        const i = Number(btn.dataset.i);
-        const it = carrito[i];
-        requireAdminConfirm(async () => {
-          // restore stock
-          const snap = await window.get(window.ref(window.db, `stock/${it.codigo}`));
-          if (snap.exists()) {
-            const prod = snap.val();
-            await window.update(window.ref(window.db, `stock/${it.codigo}`), { cantidad: Number(prod.cantidad) + Number(it.cantidad) });
-          }
-          carrito.splice(i, 1);
-          renderCarrito();
-        });
-      };
-    });
-  }
-
-  if (btnCobrar) {
-    btnCobrar.addEventListener("click", () => {
-      if (!cajeroActivo) return alert("Ingrese con un cajero primero");
-      if (carrito.length === 0) return;
-      mostrarModal(`
-        <h3>¿Efectivo o Tarjeta?</h3>
-        <div style="margin-top:10px">
-          <button id="__pay_cash">Efectivo</button>
-          <button id="__pay_card">Tarjeta</button>
-          <button id="__pay_cancel">Cancelar</button>
-        </div>
-      `);
-      document.getElementById("__pay_cancel").onclick = cerrarModal;
-      document.getElementById("__pay_cash").onclick = () => finalizarCobro("Efectivo");
-      document.getElementById("__pay_card").onclick = () => finalizarCobro("Tarjeta");
-    });
-  }
-
-  async function finalizarCobro(tipoPago) {
-    cerrarModal();
-    const movId = `ID_${Date.now()}`;
-    const mov = {
-      id: movId,
-      cajero: cajeroActivo ? (cajeroActivo.nro || cajeroActivo.nombre) : "N/A",
-      total,
-      tipo: tipoPago,
-      fecha: ahoraISO(),
-      items: carrito.map(it => ({ codigo: it.codigo, nombre: it.nombre, precio: it.precio, cantidad: it.cantidad }))
-    };
-    await window.set(window.ref(window.db, `movimientos/${movId}`), mov);
-    imprimirTicketMov(mov);
+  btnCobrar.onclick = async () => {
+    const id = Date.now().toString();
+    const movimiento = { id, cajero: cajeroActivo, total, items: carrito, fecha: ahoraISO(), tipo: "VENTA" };
+    await window.set(window.ref(window.db, "movimientos/" + id), movimiento);
     carrito = [];
     renderCarrito();
-    alert("Venta registrada ✅");
-  }
+  };
 
   // -----------------------
-  // STOCK
+  // Stock
   // -----------------------
-  window.onValue(window.ref(window.db, "stock"), snap => {
-    if (!tablaStockBody) return;
-    tablaStockBody.innerHTML = "";
-    if (!snap.exists()) return;
-    const data = snap.val();
-    Object.entries(data).forEach(([codigo, prod]) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${escapeHtml(codigo)}</td>
-        <td>${escapeHtml(prod.nombre || "")}</td>
-        <td>${Number(prod.cantidad) || 0}</td>
-        <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
-        <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
-        <td>
-          <button class="btn-edit-stock" data-id="${codigo}">Editar</button>
-          <button class="btn-del-stock" data-id="${codigo}">Eliminar</button>
-        </td>
-      `;
-      tablaStockBody.appendChild(tr);
-    });
+  stockCantidadSelect.innerHTML = Array.from({ length: 50 }, (_, i) => `<option>${i + 1}</option>`).join("");
 
-    // Attach events
-    document.querySelectorAll(".btn-del-stock").forEach(btn => {
-      btn.onclick = () => {
-        requireAdminConfirm(async () => {
-          await window.remove(window.ref(window.db, `stock/${btn.dataset.id}`));
-        });
-      };
+  const cargarStock = () => {
+    window.onValue(window.ref(window.db, "stock"), snap => {
+      const stock = snap.exists() ? snap.val() : {};
+      tablaStockBody.innerHTML = Object.keys(stock)
+        .map(
+          c => `
+        <tr>
+          <td>${c}</td><td>${escapeHtml(stock[c].nombre || "PRODUCTO NUEVO")}</td><td>${stock[c].cantidad}</td><td>${formatoFechaIso(stock[c].fecha)}</td><td>${formatoPrecio(stock[c].precio)}</td>
+          <td><button data-c="${c}" class="edit-stock">Editar</button><button data-c="${c}" class="del-stock">Eliminar</button></td>
+        </tr>`
+        )
+        .join("");
+      document.querySelectorAll(".edit-stock").forEach(btn =>
+        btn.addEventListener("click", () => {
+          const prod = stock[btn.dataset.c];
+          mostrarModal(`
+            <h3>Editar producto</h3>
+            <input id="ed-nombre" value="${escapeHtml(prod.nombre)}">
+            <input id="ed-precio" type="number" value="${prod.precio}">
+            <button id="ed-ok">Guardar</button>
+          `);
+          document.getElementById("ed-ok").onclick = async () => {
+            await window.update(window.ref(window.db, "stock/" + btn.dataset.c), {
+              nombre: document.getElementById("ed-nombre").value,
+              precio: Number(document.getElementById("ed-precio").value)
+            });
+            cerrarModal();
+          };
+        })
+      );
+      document.querySelectorAll(".del-stock").forEach(btn =>
+        btn.addEventListener("click", () => requireAdminConfirm(() => window.remove(window.ref(window.db, "stock/" + btn.dataset.c))))
+      );
     });
-    document.querySelectorAll(".btn-edit-stock").forEach(btn => {
-      btn.onclick = () => requireAdminConfirm(() => editarStockModal(btn.dataset.id));
-    });
-  });
+  };
+  cargarStock();
 
-  if (btnAgregarStock) {
-    btnAgregarStock.addEventListener("click", async () => {
-      const codigo = (inputStockCodigo.value || "").trim();
-      const cantidad = safeNumber(stockCantidadSelect.value);
-      if (!codigo) {
-        alert("Ingrese código");
-        return;
-      }
-      const refProd = window.ref(window.db, `stock/${codigo}`);
-      const snap = await window.get(refProd);
-      if (snap.exists()) {
-        const prod = snap.val();
-        await window.update(refProd, { cantidad: (Number(prod.cantidad) || 0) + cantidad, fecha: ahoraISO() });
-      } else {
-        await window.set(refProd, {
-          nombre: "PRODUCTO NUEVO",
-          cantidad,
-          precio: "00000,00",
-          fecha: ahoraISO()
-        });
-      }
-      inputStockCodigo.value = "";
-    });
-  }
-
-  function editarStockModal(codigo) {
-    (async () => {
-      const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
-      if (!snap.exists()) return alert("Producto no encontrado");
+  btnAgregarStock.onclick = async () => {
+    const codigo = inputStockCodigo.value.trim();
+    if (!codigo) return;
+    const cant = Number(stockCantidadSelect.value);
+    const refProd = window.ref(window.db, "stock/" + codigo);
+    const snap = await window.get(refProd);
+    if (snap.exists()) {
       const prod = snap.val();
-      mostrarModal(`
-        <h3>Editar Producto</h3>
-        <label>Nombre</label><input id="__edit_nombre" value="${escapeHtml(prod.nombre || "")}">
-        <label>Precio (00000,00)</label><input id="__edit_precio" value="${escapeHtml(String(prod.precio || "00000,00"))}">
-        <label>Cantidad</label><input id="__edit_cantidad" type="number" value="${Number(prod.cantidad) || 0}">
-        <div style="margin-top:10px">
-          <button id="__save_prod">Guardar</button>
-          <button id="__cancel_prod">Cancelar</button>
-        </div>
-      `);
-      document.getElementById("__cancel_prod").onclick = cerrarModal;
-      document.getElementById("__save_prod").onclick = async () => {
-        const nombre = (document.getElementById("__edit_nombre").value || "").trim();
-        const precio = (document.getElementById("__edit_precio").value || "").trim();
-        const cantidadVal = safeNumber(document.getElementById("__edit_cantidad").value);
-        if (!/^\d{1,5},\d{2}$/.test(precio)) {
-          alert("Precio inválido. Formato: 00000,00");
-          return;
-        }
-        await window.update(window.ref(window.db, `stock/${codigo}`), {
-          nombre: nombre || "PRODUCTO NUEVO",
-          precio: precio,
-          cantidad: cantidadVal,
-          fecha: ahoraISO()
-        });
-        cerrarModal();
-      };
-    })();
-  }
-
-  // -----------------------
-  // CAJEROS
-  // -----------------------
-  window.onValue(window.ref(window.db, "cajeros"), snap => {
-    cajerosCache = {};
-    if (tablaCajerosBody) tablaCajerosBody.innerHTML = "";
-    // limpiar y añadir TODOS + cargar filtroCajero
-    if (filtroCajero) {
-      filtroCajero.innerHTML = `<option value="TODOS">TODOS</option>`;
+      await window.update(refProd, { cantidad: (Number(prod.cantidad) || 0) + cant });
+    } else {
+      await window.set(refProd, { nombre: "PRODUCTO NUEVO", cantidad: cant, fecha: ahoraISO(), precio: 0 });
     }
-    if (!snap.exists()) return;
-    const data = snap.val();
-    Object.entries(data).forEach(([nro, caj]) => {
-      cajerosCache[nro] = caj;
-      // tabla cajeros
-      if (tablaCajerosBody) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${escapeHtml(nro)}</td>
-          <td>${escapeHtml(caj.nombre || "")}</td>
-          <td>${escapeHtml(caj.dni || "")}</td>
-          <td>
-            <button class="btn-edit-caj" data-id="${nro}">Editar</button>
-            <button class="btn-del-caj" data-id="${nro}">Eliminar</button>
-          </td>
-        `;
-        tablaCajerosBody.appendChild(tr);
-      }
-      // filtroCajero option
-      if (filtroCajero) {
-        const opt = document.createElement("option");
-        opt.value = nro;
-        opt.textContent = `${nro} - ${caj.nombre || ""}`;
-        filtroCajero.appendChild(opt);
-      }
-    });
-
-    // attach events to cajeros table actions
-    document.querySelectorAll(".btn-del-caj").forEach(btn => {
-      btn.onclick = () => {
-        requireAdminConfirm(async () => {
-          await window.remove(window.ref(window.db, `cajeros/${btn.dataset.id}`));
-        });
-      };
-    });
-    document.querySelectorAll(".btn-edit-caj").forEach(btn => {
-      btn.onclick = () => requireAdminConfirm(() => editarCajeroModal(btn.dataset.id));
-    });
-  });
-
-  if (btnAgregarCajero) {
-    btnAgregarCajero.addEventListener("click", async () => {
-      const nro = (cajeroNroSelect.value || "").trim();
-      const nombre = (inputCajeroNombre.value || "").trim();
-      const dni = (inputCajeroDni.value || "").trim();
-      const pass = (inputCajeroPass.value || "").trim();
-      if (!nombre || !dni || !pass) {
-        alert("Complete todos los campos");
-        return;
-      }
-      if (!/^\d{8}$/.test(dni)) {
-        alert("DNI inválido (debe tener 8 dígitos numéricos)");
-        return;
-      }
-      await window.set(window.ref(window.db, `cajeros/${nro}`), { nro, nombre, dni, pass });
-      inputCajeroNombre.value = "";
-      inputCajeroDni.value = "";
-      inputCajeroPass.value = "";
-    });
-  }
-
-  function editarCajeroModal(nro) {
-    (async () => {
-      const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
-      if (!snap.exists()) return;
-      const caj = snap.val();
-      mostrarModal(`
-        <h3>Editar Cajero</h3>
-        <label>Nombre</label><input id="__edit_caj_nombre" value="${escapeHtml(caj.nombre || "")}">
-        <label>DNI</label><input id="__edit_caj_dni" value="${escapeHtml(caj.dni || "")}">
-        <label>Pass</label><input id="__edit_caj_pass" value="${escapeHtml(caj.pass || "")}">
-        <div style="margin-top:10px">
-          <button id="__save_caj">Guardar</button>
-          <button id="__cancel_caj">Cancelar</button>
-        </div>
-      `);
-      document.getElementById("__cancel_caj").onclick = cerrarModal;
-      document.getElementById("__save_caj").onclick = async () => {
-        const nombre = (document.getElementById("__edit_caj_nombre").value || "").trim();
-        const dni = (document.getElementById("__edit_caj_dni").value || "").trim();
-        const pass = (document.getElementById("__edit_caj_pass").value || "").trim();
-        if (!/^\d{8}$/.test(dni)) {
-          alert("DNI inválido (8 dígitos)");
-          return;
-        }
-        await window.update(window.ref(window.db, `cajeros/${nro}`), { nombre, dni, pass });
-        cerrarModal();
-      };
-    })();
-  }
+  };
 
   // -----------------------
-  // MOVIMIENTOS (render + filtro)
+  // Movimientos
   // -----------------------
-  // listen movimientos (cache)
-  window.onValue(window.ref(window.db, "movimientos"), snap => {
-    movimientosCache = snap.exists() ? snap.val() : {};
-    renderMovimientos();
-  });
-
-  // filtro change
-  if (filtroCajero) {
-    filtroCajero.addEventListener("change", () => renderMovimientos());
-  }
-
-  function renderMovimientos() {
-    if (!tablaMovimientosBody) return;
-    tablaMovimientosBody.innerHTML = "";
-    const dataArr = Object.values(movimientosCache || {});
-    const filtro = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
-    const filtrados = filtro === "TODOS" ? dataArr : dataArr.filter(m => (m.cajero || "") === filtro);
-
-    // sort by fecha desc (newer first) if fecha exists
-    filtrados.sort((a, b) => {
-      const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
-      const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
-      return tb - ta;
+  const cargarMovimientos = () => {
+    window.onValue(window.ref(window.db, "movimientos"), snap => {
+      movimientosCache = snap.exists() ? snap.val() : {};
+      renderMovimientos();
     });
+  };
+  cargarMovimientos();
 
-    filtrados.forEach(mov => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${escapeHtml(mov.id)}</td>
-        <td>${formatoPrecioParaPantalla(mov.total)}</td>
-        <td>${escapeHtml(mov.tipo)}</td>
-        <td>
-          <button class="btn-ver-mov" data-id="${mov.id}">Ver</button>
-          <button class="btn-del-mov" data-id="${mov.id}">Eliminar</button>
-        </td>
-      `;
-      tablaMovimientosBody.appendChild(tr);
+  const renderMovimientos = () => {
+    const filtro = filtroCajero.value;
+    tablaMovimientosBody.innerHTML = Object.values(movimientosCache)
+      .filter(m => filtro === "TODOS" || m.cajero === filtro)
+      .map(
+        m => `
+      <tr>
+        <td>${m.id}</td><td>${formatoPrecio(m.total)}</td><td>${escapeHtml(m.tipo)}</td>
+        <td><button data-id="${m.id}" class="del-mov">Eliminar</button></td>
+      </tr>`
+      )
+      .join("");
+    document.querySelectorAll(".del-mov").forEach(btn =>
+      btn.addEventListener("click", () => requireAdminConfirm(() => window.remove(window.ref(window.db, "movimientos/" + btn.dataset.id))))
+    );
+  };
+
+  filtroCajero.onchange = renderMovimientos;
+
+  btnTirarZ.onclick = () =>
+    requireAdminConfirm(() => {
+      window.set(window.ref(window.db, "movimientos"), {});
     });
-
-    // attach actions
-    document.querySelectorAll(".btn-del-mov").forEach(btn => {
-      btn.onclick = () => requireAdminConfirm(async () => {
-        await window.remove(window.ref(window.db, `movimientos/${btn.dataset.id}`));
-      });
-    });
-    document.querySelectorAll(".btn-ver-mov").forEach(btn => {
-      btn.onclick = () => verMovimientoModal(btn.dataset.id);
-    });
-  }
-
-  function verMovimientoModal(id) {
-    (async () => {
-      const snap = await window.get(window.ref(window.db, `movimientos/${id}`));
-      if (!snap.exists()) return alert("Movimiento no encontrado");
-      const mov = snap.val();
-      let html = `<h3>Ticket ${mov.id}</h3>`;
-      html += `<p>${formatFechaParaHeader(mov.fecha)}</p>`;
-      html += `<p>Cajero: ${escapeHtml(mov.cajero)}</p><hr>`;
-      (mov.items || []).forEach(it => {
-        html += `<p>${escapeHtml(it.nombre)} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
-      });
-      html += `<hr><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
-      html += `<div style="margin-top:10px"><button id="__print_copy">Imprimir Copia</button><button id="__close_mov">Cerrar</button></div>`;
-      mostrarModal(html);
-      document.getElementById("__close_mov").onclick = cerrarModal;
-      document.getElementById("__print_copy").onclick = () => imprimirTicketMov(mov);
-    })();
-  }
-
-  // Print ticket with pagination
-  function imprimirTicketMov(mov) {
-    const itemsPerPage = 20;
-    const items = mov.items || [];
-    const totalParts = Math.max(1, Math.ceil(items.length / itemsPerPage));
-    const printAreas = [];
-
-    for (let p = 0; p < totalParts; p++) {
-      const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
-      const header = `<div style="text-align:center"><h3>SUPERCODE</h3><p>ID:${mov.id} - Parte ${p + 1}/${totalParts} - ${formatFechaParaHeader(mov.fecha)} - Cajero:${escapeHtml(mov.cajero)}</p><hr></div>`;
-      let body = "";
-      slice.forEach(it => {
-        body += `<p>${escapeHtml(it.nombre)} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
-      });
-      const footer = `<hr><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p><p>ID:${mov.id} - Parte ${p + 1}/${totalParts} - ${formatFechaParaHeader(mov.fecha)} - Cajero:${escapeHtml(mov.cajero)}</p>`;
-      const area = document.createElement("div");
-      area.className = "print-area";
-      area.style.width = "5cm";
-      area.innerHTML = header + body + footer;
-      printAreas.push(area);
-    }
-
-    // append, print, remove
-    printAreas.forEach(a => document.body.appendChild(a));
-    window.print();
-    printAreas.forEach(a => document.body.removeChild(a));
-  }
-
-// -----------------------
-// TIRAR Z (por cajero o TODOS)
-// -----------------------
-if (btnTirarZ) {
-  btnTirarZ.addEventListener("click", async () => {
-    // Abrir modal para pedir pass admin
-    mostrarModal(`
-      <h3>Confirmar Tirar Z</h3>
-      <p>Contraseña de Encargado:</p>
-      <input id="z-pass" type="password" style="width:100%; margin:10px 0; padding:6px">
-      <div style="text-align:right">
-        <button id="z-cancel">Cancelar</button>
-        <button id="z-ok">Aceptar</button>
-      </div>
-    `);
-
-    document.getElementById("z-cancel").onclick = cerrarModal;
-    document.getElementById("z-ok").onclick = async () => {
-      const inputPass = document.getElementById("z-pass").value.trim();
-      const snapConfig = await window.get(window.ref(window.db, "config"));
-      const config = snapConfig.exists() ? snapConfig.val() : {};
-      const adminPass = config.passAdmin || "0123456789"; // por defecto
-
-      if (inputPass !== adminPass) {
-        alert("Contraseña incorrecta");
-        return;
-      }
-      cerrarModal();
-
-      // === Tirar Z real ===
-      const snap = await window.get(window.ref(window.db, "movimientos"));
-      if (!snap.exists()) return alert("No hay movimientos para tirar Z");
-      const allMovArr = Object.values(snap.val());
-      const cajSel = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
-
-      let data = allMovArr;
-      if (cajSel !== "TODOS") {
-        data = allMovArr.filter(m => (m.cajero || "") === cajSel);
-        if (data.length === 0) return alert(`No hay movimientos para el cajero ${cajSel}`);
-      }
-
-      // group by cajero y tipo
-      const grouped = {};
-      data.forEach(m => {
-        const caj = m.cajero || "N/A";
-        if (!grouped[caj]) grouped[caj] = { Efectivo: [], Tarjeta: [], otros: [] };
-        if (m.tipo === "Efectivo") grouped[caj].Efectivo.push(m);
-        else if (m.tipo === "Tarjeta") grouped[caj].Tarjeta.push(m);
-        else grouped[caj].otros.push(m);
-      });
-
-      let html = `<h2>Reporte Z - ${new Date().toLocaleString()}</h2>`;
-      let grandTotal = 0;
-      Object.keys(grouped).forEach(caj => {
-        html += `<h3>Cajero: ${caj}</h3>`;
-        let totalEf = 0, totalTar = 0;
-        html += `<h4>Efectivo</h4>`;
-        grouped[caj].Efectivo.forEach(m => { 
-          html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
-          totalEf += Number(m.total); 
-        });
-        html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p>`;
-        html += `<h4>Tarjeta</h4>`;
-        grouped[caj].Tarjeta.forEach(m => { 
-          html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
-          totalTar += Number(m.total); 
-        });
-        html += `<p><b>Total Tarjeta Cajero: ${formatoPrecioParaPantalla(totalTar)}</b></p>`;
-        html += `<p><b>Subtotal Cajero: ${formatoPrecioParaPantalla(totalEf + totalTar)}</b></p>`;
-        grandTotal += totalEf + totalTar;
-      });
-
-      html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
-      html += `<br><table border="1" style="width:100%; margin-top:20px"><tr><th>Efectivo Cobrado</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
-      html += `<br><table border="1" style="width:100%; margin-top:10px"><tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
-
-      const area = document.createElement("div");
-      area.className = "print-area";
-      area.style.width = "21cm";
-      area.innerHTML = html;
-      document.body.appendChild(area);
-      window.print();
-      document.body.removeChild(area);
-
-      // borrar movimientos
-      if (cajSel === "TODOS") {
-        await window.set(window.ref(window.db, "movimientos"), {});
-      } else {
-        const updates = {};
-        Object.values(snap.val()).forEach(m => {
-          if ((m.cajero || "") === cajSel) updates[m.id] = null;
-        });
-        await window.update(window.ref(window.db, "movimientos"), updates);
-      }
-      alert(`Tirar Z completado para ${cajSel}`);
-    };
-  });
-}
 
   // -----------------------
-  // CONFIG
+  // Configuración
   // -----------------------
   window.onValue(window.ref(window.db, "config"), snap => {
     if (!snap.exists()) return;
-    const conf = snap.val();
-    configCache = conf;
-    if (inputConfigNombre) inputConfigNombre.value = conf.shopName || "";
+    configCache = snap.val();
+    inputConfigNombre.value = configCache.shopName || "";
   });
 
-  if (btnGuardarConfig) {
-    btnGuardarConfig.addEventListener("click", async () => {
-      const shopName = (inputConfigNombre.value || "").trim();
-      const actual = (inputConfigPassActual.value || "").trim();
-      const nueva = (inputConfigPassNueva.value || "").trim();
-      if (!shopName) return alert("Ingrese nombre de tienda");
-      if (!actual || !nueva) return alert("Complete contraseña actual y nueva");
-      const snap = await window.get(window.ref(window.db, "config"));
-      if (!snap.exists()) return alert("Error leyendo configuración");
-      const conf = snap.val();
-      if (actual !== conf.passAdmin) return alert("Contraseña actual incorrecta");
-      if (nueva.length < 4 || nueva.length > 10) return alert("La nueva contraseña debe tener entre 4 y 10 caracteres");
-      await window.update(window.ref(window.db, "config"), { shopName, passAdmin: nueva });
-      if (configMsg) configMsg.textContent = "Configuración guardada ✅";
-      inputConfigPassActual.value = "";
-      inputConfigPassNueva.value = "";
-    });
-  }
+  btnGuardarConfig.onclick = async () => {
+    const ok = await verificarPassAdmin(inputConfigPassActual.value);
+    if (!ok) return (configMsg.textContent = "Contraseña admin incorrecta");
+    await window.update(window.ref(window.db, "config"), { shopName: inputConfigNombre.value, passAdmin: inputConfigPassNueva.value });
+    configMsg.textContent = "Guardado!";
+  };
 
-  if (btnRestaurar) {
-    btnRestaurar.addEventListener("click", async () => {
-      const m = (inputMasterPass.value || "").trim();
-      const snap = await window.get(window.ref(window.db, "config"));
-      if (!snap.exists()) return alert("No hay configuración");
-      const conf = snap.val();
-      if (m === conf.masterPass) {
-        await window.update(window.ref(window.db, "config"), { passAdmin: "0123456789" });
-        if (configMsg) configMsg.textContent = "Contraseña restaurada a 0123456789 ✅";
-        inputMasterPass.value = "";
-      } else {
-        if (configMsg) configMsg.textContent = "Contraseña maestra incorrecta";
-      }
-    });
-  }
+  btnRestaurar.onclick = async () => {
+    const snap = await window.get(window.ref(window.db, "config"));
+    if (!snap.exists()) return;
+    const conf = snap.val();
+    if (inputMasterPass.value !== conf.masterPass) return (configMsg.textContent = "Contraseña maestra incorrecta");
+    await window.update(window.ref(window.db, "config"), { passAdmin: "0123456789" });
+    configMsg.textContent = "Contraseña restaurada";
+  };
 
-  // -----------------------
-  // Final
-  // -----------------------
-  console.log("✅ app.js cargado y listo");
+  console.log("✅ app.js cargado completamente");
 })();
