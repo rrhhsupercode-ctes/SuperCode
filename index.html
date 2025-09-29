@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>SuperCode POS</title>
   <link rel="stylesheet" href="styles.css">
-
-  <!-- Firebase SDK -->
+  <!-- Firebase SDK (compat para la API que usamos) -->
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
@@ -55,10 +55,10 @@
       <label for="filtroCajero">Nro Cajero:</label>
       <select id="filtroCajero">
         <option value="TODOS">TODOS</option>
-        <!-- Se llenará con 01–99 vía JS -->
       </select>
-      
+
       <button id="btn-tirar-z">Tirar Z</button>
+
       <table id="tabla-movimientos">
         <thead>
           <tr>
@@ -121,7 +121,7 @@
   <!-- Modales reutilizables -->
   <div id="modal-overlay" class="modal hidden"></div>
 
-  <!-- Scripts -->
+  <!-- FIREBASE INIT (reemplaza las keys por las tuyas) -->
   <script>
     // === FIREBASE CONFIG (ajusta con tus credenciales reales) ===
     const firebaseConfig = {
@@ -133,8 +133,10 @@
       messagingSenderId: "000000000",
       appId: "1:000000000:web:xxxx"
     };
+    // Init
     const app = firebase.initializeApp(firebaseConfig);
     window.db = firebase.database();
+    // Helpers sencillos (compat)
     window.ref = (db, path) => db.ref(path);
     window.get = async ref => (await ref.get());
     window.set = async (ref, val) => ref.set(val);
@@ -143,7 +145,8 @@
     window.remove = ref => ref.remove();
     window.onValue = (ref, cb) => ref.on("value", cb);
   </script>
-  <script src="init.js"></script>
-  <script src="app.js"></script> <!-- ✅ único archivo JS -->
+
+  <!-- APP: carga tu app.js (usa el JS nuevo que me confirmaste) -->
+  <script src="app.js"></script>
 </body>
 </html>
