@@ -186,19 +186,29 @@
   console.log("✅ app-1.js cargado correctamente");
 })();
 
-// === NAVEGACIÓN ENTRE SECCIONES ===
-document.querySelectorAll("#header button").forEach(btn => {
-  btn.addEventListener("click", () => {
-    // Quitar activo de todos
-    document.querySelectorAll("#header button").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".section").forEach(sec => sec.classList.remove("active"));
+// === NAVEGACIÓN ENTRE SECCIONES (compatible con el index.html que usás) ===
+(function(){
+  const navBtns = document.querySelectorAll('.nav-btn');
+  const sections = document.querySelectorAll('main section');
 
-    // Activar el botón y la sección correspondiente
-    btn.classList.add("active");
-    const targetId = btn.getAttribute("data-target");
-    const targetSec = document.getElementById(targetId);
-    if (targetSec) {
-      targetSec.classList.add("active");
-    }
+  // Si no hay navBtns o sections, salir sin romper
+  if (!navBtns.length || !sections.length) return;
+
+  navBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      // ocultar todas las secciones y quitar estado activo de botones
+      sections.forEach(s => s.classList.add('hidden'));
+      navBtns.forEach(b => b.classList.remove('active'));
+
+      // activar botón y mostrar sección correspondiente
+      btn.classList.add('active');
+      const target = btn.dataset.section;
+      const sec = document.getElementById(target);
+      if (sec) sec.classList.remove('hidden');
+    });
   });
-});
+
+  // Abrir la primera pestaña por defecto (si corresponde)
+  const primer = document.querySelector('.nav-btn[data-section]');
+  if (primer) primer.click();
+})();
