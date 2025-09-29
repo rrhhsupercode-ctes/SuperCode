@@ -2,194 +2,118 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SuperCode</title>
-  <link rel="stylesheet" href="styles.css">
+  <title>SuperCode POS</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 </head>
 <body>
-  <!-- === HEADER PRINCIPAL === -->
   <header>
+    <h1 id="app-title">SUPERCODE</h1>
     <nav>
-      <button class="nav-btn" data-section="cobrar">COBRAR</button>
-      <button class="nav-btn" data-section="movimientos">MOVIMIENTOS</button>
-      <button class="nav-btn" data-section="stock">STOCK</button>
-      <button class="nav-btn" data-section="cajeros">CAJEROS</button>
-      <button class="nav-btn" data-section="configuracion">CONFIGURACIÓN</button>
+      <button class="nav-btn" data-section="cobro">Cobrar</button>
+      <button class="nav-btn" data-section="movimientos">Movimientos</button>
+      <button class="nav-btn" data-section="stock">Stock</button>
+      <button class="nav-btn" data-section="cajeros">Cajeros</button>
+      <button class="nav-btn" data-section="config">Config</button>
     </nav>
   </header>
 
   <main>
-    <!-- === COBRAR === -->
-    <section id="cobrar" class="hidden">
-      <h2>Cobrar</h2>
-
-      <!-- Modal login -->
-      <div id="login-modal" class="modal">
-        <h3>Iniciar Sesión Cajero</h3>
-        <input type="number" id="login-usuario" placeholder="Usuario (2 dígitos)">
-        <input type="number" id="login-pass" placeholder="Contraseña (4 dígitos)">
-        <button id="btn-login">ACCEDER</button>
+    <!-- COBRAR -->
+    <section id="cobro">
+      <div id="login-modal">
+        <h2>Login Cajero</h2>
+        <input id="login-usuario" placeholder="Nro Cajero">
+        <input id="login-pass" type="password" placeholder="Contraseña">
+        <button id="btn-login">Entrar</button>
         <p id="login-msg"></p>
       </div>
 
-      <!-- Controles -->
       <div id="cobro-controles" class="hidden">
-        <label>
-          Cantidad:
-          <select id="cobro-cantidad"></select>
-        </label>
-        <label>
-          Escanear producto:
-          <input type="number" id="cobro-codigo" placeholder="Código de barras">
-        </label>
+        <select id="cobro-cantidad"></select>
+        <input id="cobro-codigo" placeholder="Código producto">
+        <table id="tabla-cobro">
+          <thead><tr><th>Cant</th><th>Producto</th><th>Precio</th><th>X</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div id="total-div">TOTAL: $0</div>
+        <button id="btn-cobrar" class="hidden">Cobrar</button>
       </div>
-
-      <!-- Tabla cobro -->
-      <table id="tabla-cobro">
-        <thead>
-          <tr>
-            <th>CANTIDAD</th>
-            <th>PRODUCTO</th>
-            <th>PRECIO</th>
-            <th>ACCIÓN</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-
-      <div id="total-div">TOTAL: $0,00</div>
-      <button id="btn-cobrar" class="hidden">COBRAR</button>
     </section>
 
-    <!-- === MOVIMIENTOS === -->
+    <!-- MOVIMIENTOS -->
     <section id="movimientos" class="hidden">
       <h2>Movimientos</h2>
+      <button id="btn-tirar-z">Tirar Z</button>
       <table id="tabla-movimientos">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>TOTAL</th>
-            <th>TIPO</th>
-            <th>ACCIÓN</th>
-          </tr>
-        </thead>
+        <thead><tr><th>ID</th><th>Total</th><th>Tipo</th><th>X</th></tr></thead>
         <tbody></tbody>
       </table>
-      <button id="btn-tirar-z">TIRAR Z</button>
     </section>
 
-    <!-- === STOCK === -->
+    <!-- STOCK -->
     <section id="stock" class="hidden">
-      <h2>Gestión de Stock</h2>
-      <div class="stock-inputs">
-        <label>
-          Código:
-          <input type="number" id="stock-codigo" placeholder="Código de barras">
-        </label>
-        <label>
-          Cantidad:
-          <select id="stock-cantidad"></select>
-        </label>
-        <button id="agregar-stock">Agregar al stock</button>
-      </div>
+      <h2>Stock</h2>
+      <input id="stock-codigo" placeholder="Código producto">
+      <select id="stock-cantidad"></select>
+      <button id="agregar-stock">Agregar Stock</button>
       <table id="tabla-stock">
-        <thead>
-          <tr>
-            <th>Cód. Barras</th>
-            <th>Nombre</th>
-            <th>Cantidad</th>
-            <th>Fecha</th>
-            <th>Precio</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Código</th><th>Nombre</th><th>Cant</th><th>Fecha</th><th>Precio</th><th>X</th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
 
-    <!-- === CAJEROS === -->
+    <!-- CAJEROS -->
     <section id="cajeros" class="hidden">
-      <h2>Gestión de Cajeros</h2>
-      <div class="cajero-form">
-        <label>Nro:
-          <select id="cajero-nro"></select>
-        </label>
-        <label>Nombre:
-          <input type="text" id="cajero-nombre" maxlength="15">
-        </label>
-        <label>DNI:
-          <input type="number" id="cajero-dni" maxlength="8">
-        </label>
-        <label>Contraseña:
-          <input type="number" id="cajero-pass" maxlength="4">
-        </label>
-        <button id="agregar-cajero">Agregar Cajero</button>
-      </div>
+      <h2>Cajeros</h2>
+      <select id="cajero-nro"></select>
+      <input id="cajero-nombre" placeholder="Nombre">
+      <input id="cajero-dni" placeholder="DNI">
+      <input id="cajero-pass" placeholder="Contraseña">
+      <button id="agregar-cajero">Agregar Cajero</button>
       <table id="tabla-cajeros">
-        <thead>
-          <tr>
-            <th>Nro</th>
-            <th>Nombre</th>
-            <th>DNI</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Nro</th><th>Nombre</th><th>DNI</th><th>X</th></tr></thead>
         <tbody></tbody>
       </table>
     </section>
 
-    <!-- === CONFIGURACIÓN === -->
-    <section id="configuracion" class="hidden">
+    <!-- CONFIG -->
+    <section id="config" class="hidden">
       <h2>Configuración</h2>
-      <label>Nombre:
-        <input type="text" id="config-nombre">
-      </label>
-      <label>Contraseña Admin:
-        <input type="password" id="config-pass" maxlength="10">
-      </label>
-      <button id="guardar-config">Guardar Configuración</button>
-
-      <div class="restaurar-admin">
-        <button id="btn-restaurar">RESTAURAR CONTRASEÑA</button>
-        <input type="password" id="master-pass" placeholder="Contraseña Maestra (9999)">
-      </div>
+      <input id="config-nombre" placeholder="Nombre Tienda">
+      <input id="config-pass" placeholder="Pass Admin">
+      <button id="guardar-config">Guardar</button>
       <p id="config-msg"></p>
+      <input id="master-pass" placeholder="Master Pass">
+      <button id="btn-restaurar">Restaurar Pass</button>
     </section>
   </main>
 
-  <!-- Modales -->
-  <div id="modal-editar" class="modal hidden"></div>
-
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getDatabase, ref, set, push, update, remove, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
+  <!-- Scripts -->
+  <script>
+    // === FIREBASE CONFIG (ajusta con tus credenciales reales) ===
     const firebaseConfig = {
-      apiKey: "AIzaSyAzbtibp4-myG8SNY6Irrb7-nuoyP1535g",
+      apiKey: "YOUR-API-KEY",
       authDomain: "supercode-ctes.firebaseapp.com",
       databaseURL: "https://supercode-ctes-default-rtdb.firebaseio.com",
       projectId: "supercode-ctes",
-      storageBucket: "supercode-ctes.firebasestorage.app",
-      messagingSenderId: "1034642261455",
-      appId: "1:1034642261455:web:f60232b259997fd0e5feba"
+      storageBucket: "supercode-ctes.appspot.com",
+      messagingSenderId: "000000000",
+      appId: "1:000000000:web:xxxx"
     };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-
-    // Exponer en window
-    window.db = db;
-    window.ref = ref;
-    window.set = set;
-    window.push = push;
-    window.update = update;
-    window.remove = remove;
-    window.get = get;
-    window.onValue = onValue;
+    const app = firebase.initializeApp(firebaseConfig);
+    window.db = firebase.database();
+    window.ref = (db, path) => db.ref(path);
+    window.get = async ref => (await ref.get());
+    window.set = async (ref, val) => ref.set(val);
+    window.update = async (ref, val) => ref.update(val);
+    window.push = ref => ref.push();
+    window.remove = ref => ref.remove();
+    window.onValue = (ref, cb) => ref.on("value", cb);
   </script>
-
-  <!-- Scripts principales -->
+  <script src="init.js"></script>
   <script src="app-1.js"></script>
   <script src="app-2.js"></script>
 </body>
