@@ -104,8 +104,8 @@
       await window.set(window.ref(window.db, `stock/${codigo}`), {
         nombre: `Producto ${codigo}`,
         cantidad,
-        fecha: new Date().toISOString(),
-        precio: 100
+        precio: Math.floor(Math.random() * 1000) + 100,
+        fecha: new Date().toISOString()
       });
     }
     inputStockCodigo.value = "";
@@ -116,12 +116,12 @@
     tablaCajeros.innerHTML = "";
     if (snap.exists()) {
       const data = snap.val();
-      Object.entries(data).forEach(([nro, caj]) => {
+      Object.entries(data).forEach(([nro, cajero]) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${nro}</td>
-          <td>${caj.nombre}</td>
-          <td>${caj.dni}</td>
+          <td>${cajero.nombre}</td>
+          <td>${cajero.dni}</td>
           <td><button data-id="${nro}" class="btn-del-cajero">X</button></td>
         `;
         tablaCajeros.appendChild(tr);
@@ -146,7 +146,7 @@
     inputCajeroPass.value = "";
   });
 
-  // === CONFIGURACIÓN ===
+  // === CONFIG ===
   window.onValue(window.ref(window.db, "config"), snap => {
     if (snap.exists()) {
       const conf = snap.val();
@@ -156,24 +156,23 @@
   });
 
   btnGuardarConfig.addEventListener("click", async () => {
-    await window.update(window.ref(window.db, "config"), {
-      shopName: inputConfigNombre.value.trim(),
-      passAdmin: inputConfigPass.value.trim()
-    });
+    const shopName = inputConfigNombre.value.trim();
+    const passAdmin = inputConfigPass.value.trim();
+    if (!shopName || !passAdmin) return alert("Complete todos los campos");
+    await window.update(window.ref(window.db, "config"), { shopName, passAdmin });
     configMsg.textContent = "Configuración guardada ✅";
-    setTimeout(() => (configMsg.textContent = ""), 2000);
   });
 
   btnRestaurar.addEventListener("click", async () => {
-    const master = inputMasterPass.value.trim();
-    const confSnap = await window.get(window.ref(window.db, "config"));
-    if (confSnap.exists() && confSnap.val().masterPass === master) {
-      await window.update(window.ref(window.db, "config"), { passAdmin: "0123456789" });
-      configMsg.textContent = "Contraseña restaurada ✅";
-    } else {
-      configMsg.textContent = "Master incorrecta";
+    const pass = inputMasterPass.value.trim();
+    const snap = await window.get(window.ref(window.db, "config"));
+    if (snap.exists()) {
+      const conf = snap.val();
+      if (pass === conf.masterPass) {
+        await window.update(window.ref(window.db, "config"), { passAdmin: "0123456789" });
+        configMsg.textContent = "Contraseña restablecida ✅";
+      } else configMsg.textContent = "Contraseña maestra incorrecta";
     }
-    setTimeout(() => (configMsg.textContent = ""), 2000);
   });
 
   console.log("✅ app-2.js cargado correctamente");
