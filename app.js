@@ -891,7 +891,6 @@ btnRestaurar.onclick = async () => {
           <td>${formatFechaParaHeader(mov.fecha)}</td>
           <td>
             <button class="btn-ver-hist" data-id="${mov.id}">Ver</button>
-            <button class="btn-del-hist" data-id="${mov.id}">Eliminar</button>
           </td>
         `;
         tablaHistorialBody.appendChild(tr);
