@@ -691,7 +691,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
 
   // Print ticket with pagination
   function imprimirTicketMov(mov) {
-    const itemsPerPage = 20;
+    const itemsPerPage = 9999;
     const items = mov.items || [];
     const totalParts = Math.max(1, Math.ceil(items.length / itemsPerPage));
     const printAreas = [];
