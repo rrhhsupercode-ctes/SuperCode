@@ -628,11 +628,43 @@ async function verificarPassAdmin(pass) {
     });
 
     // attach actions
-    document.querySelectorAll(".btn-del-mov").forEach(btn => {
-      btn.onclick = () => requireAdminConfirm(async () => {
-        await window.remove(window.ref(window.db, `movimientos/${btn.dataset.id}`));
-      });
-    });
+document.querySelectorAll(".btn-del-mov").forEach(btn => {
+  btn.onclick = () => requireAdminConfirm(async () => {
+    const movRef = window.ref(window.db, `movimientos/${btn.dataset.id}`);
+    const snap = await window.get(movRef);
+    if (!snap.exists()) return;
+
+    const mov = snap.val();
+
+    // 🔥 Restaurar stock antes de eliminar
+    if (mov.items && Array.isArray(mov.items)) {
+      for (const item of mov.items) {
+        const stockRef = window.ref(window.db, `stock/${item.codigo}`);
+        const stockSnap = await window.get(stockRef);
+
+        if (stockSnap.exists()) {
+          const prod = stockSnap.val();
+          const nuevaCantidad = (prod.cantidad || 0) + (item.cantidad || 0);
+          await window.update(stockRef, { cantidad: nuevaCantidad });
+        } else {
+          // Si no existe en stock, lo re-creamos con lo vendido
+          await window.set(stockRef, {
+            codigo: item.codigo,
+            nombre: item.nombre || "PRODUCTO NUEVO",
+            cantidad: item.cantidad,
+            precio: item.precio || 0,
+            fecha: new Date().toLocaleString()
+          });
+        }
+      }
+    }
+
+    // Ahora sí, eliminar el movimiento
+    await window.remove(movRef);
+    console.log(`Movimiento ${btn.dataset.id} eliminado y stock restaurado`);
+  });
+});
+
     document.querySelectorAll(".btn-ver-mov").forEach(btn => {
       btn.onclick = () => verMovimientoModal(btn.dataset.id);
     });
