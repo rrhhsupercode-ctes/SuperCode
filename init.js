@@ -7,7 +7,8 @@
     config: { shopName: "SUPERCODE", passAdmin: "0123456789", masterPass: "9999" },
     cajeros: {},
     stock: {},
-    movimientos: {}
+    movimientos: {},
+    historial: {}   // 🔥 Nueva rama para el historial
   };
 
   (async () => {
