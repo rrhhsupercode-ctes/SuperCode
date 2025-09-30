@@ -121,18 +121,18 @@
   }
 
   // verifica pass admin consultando config en DB
-  async function verificarPassAdmin(pass) {
-    try {
-      const snap = await window.get(window.ref(window.db, "config"));
-      if (!snap.exists()) return false;
-      const conf = snap.val();
-      configCache = conf;
-      return pass === conf.passAdmin;
-    } catch (e) {
-      console.error("verificarPassAdmin error", e);
-      return false;
-    }
+async function verificarPassAdmin(pass) {
+  try {
+    const snap = await window.get(window.ref(window.db, "config"));
+    if (!snap.exists()) return false;
+    const conf = snap.val();
+    configCache = conf;
+    return String(pass).trim() === String(conf.passAdmin).trim();
+  } catch (e) {
+    console.error("verificarPassAdmin error", e);
+    return false;
   }
+}
 
   // require admin via modal input (calls callback only when ok)
   function requireAdminConfirm(actionCallback) {
@@ -813,21 +813,15 @@
     });
   }
 
-  if (btnRestaurar) {
-    btnRestaurar.addEventListener("click", async () => {
-      const m = (inputMasterPass.value || "").trim();
-      const snap = await window.get(window.ref(window.db, "config"));
-      if (!snap.exists()) return alert("No hay configuración");
-      const conf = snap.val();
-      if (m === conf.masterPass) {
-        await window.update(window.ref(window.db, "config"), { passAdmin: "0123456789" });
-        if (configMsg) configMsg.textContent = "Contraseña restaurada a 0123456789 ✅";
-        inputMasterPass.value = "";
-      } else {
-        if (configMsg) configMsg.textContent = "Contraseña maestra incorrecta";
-      }
-    });
+btnRestaurar.onclick = async () => {
+  const v = (inputMasterPass.value || "").trim();
+  if (v === "9999") {
+    await window.update(window.ref(window.db, "config"), { passAdmin: "0123456789" });
+    configMsg.textContent = "Contraseña restaurada a 0123456789";
+  } else {
+    configMsg.textContent = "Contraseña maestra incorrecta";
   }
+};
 
   // -----------------------
   // HISTORIAL (render + acciones)
