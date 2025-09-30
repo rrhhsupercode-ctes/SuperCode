@@ -826,24 +826,36 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
     if (inputConfigNombre) inputConfigNombre.value = conf.shopName || "";
   });
 
-  if (btnGuardarConfig) {
-    btnGuardarConfig.addEventListener("click", async () => {
-      const shopName = (inputConfigNombre.value || "").trim();
-      const actual = (inputConfigPassActual.value || "").trim();
-      const nueva = (inputConfigPassNueva.value || "").trim();
-      if (!shopName) return alert("Ingrese nombre de tienda");
-      if (!actual || !nueva) return alert("Complete contraseña actual y nueva");
-      const snap = await window.get(window.ref(window.db, "config"));
-      if (!snap.exists()) return alert("Error leyendo configuración");
-      const conf = snap.val();
-      if (actual !== conf.passAdmin) return alert("Contraseña actual incorrecta");
-      if (nueva.length < 4 || nueva.length > 10) return alert("La nueva contraseña debe tener entre 4 y 10 caracteres");
-      await window.update(window.ref(window.db, "config"), { shopName, passAdmin: nueva });
-      if (configMsg) configMsg.textContent = "Configuración guardada ✅";
-      inputConfigPassActual.value = "";
-      inputConfigPassNueva.value = "";
-    });
-  }
+if (btnGuardarConfig) {
+  btnGuardarConfig.addEventListener("click", async () => {
+    const shopName = (inputConfigNombre.value || "").trim();
+    const actual = (inputConfigPassActual.value || "").trim();
+    const nueva = (inputConfigPassNueva.value || "").trim();
+
+    if (!actual || !nueva) return alert("Complete los campos");
+
+    const snap = await window.get(window.ref(window.db, "config"));
+    if (!snap.exists()) return alert("Error de lectura");
+
+    const conf = snap.val();
+    if (actual !== conf.passAdmin) return alert("Contraseña actual incorrecta");
+
+    if (nueva.length < 4 || nueva.length > 10) {
+      return alert("La nueva contraseña debe tener entre 4 y 10 caracteres");
+    }
+
+    // 🔥 preparar lo que se actualizará
+    const updateData = { passAdmin: nueva };
+    if (shopName) updateData.shopName = shopName;
+
+    await window.update(window.ref(window.db, "config"), updateData);
+
+    if (configMsg) configMsg.textContent = "Configuración guardada ✅";
+
+    inputConfigPassActual.value = "";
+    inputConfigPassNueva.value = "";
+  });
+}
 
 btnRestaurar.onclick = async () => {
   const v = (inputMasterPass.value || "").trim();
