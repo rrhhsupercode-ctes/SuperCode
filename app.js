@@ -45,6 +45,10 @@
   // filtro en el HTML tiene id "filtroCajero"
   const filtroCajero = document.getElementById("filtroCajero");
 
+  // Historial (nuevas referencias)
+  const tablaHistorialBody = document.querySelector("#tabla-historial tbody");
+  const historialInfo = document.getElementById("historial-info"); // opcional en HTML
+
   // Config
   const inputConfigNombre = document.getElementById("config-nombre");
   const inputConfigPassActual = document.getElementById("config-pass-actual");
@@ -362,7 +366,21 @@
       fecha: ahoraISO(),
       items: carrito.map(it => ({ codigo: it.codigo, nombre: it.nombre, precio: it.precio, cantidad: it.cantidad }))
     };
+
+    // Guardar en movimientos
     await window.set(window.ref(window.db, `movimientos/${movId}`), mov);
+
+    // --- NUEVO: Guardar copia en HISTORIAL por año-mes ---
+    try {
+      const fechaMov = mov.fecha ? new Date(mov.fecha) : new Date();
+      const año = fechaMov.getFullYear();
+      const mes = String(fechaMov.getMonth() + 1).padStart(2, "0");
+      await window.set(window.ref(window.db, `historial/${año}-${mes}/${movId}`), mov);
+    } catch (err) {
+      console.error("Error guardando en historial:", err);
+    }
+    // --- fin historial ---
+
     imprimirTicketMov(mov);
     carrito = [];
     renderCarrito();
@@ -667,104 +685,104 @@
     printAreas.forEach(a => document.body.removeChild(a));
   }
 
-// -----------------------
-// TIRAR Z (por cajero o TODOS)
-// -----------------------
-if (btnTirarZ) {
-  btnTirarZ.addEventListener("click", async () => {
-    // Abrir modal para pedir pass admin
-    mostrarModal(`
-      <h3>Confirmar Tirar Z</h3>
-      <p>Contraseña de Encargado:</p>
-      <input id="z-pass" type="password" style="width:100%; margin:10px 0; padding:6px">
-      <div style="text-align:right">
-        <button id="z-cancel">Cancelar</button>
-        <button id="z-ok">Aceptar</button>
-      </div>
-    `);
+ // -----------------------
+ // TIRAR Z (por cajero o TODOS)
+ // -----------------------
+ if (btnTirarZ) {
+   btnTirarZ.addEventListener("click", async () => {
+     // Abrir modal para pedir pass admin
+     mostrarModal(`
+       <h3>Confirmar Tirar Z</h3>
+       <p>Contraseña de Encargado:</p>
+       <input id="z-pass" type="password" style="width:100%; margin:10px 0; padding:6px">
+       <div style="text-align:right">
+         <button id="z-cancel">Cancelar</button>
+         <button id="z-ok">Aceptar</button>
+       </div>
+     `);
 
-    document.getElementById("z-cancel").onclick = cerrarModal;
-    document.getElementById("z-ok").onclick = async () => {
-      const inputPass = document.getElementById("z-pass").value.trim();
-      const snapConfig = await window.get(window.ref(window.db, "config"));
-      const config = snapConfig.exists() ? snapConfig.val() : {};
-      const adminPass = config.passAdmin || "0123456789"; // por defecto
+     document.getElementById("z-cancel").onclick = cerrarModal;
+     document.getElementById("z-ok").onclick = async () => {
+       const inputPass = document.getElementById("z-pass").value.trim();
+       const snapConfig = await window.get(window.ref(window.db, "config"));
+       const config = snapConfig.exists() ? snapConfig.val() : {};
+       const adminPass = config.passAdmin || "0123456789"; // por defecto
 
-      if (inputPass !== adminPass) {
-        alert("Contraseña incorrecta");
-        return;
-      }
-      cerrarModal();
+       if (inputPass !== adminPass) {
+         alert("Contraseña incorrecta");
+         return;
+       }
+       cerrarModal();
 
-      // === Tirar Z real ===
-      const snap = await window.get(window.ref(window.db, "movimientos"));
-      if (!snap.exists()) return alert("No hay movimientos para tirar Z");
-      const allMovArr = Object.values(snap.val());
-      const cajSel = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
+       // === Tirar Z real ===
+       const snap = await window.get(window.ref(window.db, "movimientos"));
+       if (!snap.exists()) return alert("No hay movimientos para tirar Z");
+       const allMovArr = Object.values(snap.val());
+       const cajSel = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
 
-      let data = allMovArr;
-      if (cajSel !== "TODOS") {
-        data = allMovArr.filter(m => (m.cajero || "") === cajSel);
-        if (data.length === 0) return alert(`No hay movimientos para el cajero ${cajSel}`);
-      }
+       let data = allMovArr;
+       if (cajSel !== "TODOS") {
+         data = allMovArr.filter(m => (m.cajero || "") === cajSel);
+         if (data.length === 0) return alert(`No hay movimientos para el cajero ${cajSel}`);
+       }
 
-      // group by cajero y tipo
-      const grouped = {};
-      data.forEach(m => {
-        const caj = m.cajero || "N/A";
-        if (!grouped[caj]) grouped[caj] = { Efectivo: [], Tarjeta: [], otros: [] };
-        if (m.tipo === "Efectivo") grouped[caj].Efectivo.push(m);
-        else if (m.tipo === "Tarjeta") grouped[caj].Tarjeta.push(m);
-        else grouped[caj].otros.push(m);
-      });
+       // group by cajero y tipo
+       const grouped = {};
+       data.forEach(m => {
+         const caj = m.cajero || "N/A";
+         if (!grouped[caj]) grouped[caj] = { Efectivo: [], Tarjeta: [], otros: [] };
+         if (m.tipo === "Efectivo") grouped[caj].Efectivo.push(m);
+         else if (m.tipo === "Tarjeta") grouped[caj].Tarjeta.push(m);
+         else grouped[caj].otros.push(m);
+       });
 
-      let html = `<h2>Reporte Z - ${new Date().toLocaleString()}</h2>`;
-      let grandTotal = 0;
-      Object.keys(grouped).forEach(caj => {
-        html += `<h3>Cajero: ${caj}</h3>`;
-        let totalEf = 0, totalTar = 0;
-        html += `<h4>Efectivo</h4>`;
-        grouped[caj].Efectivo.forEach(m => { 
-          html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
-          totalEf += Number(m.total); 
-        });
-        html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p>`;
-        html += `<h4>Tarjeta</h4>`;
-        grouped[caj].Tarjeta.forEach(m => { 
-          html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
-          totalTar += Number(m.total); 
-        });
-        html += `<p><b>Total Tarjeta Cajero: ${formatoPrecioParaPantalla(totalTar)}</b></p>`;
-        html += `<p><b>Subtotal Cajero: ${formatoPrecioParaPantalla(totalEf + totalTar)}</b></p>`;
-        grandTotal += totalEf + totalTar;
-      });
+       let html = `<h2>Reporte Z - ${new Date().toLocaleString()}</h2>`;
+       let grandTotal = 0;
+       Object.keys(grouped).forEach(caj => {
+         html += `<h3>Cajero: ${caj}</h3>`;
+         let totalEf = 0, totalTar = 0;
+         html += `<h4>Efectivo</h4>`;
+         grouped[caj].Efectivo.forEach(m => { 
+           html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
+           totalEf += Number(m.total); 
+         });
+         html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p>`;
+         html += `<h4>Tarjeta</h4>`;
+         grouped[caj].Tarjeta.forEach(m => { 
+           html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
+           totalTar += Number(m.total); 
+         });
+         html += `<p><b>Total Tarjeta Cajero: ${formatoPrecioParaPantalla(totalTar)}</b></p>`;
+         html += `<p><b>Subtotal Cajero: ${formatoPrecioParaPantalla(totalEf + totalTar)}</b></p>`;
+         grandTotal += totalEf + totalTar;
+       });
 
-      html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
-      html += `<br><table border="1" style="width:100%; margin-top:20px"><tr><th>Efectivo Cobrado</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
-      html += `<br><table border="1" style="width:100%; margin-top:10px"><tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
+       html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
+       html += `<br><table border="1" style="width:100%; margin-top:20px"><tr><th>Efectivo Cobrado</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
+       html += `<br><table border="1" style="width:100%; margin-top:10px"><tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
 
-      const area = document.createElement("div");
-      area.className = "print-area";
-      area.style.width = "21cm";
-      area.innerHTML = html;
-      document.body.appendChild(area);
-      window.print();
-      document.body.removeChild(area);
+       const area = document.createElement("div");
+       area.className = "print-area";
+       area.style.width = "21cm";
+       area.innerHTML = html;
+       document.body.appendChild(area);
+       window.print();
+       document.body.removeChild(area);
 
-      // borrar movimientos
-      if (cajSel === "TODOS") {
-        await window.set(window.ref(window.db, "movimientos"), {});
-      } else {
-        const updates = {};
-        Object.values(snap.val()).forEach(m => {
-          if ((m.cajero || "") === cajSel) updates[m.id] = null;
-        });
-        await window.update(window.ref(window.db, "movimientos"), updates);
-      }
-      alert(`Tirar Z completado para ${cajSel}`);
-    };
-  });
-}
+       // borrar movimientos
+       if (cajSel === "TODOS") {
+         await window.set(window.ref(window.db, "movimientos"), {});
+       } else {
+         const updates = {};
+         Object.values(snap.val()).forEach(m => {
+           if ((m.cajero || "") === cajSel) updates[m.id] = null;
+         });
+         await window.update(window.ref(window.db, "movimientos"), updates);
+       }
+       alert(`Tirar Z completado para ${cajSel}`);
+     };
+   });
+ }
 
   // -----------------------
   // CONFIG
@@ -809,6 +827,125 @@ if (btnTirarZ) {
         if (configMsg) configMsg.textContent = "Contraseña maestra incorrecta";
       }
     });
+  }
+
+  // -----------------------
+  // HISTORIAL (render + acciones)
+  // -----------------------
+  function cargarHistorial() {
+    // carga el historial del mes actual
+    const ahora = new Date();
+    const año = ahora.getFullYear();
+    const mes = String(ahora.getMonth() + 1).padStart(2, "0");
+    const pathHistorial = `historial/${año}-${mes}`;
+    // mostrar info en header opcional
+    if (historialInfo) {
+      const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+      historialInfo.textContent = `Historial de ${meses[Number(mes)-1]} ${año} (se elimina el día 15 del mes siguiente)`;
+    }
+
+    window.onValue(window.ref(window.db, pathHistorial), snap => {
+      if (!tablaHistorialBody) return;
+      tablaHistorialBody.innerHTML = "";
+      if (!snap.exists()) return;
+      const datos = snap.val();
+      // convertir a array ordenado por fecha descendente
+      const arr = Object.values(datos).sort((a,b) => {
+        const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
+        const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
+        return tb - ta;
+      });
+      arr.forEach(mov => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(mov.id)}</td>
+          <td>${formatoPrecioParaPantalla(mov.total)}</td>
+          <td>${escapeHtml(mov.tipo)}</td>
+          <td>${escapeHtml(mov.cajero || "")}</td>
+          <td>${formatFechaParaHeader(mov.fecha)}</td>
+          <td>
+            <button class="btn-ver-hist" data-id="${mov.id}">Ver</button>
+            <button class="btn-del-hist" data-id="${mov.id}">Eliminar</button>
+          </td>
+        `;
+        tablaHistorialBody.appendChild(tr);
+      });
+
+      // attach actions (usar same pathHistorial)
+      document.querySelectorAll(".btn-ver-hist").forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id;
+          const snapMov = await window.get(window.ref(window.db, `${pathHistorial}/${id}`));
+          if (!snapMov.exists()) return alert("Movimiento no encontrado en historial");
+          const mov = snapMov.val();
+          // reutilizar modal del movimiento
+          let html = `<h3>Ticket ${mov.id}</h3>`;
+          html += `<p>${formatFechaParaHeader(mov.fecha)}</p>`;
+          html += `<p>Cajero: ${escapeHtml(mov.cajero)}</p><hr>`;
+          (mov.items || []).forEach(it => {
+            html += `<p>${escapeHtml(it.nombre)} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
+          });
+          html += `<hr><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
+          html += `<div style="margin-top:10px"><button id="__print_copy_hist">Imprimir Copia</button><button id="__close_hist">Cerrar</button></div>`;
+          mostrarModal(html);
+          document.getElementById("__close_hist").onclick = cerrarModal;
+          document.getElementById("__print_copy_hist").onclick = () => imprimirTicketMov(mov);
+        };
+      });
+
+      document.querySelectorAll(".btn-del-hist").forEach(btn => {
+        btn.onclick = () => {
+          requireAdminConfirm(async () => {
+            try {
+              await window.remove(window.ref(window.db, `${pathHistorial}/${btn.dataset.id}`));
+            } catch (err) {
+              console.error("Error borrando historial item:", err);
+            }
+          });
+        };
+      });
+    });
+  }
+
+  // iniciar carga historial
+  cargarHistorial();
+
+  // -----------------------
+  // LIMPIAR HISTORIAL EL DÍA 15 (elimina mes anterior)
+  // -----------------------
+  async function limpiarHistorialMensual() {
+    try {
+      const hoy = new Date();
+      const dia = hoy.getDate();
+      if (dia === 15) { // si hoy es 15 -> borrar mes anterior
+        const año = hoy.getFullYear();
+        const mesAnteriorIndex = hoy.getMonth() - 1; // ayer? mes anterior
+        let añoTarget = año;
+        let mesTarget;
+        if (mesAnteriorIndex < 0) {
+          añoTarget = año - 1;
+          mesTarget = 12;
+        } else {
+          mesTarget = mesAnteriorIndex + 1;
+        }
+        const mesStr = String(mesTarget).padStart(2, "0");
+        const pathHistorial = `historial/${añoTarget}-${mesStr}`;
+        await window.remove(window.ref(window.db, pathHistorial));
+        console.log(`🗑 Historial de ${añoTarget}-${mesStr} eliminado (ejecutado día 15)`);
+      }
+    } catch (err) {
+      console.error("Error en limpiarHistorialMensual:", err);
+    }
+  }
+  // Ejecutar a la carga
+  limpiarHistorialMensual();
+  // Y programar chequeo diario (por si la app queda abierta)
+  try {
+    setInterval(() => {
+      limpiarHistorialMensual();
+    }, 24 * 60 * 60 * 1000); // cada 24h
+  } catch (err) {
+    // No crítico si falla
   }
 
   // -----------------------
