@@ -15,6 +15,7 @@
     <nav>
       <button class="nav-btn" data-section="cobro">Cobrar</button>
       <button class="nav-btn" data-section="movimientos">Movimientos</button>
+      <button class="nav-btn" data-section="historial">Historial</button>
       <button class="nav-btn" data-section="stock">Stock</button>
       <button class="nav-btn" data-section="cajeros">Cajeros</button>
       <button class="nav-btn" data-section="config">Config</button>
@@ -62,6 +63,20 @@
         <thead>
           <tr>
             <th>ID</th><th>Total</th><th>Tipo</th><th>Acción</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <!-- HISTORIAL -->
+    <section id="historial" class="hidden">
+      <h2>Historial</h2>
+      <p id="historial-info">Aquí se mostrarán los movimientos mensuales. Se eliminan el día 15 de cada mes.</p>
+      <table id="tabla-historial">
+        <thead>
+          <tr>
+            <th>ID</th><th>Total</th><th>Tipo</th><th>Cajero</th><th>Fecha</th>
           </tr>
         </thead>
         <tbody></tbody>
