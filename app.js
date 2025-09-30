@@ -387,29 +387,40 @@ async function verificarPassAdmin(pass) {
     alert("Venta registrada ✅");
   }
 
-  // -----------------------
-  // STOCK
-  // -----------------------
-  window.onValue(window.ref(window.db, "stock"), snap => {
-    if (!tablaStockBody) return;
-    tablaStockBody.innerHTML = "";
-    if (!snap.exists()) return;
-    const data = snap.val();
-    Object.entries(data).forEach(([codigo, prod]) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${escapeHtml(codigo)}</td>
-        <td>${escapeHtml(prod.nombre || "")}</td>
-        <td>${Number(prod.cantidad) || 0}</td>
-        <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
-        <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
-        <td>
-          <button class="btn-edit-stock" data-id="${codigo}">Editar</button>
-          <button class="btn-del-stock" data-id="${codigo}">Eliminar</button>
-        </td>
-      `;
-      tablaStockBody.appendChild(tr);
-    });
+// -----------------------
+// STOCK
+// -----------------------
+window.onValue(window.ref(window.db, "stock"), snap => {
+  if (!tablaStockBody) return;
+  tablaStockBody.innerHTML = "";
+  if (!snap.exists()) return;
+
+  const data = snap.val();
+
+  // Convertir a array y ordenar (más recientes primero)
+  const productosOrdenados = Object.entries(data).sort((a, b) => {
+    const fechaA = a[1].fecha ? new Date(a[1].fecha).getTime() : 0;
+    const fechaB = b[1].fecha ? new Date(b[1].fecha).getTime() : 0;
+    return fechaB - fechaA; // descendente
+  });
+
+  // Renderizar ordenados
+  productosOrdenados.forEach(([codigo, prod]) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(codigo)}</td>
+      <td>${escapeHtml(prod.nombre || "")}</td>
+      <td>${Number(prod.cantidad) || 0}</td>
+      <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
+      <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
+      <td>
+        <button class="btn-edit-stock" data-id="${codigo}">Editar</button>
+        <button class="btn-del-stock" data-id="${codigo}">Eliminar</button>
+      </td>
+    `;
+    tablaStockBody.appendChild(tr);
+  });
+});
 
     // Attach events
     document.querySelectorAll(".btn-del-stock").forEach(btn => {
