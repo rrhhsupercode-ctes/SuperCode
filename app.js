@@ -698,12 +698,12 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
 
     for (let p = 0; p < totalParts; p++) {
       const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
-      const header = `<div style="text-align:center"><h3>WWW.SUPERCODE.COM.AR</h3><p>ID:${mov.id} <br> Ticket - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p><hr></div>`;
+      const header = `<div style="text-align:center"><h3>WWW.SUPERCODE.COM.AR</h3><p>${mov.id} <br> Ticket - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p><hr></div>`;
       let body = "";
       slice.forEach(it => {
         body += `<hr><p>${escapeHtml(it.nombre)} Cantidad: ${it.cantidad} <br>Unidad: ${formatoPrecioParaPantalla(it.precio)} <br>Total: ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p><hr>`;
       });
-      const footer = `<hr><hr><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>(Pago en:${escapeHtml(mov.tipo)})</p><hr><hr><p>ID:${mov.id} <br> Vuelva Pronto - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p>`;
+      const footer = `<hr><hr><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>(Pago en:${escapeHtml(mov.tipo)})</p><hr><hr><p>${mov.id} <br> Vuelva Pronto - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p>`;
       const area = document.createElement("div");
       area.className = "print-area";
       area.style.width = "5cm";
