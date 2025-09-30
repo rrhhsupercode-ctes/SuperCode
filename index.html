@@ -30,7 +30,7 @@
         <select id="login-usuario"></select>
         <input id="login-pass" type="password" placeholder="Contraseña">
         <button id="btn-login">Entrar</button>
-        <p id="login-msg"></p>
+        <p id="login-msg" class="msg-error"></p>
       </div>
 
       <div id="cobro-controles" class="hidden">
@@ -120,15 +120,19 @@
     <!-- CONFIG -->
     <section id="config" class="hidden">
       <h2>Configuración</h2>
+      
       <input id="config-nombre" placeholder="Nombre Tienda">
+      
       <div id="admin-pass-config">
         <input id="config-pass-actual" type="password" placeholder="Contraseña actual">
         <input id="config-pass-nueva" type="password" placeholder="Nueva contraseña">
-      
-      <button id="guardar-config">Guardar</button>
-      <p id="config-msg"></p></div>
+
+        <button id="guardar-config" class="btn-guardar">Guardar</button>
+        <p id="config-msg" class="msg-error"></p>
+      </div>
+
       <input id="master-pass" placeholder="Contraseña Maestra">
-      <button id="btn-restaurar">Restaurar Contraseña</button>
+      <button id="btn-restaurar" class="btn-restaurar">Restaurar Contraseña</button>
     </section>
   </main>
 
