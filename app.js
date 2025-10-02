@@ -1017,7 +1017,7 @@ function ocultarModal() {
 window.addEventListener("offline", () => {
   if (!inicioOffline) inicioOffline = Date.now();
 
-  mostrarModal("¡Atención! No hay internet disponible. Se podrá seguir cobrando durante 4 horas. Por favor, conéctese cuanto antes.", false);
+  mostrarModal("¡Atención! No hay internet. Se podrá seguir actualizando stock durante 4 horas, pero no se puede cobrar. Por favor, conéctese cuanto antes a internet para evitar problemas.", false);
 
   clearInterval(offlineTimer);
   clearInterval(avisoTimer);
@@ -1026,7 +1026,7 @@ window.addEventListener("offline", () => {
   offlineTimer = setInterval(() => {
     const diff = Date.now() - inicioOffline;
     if (diff > LIMITE_OFFLINE_MS) {
-      mostrarModal("Se acabó el tiempo de tolerancia offline. No puede seguir cobrando sin internet ❌", true);
+      mostrarModal("Se acabó el tiempo de tolerancia sin internet. No podés continuar sin internet ❌", true);
       bloquearCobros();
       clearInterval(offlineTimer);
       clearInterval(avisoTimer);
@@ -1039,7 +1039,7 @@ window.addEventListener("offline", () => {
     const restante = Math.max(0, LIMITE_OFFLINE_MS - diff);
     const horas = Math.floor(restante / (1000 * 60 * 60));
     const mins = Math.floor((restante % (1000 * 60 * 60)) / (1000 * 60));
-    mostrarModal(`⚠️ Sin internet. Tiempo restante: ${horas}h ${mins}m para seguir cobrando.`, false);
+    mostrarModal(`⚠️ Sin internet. Tiempo restante: ${horas}h ${mins}m para seguir trabajando`, false);
   }, 30 * 60 * 1000);
 });
 
@@ -1050,7 +1050,7 @@ window.addEventListener("online", () => {
   clearInterval(avisoTimer);
   inicioOffline = null;
 
-  mostrarModal("¡Ya tenés internet! Podés seguir cobrando sin límite de tiempo, gracias 🙌", false);
+  mostrarModal("¡Ya tenés internet! Podés seguir cobrando sin límite de tiempo, gracias", false);
 
   // TODO: sincronizar ventas offline con Firebase
 });
