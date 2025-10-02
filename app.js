@@ -986,6 +986,84 @@ btnRestaurar.onclick = async () => {
   }
 
   // -----------------------
+// MANEJO OFFLINE
+// -----------------------
+let inicioOffline = null;
+let offlineTimer = null;
+let avisoTimer = null;
+const LIMITE_OFFLINE_MS = 4 * 60 * 60 * 1000; // 4 horas
+
+function mostrarModal(mensaje, bloquear = false) {
+  const overlay = document.getElementById("modal-overlay");
+  const msg = document.getElementById("modal-message");
+  const btnOk = document.getElementById("modal-ok");
+
+  msg.textContent = mensaje;
+  overlay.classList.remove("hidden");
+
+  if (bloquear) {
+    btnOk.style.display = "none"; // sin botón OK
+  } else {
+    btnOk.style.display = "inline-block";
+    btnOk.onclick = () => overlay.classList.add("hidden");
+  }
+}
+
+function ocultarModal() {
+  document.getElementById("modal-overlay").classList.add("hidden");
+}
+
+// cuando se pierde internet
+window.addEventListener("offline", () => {
+  if (!inicioOffline) inicioOffline = Date.now();
+
+  mostrarModal("¡Atención! No hay internet disponible. Se podrá seguir cobrando durante 4 horas. Por favor, conéctese cuanto antes.", false);
+
+  clearInterval(offlineTimer);
+  clearInterval(avisoTimer);
+
+  // timer para corte total
+  offlineTimer = setInterval(() => {
+    const diff = Date.now() - inicioOffline;
+    if (diff > LIMITE_OFFLINE_MS) {
+      mostrarModal("Se acabó el tiempo de tolerancia offline. No puede seguir cobrando sin internet ❌", true);
+      bloquearCobros();
+      clearInterval(offlineTimer);
+      clearInterval(avisoTimer);
+    }
+  }, 60000);
+
+  // cada 30 min mostrar aviso de tiempo restante
+  avisoTimer = setInterval(() => {
+    const diff = Date.now() - inicioOffline;
+    const restante = Math.max(0, LIMITE_OFFLINE_MS - diff);
+    const horas = Math.floor(restante / (1000 * 60 * 60));
+    const mins = Math.floor((restante % (1000 * 60 * 60)) / (1000 * 60));
+    mostrarModal(`⚠️ Sin internet. Tiempo restante: ${horas}h ${mins}m para seguir cobrando.`, false);
+  }, 30 * 60 * 1000);
+});
+
+// cuando regresa internet
+window.addEventListener("online", () => {
+  ocultarModal();
+  clearInterval(offlineTimer);
+  clearInterval(avisoTimer);
+  inicioOffline = null;
+
+  mostrarModal("¡Ya tenés internet! Podés seguir cobrando sin límite de tiempo, gracias 🙌", false);
+
+  // TODO: sincronizar ventas offline con Firebase
+});
+
+// bloqueo total de botones si pasa el límite
+function bloquearCobros() {
+  const botones = document.querySelectorAll("button, input, select");
+  botones.forEach(btn => {
+    btn.disabled = true;
+  });
+}
+
+  // -----------------------
   // Final
   // -----------------------
   console.log("✅ app.js cargado y listo");
