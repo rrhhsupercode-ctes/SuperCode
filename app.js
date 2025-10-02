@@ -1064,6 +1064,89 @@ function bloquearCobros() {
 }
 
   // -----------------------
+// OFFLINE STORAGE (auto-hook)
+// -----------------------
+const OFFLINE_KEY = "supercode_offline_queue";
+
+// cargar cola de offline
+function getOfflineQueue() {
+  return JSON.parse(localStorage.getItem(OFFLINE_KEY) || "[]");
+}
+function setOfflineQueue(queue) {
+  localStorage.setItem(OFFLINE_KEY, JSON.stringify(queue));
+}
+
+// guardar operación en la cola offline
+function guardarOffline(tipo, path, data) {
+  const queue = getOfflineQueue();
+  queue.push({
+    tipo,
+    path,
+    data,
+    timestamp: Date.now()
+  });
+  setOfflineQueue(queue);
+  console.log("💾 Guardado offline:", tipo, path, data);
+}
+
+// sincronizar al volver internet
+async function sincronizarOffline() {
+  const queue = getOfflineQueue();
+  if (!queue.length) return;
+
+  console.log("🌐 Sincronizando", queue.length, "operaciones offline...");
+
+  for (const op of queue) {
+    try {
+      if (op.tipo === "set") {
+        const ref = window.ref(window.db, op.path);
+        await window.set(ref, op.data);
+      }
+      if (op.tipo === "push") {
+        const ref = window.push(window.ref(window.db, op.path));
+        await window.set(ref, op.data);
+      }
+      console.log("✅ Sincronizado:", op.tipo, op.path);
+    } catch (err) {
+      console.error("❌ Error sincronizando:", op, err);
+    }
+  }
+
+  // limpiar cola
+  setOfflineQueue([]);
+}
+
+// hook al volver internet
+window.addEventListener("online", sincronizarOffline);
+
+// -----------------------
+// HOOK a window.set y window.push
+// -----------------------
+const _set = window.set;
+const _push = window.push;
+
+window.set = async (ref, val) => {
+  if (navigator.onLine) {
+    return _set(ref, val);
+  } else {
+    guardarOffline("set", ref._path.pieces_.join("/"), val);
+  }
+};
+
+window.push = (ref) => {
+  // devolvemos un ref simulado para guardar en cola
+  if (navigator.onLine) {
+    return _push(ref);
+  } else {
+    return {
+      _offlinePath: ref._path.pieces_.join("/"),
+      set: (val) => guardarOffline("push", ref._path.pieces_.join("/"), val)
+    };
+  }
+};
+
+
+  // -----------------------
   // Final
   // -----------------------
   console.log("✅ app.js cargado y listo");
