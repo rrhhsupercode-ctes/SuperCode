@@ -246,15 +246,18 @@ tbody tr:nth-child(even) {
   background: #ffeaa7;
 }
 
-/* === TITULO DEL HEADER === */
+/* === TITULO DEL HEADER CON DEGRADADO === */
 #app-title {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* tipografía clara y profesional */
-  font-size: 2.8rem;              /* título grande */
-  font-weight: 700;               /* negrita para destacar */
-  text-align: center;             /* centrado */
-  text-transform: uppercase;      /* todo en mayúsculas */
-  letter-spacing: 2px;            /* separación de letras */
-  color: #ffffff;                 /* blanco */
-  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.6); /* sombra elegante */
-  margin: 20px 0;                 /* espacio arriba y abajo */
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 3rem;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  background: linear-gradient(90deg, #00c6ff, #7d2ae8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 2px 2px 6px rgba(0,0,0,0.5);
+  margin: 20px 0;
 }
+
