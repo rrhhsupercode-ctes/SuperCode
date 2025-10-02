@@ -245,3 +245,16 @@ tbody tr:nth-child(even) {
 #tabla-historial th {
   background: #ffeaa7;
 }
+
+/* === TITULO DEL HEADER === */
+#app-title {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* tipografía clara y profesional */
+  font-size: 2.8rem;              /* título grande */
+  font-weight: 700;               /* negrita para destacar */
+  text-align: center;             /* centrado */
+  text-transform: uppercase;      /* todo en mayúsculas */
+  letter-spacing: 2px;            /* separación de letras */
+  color: #ffffff;                 /* blanco */
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.6); /* sombra elegante */
+  margin: 20px 0;                 /* espacio arriba y abajo */
+}
