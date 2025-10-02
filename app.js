@@ -1017,7 +1017,7 @@ function ocultarModal() {
 window.addEventListener("offline", () => {
   if (!inicioOffline) inicioOffline = Date.now();
 
-  mostrarModal("¡Atención! No hay internet. Se podrá seguir actualizando stock durante 4 horas, pero no se puede cobrar. Por favor, conéctese cuanto antes a internet para evitar problemas.", false);
+  mostrarModal("¡Atención! No hay internet, por favor comunicate al 3794 576062. No se puede cobrar. Por favor, conéctese cuanto antes a internet para evitar problemas. Podés seguir actualizando stock meintras tanto", false);
 
   clearInterval(offlineTimer);
   clearInterval(avisoTimer);
@@ -1050,7 +1050,7 @@ window.addEventListener("online", () => {
   clearInterval(avisoTimer);
   inicioOffline = null;
 
-  mostrarModal("¡Ya tenés internet! Podés seguir cobrando sin límite de tiempo, gracias", false);
+  mostrarModal("¡Ya tenés internet! Podés seguir cobrando, gracias", false);
 
   // TODO: sincronizar ventas offline con Firebase
 });
