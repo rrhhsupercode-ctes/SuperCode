@@ -254,7 +254,7 @@ tbody tr:nth-child(even) {
   text-align: center;
   text-transform: uppercase;
   letter-spacing: 3px;
-  background: linear-gradient(90deg, #00c6ff, #7d2ae8);
+  background: linear-gradient(90deg, #00b09b, #96c93d, #00c6ff);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   text-shadow: 2px 2px 6px rgba(0,0,0,0.5);
