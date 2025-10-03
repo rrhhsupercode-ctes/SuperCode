@@ -245,3 +245,8 @@ tbody tr:nth-child(even) {
 #tabla-historial th {
   background: #ffeaa7;
 }
+
+/* === IMPRESIÓN DE TICKET === */
+#texto-ticket {
+  font-size: 9px;
+}
