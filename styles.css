@@ -254,11 +254,11 @@ tbody tr:nth-child(even) {
   width: 100%;
   height: 100%;
   background: rgba(0,0,0,0.6); /* oscurece */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000; /* por encima de todo */
-  pointer-events: all; /* bloquea interacción detrás */
+  display: flex;              /* flexbox */
+  align-items: center;        /* centra vertical */
+  justify-content: center;    /* centra horizontal */
+  z-index: 2000;
+  pointer-events: all;        /* bloquea interacción detrás */
 }
 
 /* el overlay en estado oculto */
