@@ -985,27 +985,54 @@ btnRestaurar.onclick = async () => {
     // No crítico si falla
   }
 
- /*****************************************************
+/*****************************************************
  * Modal de pérdida de conexión
  *****************************************************/
 function mostrarModalOffline() {
   const overlay = document.getElementById("modal-overlay");
 
   overlay.innerHTML = `
-    <div class="modal-content-offline">
-      <h3>¡Te quedaste sin internet!</h3>
-      <p>Para continuar, conectate a internet o comunicate al<br><b>3794 576062</b></p>
+    <div class="modal-container">
+      <div class="modal">
+        <h3>¡Te quedaste sin internet!</h3>
+        <p>Para continuar, conectáte a internet o comunicate al<br><b>3794 576062</b></p>
+      </div>
     </div>
   `;
+
   overlay.classList.remove("hidden");
-  overlay.classList.add("active"); // 🔥 activa el fondo oscuro y bloquea clicks
+
+  // Aseguramos estilos para centrar
+  Object.assign(overlay.style, {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background: "rgba(0,0,0,0.6)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 9999
+  });
+
+  const modal = overlay.querySelector(".modal");
+  Object.assign(modal.style, {
+    background: "#fff",
+    padding: "20px",
+    borderRadius: "10px",
+    boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+    textAlign: "center",
+    maxWidth: "400px",
+    width: "90%"
+  });
 }
 
 function cerrarModalOffline() {
   const overlay = document.getElementById("modal-overlay");
   overlay.classList.add("hidden");
-  overlay.classList.remove("active");
   overlay.innerHTML = ""; // limpiar contenido
+  overlay.removeAttribute("style"); // limpiar estilos inline
 }
 
 // Detectar cambios de conexión
@@ -1016,6 +1043,7 @@ window.addEventListener("offline", () => {
 window.addEventListener("online", () => {
   cerrarModalOffline();
 });
+
   // -----------------------
   // Final
   // -----------------------
