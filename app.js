@@ -679,7 +679,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
       html += `<p>${formatFechaParaHeader(mov.fecha)}</p>`;
       html += `<p>Cajero: ${escapeHtml(mov.cajero)}</p>`;
       (mov.items || []).forEach(it => {
-        html += `<hr style="width: 5cm; border: 1px solid black; margin: auto;"><p>${escapeHtml(it.nombre)} <br>Cantidad ${it.cantidad} <br>Precio ${formatoPrecioParaPantalla(it.precio)} <br>Total ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p><hr style="width: 5cm; border: 1px solid black; margin: auto;">`;
+        html += `<hr style="width: 5cm; border: 1px solid black; margin: auto;"><p>${escapeHtml(it.nombre)} <br>Cantidad ${it.cantidad} <br>Precio ${formatoPrecioParaPantalla(it.precio)} <br>Total ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
       });
       html += `<p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
       html += `<div style="margin-top:10px"><button id="__print_copy">Imprimir Copia</button><button id="__close_mov">Cerrar</button></div>`;
