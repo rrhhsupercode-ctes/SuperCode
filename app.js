@@ -675,13 +675,13 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
       const snap = await window.get(window.ref(window.db, `movimientos/${id}`));
       if (!snap.exists()) return alert("Movimiento no encontrado");
       const mov = snap.val();
-      let html = `<h3>Ticket ${mov.id}</h3>`;
-      html += `<p>${formatFechaParaHeader(mov.fecha)}</p>`;
-      html += `<p>Cajero: ${escapeHtml(mov.cajero)}</p>`;
+      let html = `<p id="texto-ticket">Ticket ${mov.id}</p>`;
+      html += `<p id="texto-ticket">${formatFechaParaHeader(mov.fecha)}</p>`;
+      html += `<p id="texto-ticket">Cajero: ${escapeHtml(mov.cajero)}</p>`;
       (mov.items || []).forEach(it => {
-        html += `<hr style="width: 5cm; border: 1.2px solid black; margin: auto;"><p>${escapeHtml(it.nombre)} <br>Cantidad ${it.cantidad} <br>Precio ${formatoPrecioParaPantalla(it.precio)} <br>Total ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p><hr style="width: 5cm; border: 1.2px solid black; margin: auto;">`;
+        html += `<hr style="width: 5cm; border: 1.2px solid black; margin: auto;"><p id="texto-ticket">${escapeHtml(it.nombre)} <br>Cantidad ${it.cantidad} <br>Precio ${formatoPrecioParaPantalla(it.precio)} <br>Total ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p><hr style="width: 5cm; border: 1.2px solid black; margin: auto;">`;
       });
-      html += `<p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
+      html += `<p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket">Pago: ${escapeHtml(mov.tipo)}</p>`;
       html += `<div style="margin-top:10px"><button id="__print_copy">Imprimir Copia</button><button id="__close_mov">Cerrar</button></div>`;
       mostrarModal(html);
       document.getElementById("__close_mov").onclick = cerrarModal;
@@ -698,7 +698,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
 
     for (let p = 0; p < totalParts; p++) {
       const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
-      const header = `<div style="text-align:center"><p id="texto-ticket">WWW.SUPERCODE.COM.AR<p>${mov.id} <br> Ticket - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p></div>`;
+      const header = `<div style="text-align:center"><p id="texto-ticket">WWW.SUPERCODE.COM.AR <br> ${mov.id} <br> Ticket - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p></div>`;
       let body = "";
       slice.forEach(it => {
         body += `<hr style="width: 5cm; border: 1.2px solid black; margin: auto;"><p id="texto-ticket">${escapeHtml(it.nombre)} Cantidad: ${it.cantidad} <br>Unidad: ${formatoPrecioParaPantalla(it.precio)} <br>Total: ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p><hr style="width: 5cm; border: 1.2px solid black; margin: auto;">`;
