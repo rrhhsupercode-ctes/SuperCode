@@ -1,8 +1,8 @@
 /*****************************************************
  * app.js (reemplazo completo)
- * Funcional: Cobrar, Stock, Cajeros, Movimientos, Config
+ * Funcional: Cobrar, Stock, Cajeros, Movimientos, Config, Offline
  * Requiere en index.html: elementos con los IDs usados abajo
- * Requiere helpers de Firebase expuestos en window: ref,get,set,update,remove,onValue
+ * Requiere helpers de Firebase expuestos en window: ref,get,set,update,remove,onValue,push
  *****************************************************/
 (() => {
   "use strict";
@@ -11,6 +11,9 @@
   // Referencias DOM
   // -----------------------
   const modalOverlay = document.getElementById("modal-overlay");
+  const modalBody = document.getElementById("modal-body");
+  const modalButtons = document.getElementById("modal-buttons");
+  const modalOkBtn = document.getElementById("modal-ok");
 
   // Cobrar / Login
   const loginUsuario = document.getElementById("login-usuario");
@@ -42,12 +45,11 @@
   // Movimientos
   const tablaMovimientosBody = document.querySelector("#tabla-movimientos tbody");
   const btnTirarZ = document.getElementById("btn-tirar-z");
-  // filtro en el HTML tiene id "filtroCajero"
   const filtroCajero = document.getElementById("filtroCajero");
 
-  // Historial (nuevas referencias)
+  // Historial
   const tablaHistorialBody = document.querySelector("#tabla-historial tbody");
-  const historialInfo = document.getElementById("historial-info"); // opcional en HTML
+  const historialInfo = document.getElementById("historial-info");
 
   // Config
   const inputConfigNombre = document.getElementById("config-nombre");
@@ -68,8 +70,8 @@
   let cajeroActivo = null;
   let carrito = []; // {codigo, nombre, precio:number, cantidad:number}
   let total = 0;
-  let movimientosCache = {}; // cache para movimientos -> {id: mov}
-  let cajerosCache = {}; // cache cajeros -> {nro: caj}
+  let movimientosCache = {}; // cache movimientos
+  let cajerosCache = {};
   let configCache = null;
 
   // -----------------------
@@ -108,65 +110,112 @@
     return Number.isFinite(n) ? n : 0;
   }
 
-  // Modal helpers (modalOverlay must exist)
-  function mostrarModal(html) {
-    if (!modalOverlay) return alert("Modal no disponible");
-    modalOverlay.innerHTML = html;
-    modalOverlay.classList.remove("hidden");
-  }
-  function cerrarModal() {
-    if (!modalOverlay) return;
-    modalOverlay.innerHTML = "";
-    modalOverlay.classList.add("hidden");
-  }
-
-  // verifica pass admin consultando config en DB
-async function verificarPassAdmin(pass) {
-  try {
-    const snap = await window.get(window.ref(window.db, "config"));
-    if (!snap.exists()) return false;
-    const conf = snap.val();
-    configCache = conf;
-    return String(pass).trim() === String(conf.passAdmin).trim();
-  } catch (e) {
-    console.error("verificarPassAdmin error", e);
-    return false;
-  }
-}
-
-  // require admin via modal input (calls callback only when ok)
-function requireAdminConfirm(actionCallback) {
-  // mostramos contenido con HTML
-  mostrarModal(`
-    <h3>Contraseña Administrador</h3>
-    <input type="password" id="__admin_input" placeholder="Contraseña admin" style="width:100%; margin:10px 0; padding:6px">
-    <div style="margin-top:10px; text-align:right">
-      <button id="__admin_cancel">Cancelar</button>
-      <button id="__admin_ok">Aceptar</button>
-    </div>
-  `, false, true); // 👈 tercer parámetro indica que es HTML
-
-  // enganchar botones
-  const btnOk = document.getElementById("__admin_ok");
-  const btnCancel = document.getElementById("__admin_cancel");
-
-  if (btnOk) {
-    btnOk.onclick = async () => {
-      const v = (document.getElementById("__admin_input").value || "").trim();
-      const ok = await verificarPassAdmin(v);
-      if (ok) {
-        cerrarModal();
-        actionCallback();
-      } else {
-        alert("Contraseña incorrecta");
+  // -----------------------
+  // MODAL (unificado, acepta HTML)
+  // -----------------------
+  // mostrarModal(html [, opts])
+  // opts can be boolean (blocking) for backward compat, or object:
+  // { blocking: boolean, defaultButtons: boolean }
+  function mostrarModal(html, opts) {
+    let blocking = false;
+    let defaultButtons = true;
+    if (typeof opts === "boolean") {
+      blocking = opts;
+    } else if (typeof opts === "object" && opts !== null) {
+      blocking = !!opts.blocking;
+      if (typeof opts.defaultButtons !== "undefined") defaultButtons = !!opts.defaultButtons;
+    }
+    if (!modalOverlay || !modalBody || !modalButtons) {
+      // fallback: alert
+      try {
+        const tmp = document.createElement("div");
+        tmp.innerHTML = html;
+        alert(tmp.textContent || tmp.innerText || "Mensaje");
+      } catch (e) {
+        alert("Modal no disponible");
       }
-    };
+      return;
+    }
+    modalBody.innerHTML = html;
+    modalOverlay.classList.remove("hidden");
+
+    if (defaultButtons) {
+      modalButtons.style.display = "flex";
+      modalOkBtn.style.display = "inline-block";
+      modalOkBtn.onclick = () => cerrarModal();
+      if (blocking) {
+        // if blocking, hide OK so user can't dismiss by default
+        modalOkBtn.style.display = "none";
+      }
+    } else {
+      // hide default button area; content must include its own buttons and handlers
+      modalButtons.style.display = "none";
+    }
   }
 
-  if (btnCancel) {
-    btnCancel.onclick = cerrarModal;
+  function cerrarModal() {
+    if (!modalOverlay || !modalBody) return;
+    modalOverlay.classList.add("hidden");
+    modalBody.innerHTML = "";
   }
-}
+
+  // -----------------------
+  // Password admin verification
+  // -----------------------
+  async function verificarPassAdmin(pass) {
+    try {
+      const snap = await window.get(window.ref(window.db, "config"));
+      if (!snap.exists()) return false;
+      const conf = snap.val();
+      configCache = conf;
+      return String(pass).trim() === String(conf.passAdmin).trim();
+    } catch (e) {
+      console.error("verificarPassAdmin error", e);
+      return false;
+    }
+  }
+
+  // -----------------------
+  // require admin modal (calls callback only when ok)
+  // -----------------------
+  function requireAdminConfirm(actionCallback) {
+    // Build content with its own buttons so default modal-buttons stay hidden
+    const html = `
+      <h3>Contraseña Administrador</h3>
+      <input type="password" id="__admin_input" placeholder="Contraseña admin" style="width:100%; margin:10px 0; padding:6px">
+      <div style="margin-top:10px; text-align:right">
+        <button id="__admin_cancel">Cancelar</button>
+        <button id="__admin_ok">Aceptar</button>
+      </div>
+    `;
+    // show modal hiding default buttons area
+    mostrarModal(html, { blocking: false, defaultButtons: false });
+
+    // attach handlers (elements exist because we just injected HTML)
+    const btnOk = document.getElementById("__admin_ok");
+    const btnCancel = document.getElementById("__admin_cancel");
+    const input = document.getElementById("__admin_input");
+
+    if (btnOk) {
+      btnOk.onclick = async () => {
+        const v = (input && input.value || "").trim();
+        const ok = await verificarPassAdmin(v);
+        if (ok) {
+          cerrarModal();
+          try { actionCallback(); } catch (e) { console.error("actionCallback error", e); }
+        } else {
+          alert("Contraseña incorrecta");
+        }
+      };
+    }
+    if (btnCancel) btnCancel.onclick = cerrarModal;
+
+    // focus the input
+    if (input) {
+      setTimeout(() => input.focus(), 50);
+    }
+  }
+
   // -----------------------
   // NAVIGATION
   // -----------------------
@@ -234,7 +283,6 @@ function requireAdminConfirm(actionCallback) {
         loginUsuario.appendChild(o);
       }
     }
-    // filtroCajero will be filled by DB listener (includes TODOS)
   })();
 
   // -----------------------
@@ -300,7 +348,7 @@ function requireAdminConfirm(actionCallback) {
         });
       }
 
-      // update stock quantity in DB
+      // update stock quantity in DB (or offline queue via hooked window.update)
       await window.update(window.ref(window.db, `stock/${codigo}`), { cantidad: Math.max(0, Number(prod.cantidad) - cantidad) });
 
       renderCarrito();
@@ -339,6 +387,13 @@ function requireAdminConfirm(actionCallback) {
           if (snap.exists()) {
             const prod = snap.val();
             await window.update(window.ref(window.db, `stock/${it.codigo}`), { cantidad: Number(prod.cantidad) + Number(it.cantidad) });
+          } else {
+            await window.set(window.ref(window.db, `stock/${it.codigo}`), {
+              nombre: it.nombre || "PRODUCTO NUEVO",
+              cantidad: it.cantidad,
+              precio: it.precio || "00000,00",
+              fecha: ahoraISO()
+            });
           }
           carrito.splice(i, 1);
           renderCarrito();
@@ -358,10 +413,16 @@ function requireAdminConfirm(actionCallback) {
           <button id="__pay_card">Tarjeta</button>
           <button id="__pay_cancel">Cancelar</button>
         </div>
-      `);
-      document.getElementById("__pay_cancel").onclick = cerrarModal;
-      document.getElementById("__pay_cash").onclick = () => finalizarCobro("Efectivo");
-      document.getElementById("__pay_card").onclick = () => finalizarCobro("Tarjeta");
+      `, { defaultButtons: false });
+      // attach handlers inside modal (content created)
+      setTimeout(() => {
+        const payCancel = document.getElementById("__pay_cancel");
+        const payCash = document.getElementById("__pay_cash");
+        const payCard = document.getElementById("__pay_card");
+        if (payCancel) payCancel.onclick = cerrarModal;
+        if (payCash) payCash.onclick = () => finalizarCobro("Efectivo");
+        if (payCard) payCard.onclick = () => finalizarCobro("Tarjeta");
+      }, 20);
     });
   }
 
@@ -377,10 +438,10 @@ function requireAdminConfirm(actionCallback) {
       items: carrito.map(it => ({ codigo: it.codigo, nombre: it.nombre, precio: it.precio, cantidad: it.cantidad }))
     };
 
-    // Guardar en movimientos
+    // Guardar en movimientos (this will use hooked window.set -> offline-capable)
     await window.set(window.ref(window.db, `movimientos/${movId}`), mov);
 
-    // --- NUEVO: Guardar copia en HISTORIAL por año-mes ---
+    // Guardar copia en HISTORIAL por año-mes
     try {
       const fechaMov = mov.fecha ? new Date(mov.fecha) : new Date();
       const año = fechaMov.getFullYear();
@@ -389,7 +450,6 @@ function requireAdminConfirm(actionCallback) {
     } catch (err) {
       console.error("Error guardando en historial:", err);
     }
-    // --- fin historial ---
 
     imprimirTicketMov(mov);
     carrito = [];
@@ -398,14 +458,23 @@ function requireAdminConfirm(actionCallback) {
   }
 
   // -----------------------
-  // STOCK
+  // STOCK (ordenar por fecha desc)
   // -----------------------
   window.onValue(window.ref(window.db, "stock"), snap => {
     if (!tablaStockBody) return;
     tablaStockBody.innerHTML = "";
     if (!snap.exists()) return;
     const data = snap.val();
-    Object.entries(data).forEach(([codigo, prod]) => {
+
+    // Convertir a array y ordenar (más recientes primero)
+    const productosOrdenados = Object.entries(data).sort((a, b) => {
+      const fechaA = a[1].fecha ? new Date(a[1].fecha).getTime() : 0;
+      const fechaB = b[1].fecha ? new Date(b[1].fecha).getTime() : 0;
+      return fechaB - fechaA; // descendente
+    });
+
+    // Renderizar ordenados
+    productosOrdenados.forEach(([codigo, prod]) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${escapeHtml(codigo)}</td>
@@ -473,24 +542,27 @@ function requireAdminConfirm(actionCallback) {
           <button id="__save_prod">Guardar</button>
           <button id="__cancel_prod">Cancelar</button>
         </div>
-      `);
-      document.getElementById("__cancel_prod").onclick = cerrarModal;
-      document.getElementById("__save_prod").onclick = async () => {
-        const nombre = (document.getElementById("__edit_nombre").value || "").trim();
-        const precio = (document.getElementById("__edit_precio").value || "").trim();
-        const cantidadVal = safeNumber(document.getElementById("__edit_cantidad").value);
-        if (!/^\d{1,5},\d{2}$/.test(precio)) {
-          alert("Precio inválido. Formato: 00000,00");
-          return;
-        }
-        await window.update(window.ref(window.db, `stock/${codigo}`), {
-          nombre: nombre || "PRODUCTO NUEVO",
-          precio: precio,
-          cantidad: cantidadVal,
-          fecha: ahoraISO()
-        });
-        cerrarModal();
-      };
+      `, { defaultButtons: false });
+      // handlers
+      setTimeout(() => {
+        document.getElementById("__cancel_prod").onclick = cerrarModal;
+        document.getElementById("__save_prod").onclick = async () => {
+          const nombre = (document.getElementById("__edit_nombre").value || "").trim();
+          const precio = (document.getElementById("__edit_precio").value || "").trim();
+          const cantidadVal = safeNumber(document.getElementById("__edit_cantidad").value);
+          if (!/^\d{1,5},\d{2}$/.test(precio)) {
+            alert("Precio inválido. Formato: 00000,00");
+            return;
+          }
+          await window.update(window.ref(window.db, `stock/${codigo}`), {
+            nombre: nombre || "PRODUCTO NUEVO",
+            precio: precio,
+            cantidad: cantidadVal,
+            fecha: ahoraISO()
+          });
+          cerrarModal();
+        };
+      }, 20);
     })();
   }
 
@@ -500,15 +572,11 @@ function requireAdminConfirm(actionCallback) {
   window.onValue(window.ref(window.db, "cajeros"), snap => {
     cajerosCache = {};
     if (tablaCajerosBody) tablaCajerosBody.innerHTML = "";
-    // limpiar y añadir TODOS + cargar filtroCajero
-    if (filtroCajero) {
-      filtroCajero.innerHTML = `<option value="TODOS">TODOS</option>`;
-    }
+    if (filtroCajero) filtroCajero.innerHTML = `<option value="TODOS">TODOS</option>`;
     if (!snap.exists()) return;
     const data = snap.val();
     Object.entries(data).forEach(([nro, caj]) => {
       cajerosCache[nro] = caj;
-      // tabla cajeros
       if (tablaCajerosBody) {
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -522,7 +590,6 @@ function requireAdminConfirm(actionCallback) {
         `;
         tablaCajerosBody.appendChild(tr);
       }
-      // filtroCajero option
       if (filtroCajero) {
         const opt = document.createElement("option");
         opt.value = nro;
@@ -531,7 +598,6 @@ function requireAdminConfirm(actionCallback) {
       }
     });
 
-    // attach events to cajeros table actions
     document.querySelectorAll(".btn-del-caj").forEach(btn => {
       btn.onclick = () => {
         requireAdminConfirm(async () => {
@@ -579,32 +645,32 @@ function requireAdminConfirm(actionCallback) {
           <button id="__save_caj">Guardar</button>
           <button id="__cancel_caj">Cancelar</button>
         </div>
-      `);
-      document.getElementById("__cancel_caj").onclick = cerrarModal;
-      document.getElementById("__save_caj").onclick = async () => {
-        const nombre = (document.getElementById("__edit_caj_nombre").value || "").trim();
-        const dni = (document.getElementById("__edit_caj_dni").value || "").trim();
-        const pass = (document.getElementById("__edit_caj_pass").value || "").trim();
-        if (!/^\d{8}$/.test(dni)) {
-          alert("DNI inválido (8 dígitos)");
-          return;
-        }
-        await window.update(window.ref(window.db, `cajeros/${nro}`), { nombre, dni, pass });
-        cerrarModal();
-      };
+      `, { defaultButtons: false });
+      setTimeout(() => {
+        document.getElementById("__cancel_caj").onclick = cerrarModal;
+        document.getElementById("__save_caj").onclick = async () => {
+          const nombre = (document.getElementById("__edit_caj_nombre").value || "").trim();
+          const dni = (document.getElementById("__edit_caj_dni").value || "").trim();
+          const pass = (document.getElementById("__edit_caj_pass").value || "").trim();
+          if (!/^\d{8}$/.test(dni)) {
+            alert("DNI inválido (8 dígitos)");
+            return;
+          }
+          await window.update(window.ref(window.db, `cajeros/${nro}`), { nombre, dni, pass });
+          cerrarModal();
+        };
+      }, 20);
     })();
   }
 
   // -----------------------
   // MOVIMIENTOS (render + filtro)
   // -----------------------
-  // listen movimientos (cache)
   window.onValue(window.ref(window.db, "movimientos"), snap => {
     movimientosCache = snap.exists() ? snap.val() : {};
     renderMovimientos();
   });
 
-  // filtro change
   if (filtroCajero) {
     filtroCajero.addEventListener("change", () => renderMovimientos());
   }
@@ -616,7 +682,6 @@ function requireAdminConfirm(actionCallback) {
     const filtro = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
     const filtrados = filtro === "TODOS" ? dataArr : dataArr.filter(m => (m.cajero || "") === filtro);
 
-    // sort by fecha desc (newer first) if fecha exists
     filtrados.sort((a, b) => {
       const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
       const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
@@ -638,42 +703,41 @@ function requireAdminConfirm(actionCallback) {
     });
 
     // attach actions
-document.querySelectorAll(".btn-del-mov").forEach(btn => {
-  btn.onclick = () => requireAdminConfirm(async () => {
-    const movRef = window.ref(window.db, `movimientos/${btn.dataset.id}`);
-    const snap = await window.get(movRef);
-    if (!snap.exists()) return;
+    document.querySelectorAll(".btn-del-mov").forEach(btn => {
+      btn.onclick = () => requireAdminConfirm(async () => {
+        const movRef = window.ref(window.db, `movimientos/${btn.dataset.id}`);
+        const snap = await window.get(movRef);
+        if (!snap.exists()) return;
 
-    const mov = snap.val();
+        const mov = snap.val();
 
-    // 🔥 Restaurar stock antes de eliminar
-    if (mov.items && Array.isArray(mov.items)) {
-      for (const item of mov.items) {
-        const stockRef = window.ref(window.db, `stock/${item.codigo}`);
-        const stockSnap = await window.get(stockRef);
+        // Restaurar stock antes de eliminar
+        if (mov.items && Array.isArray(mov.items)) {
+          for (const item of mov.items) {
+            const stockRef = window.ref(window.db, `stock/${item.codigo}`);
+            const stockSnap = await window.get(stockRef);
 
-        if (stockSnap.exists()) {
-          const prod = stockSnap.val();
-          const nuevaCantidad = (prod.cantidad || 0) + (item.cantidad || 0);
-          await window.update(stockRef, { cantidad: nuevaCantidad });
-        } else {
-          // Si no existe en stock, lo re-creamos con lo vendido
-          await window.set(stockRef, {
-            codigo: item.codigo,
-            nombre: item.nombre || "PRODUCTO NUEVO",
-            cantidad: item.cantidad,
-            precio: item.precio || 0,
-            fecha: new Date().toLocaleString()
-          });
+            if (stockSnap.exists()) {
+              const prod = stockSnap.val();
+              const nuevaCantidad = (Number(prod.cantidad) || 0) + (Number(item.cantidad) || 0);
+              await window.update(stockRef, { cantidad: nuevaCantidad });
+            } else {
+              // Si no existe en stock, lo re-creamos con lo vendido
+              await window.set(stockRef, {
+                nombre: item.nombre || "PRODUCTO NUEVO",
+                cantidad: Number(item.cantidad) || 0,
+                precio: item.precio || "00000,00",
+                fecha: ahoraISO()
+              });
+            }
+          }
         }
-      }
-    }
 
-    // Ahora sí, eliminar el movimiento
-    await window.remove(movRef);
-    console.log(`Movimiento ${btn.dataset.id} eliminado y stock restaurado`);
-  });
-});
+        // Eliminar movimiento
+        await window.remove(movRef);
+        console.log(`Movimiento ${btn.dataset.id} eliminado y stock restaurado`);
+      });
+    });
 
     document.querySelectorAll(".btn-ver-mov").forEach(btn => {
       btn.onclick = () => verMovimientoModal(btn.dataset.id);
@@ -693,27 +757,31 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
       });
       html += `<p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
       html += `<div style="margin-top:10px"><button id="__print_copy">Imprimir Copia</button><button id="__close_mov">Cerrar</button></div>`;
-      mostrarModal(html);
-      document.getElementById("__close_mov").onclick = cerrarModal;
-      document.getElementById("__print_copy").onclick = () => imprimirTicketMov(mov);
+      mostrarModal(html, { defaultButtons: false });
+      setTimeout(() => {
+        const closeBtn = document.getElementById("__close_mov");
+        const printBtn = document.getElementById("__print_copy");
+        if (closeBtn) closeBtn.onclick = cerrarModal;
+        if (printBtn) printBtn.onclick = () => imprimirTicketMov(mov);
+      }, 20);
     })();
   }
 
-  // Print ticket with pagination
+  // Print ticket (legible)
   function imprimirTicketMov(mov) {
-    const itemsPerPage = 9999;
+    const itemsPerPage = 9999; // effectively no pagination for thermal
     const items = mov.items || [];
     const totalParts = Math.max(1, Math.ceil(items.length / itemsPerPage));
     const printAreas = [];
 
     for (let p = 0; p < totalParts; p++) {
       const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
-      const header = `<div style="text-align:center"><h3>WWW.SUPERCODE.COM.AR</h3><p>${mov.id} <br> Ticket - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p><hr></div>`;
+      const header = `<div style="text-align:center"><h3>WWW.SUPERCODE.COM.AR</h3><p>${escapeHtml(mov.id)} <br> Ticket - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p><hr></div>`;
       let body = "";
       slice.forEach(it => {
-        body += `<hr><p>${escapeHtml(it.nombre)} Cantidad: ${it.cantidad} <br>Unidad: ${formatoPrecioParaPantalla(it.precio)} <br>Total: ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p><hr>`;
+        body += `<hr><p>${escapeHtml(it.nombre)}<br>Cantidad: ${it.cantidad}<br>Unidad: ${formatoPrecioParaPantalla(it.precio)}<br>Total: ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p><hr>`;
       });
-      const footer = `<hr><hr><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>(Pago en:${escapeHtml(mov.tipo)})</p><hr><hr><p>${mov.id} <br> Vuelva Pronto - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p>`;
+      const footer = `<hr><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>(Pago en: ${escapeHtml(mov.tipo)})</p><hr><p>${escapeHtml(mov.id)} <br> Vuelva Pronto - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p>`;
       const area = document.createElement("div");
       area.className = "print-area";
       area.style.width = "5cm";
@@ -721,110 +789,110 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
       printAreas.push(area);
     }
 
-    // append, print, remove
     printAreas.forEach(a => document.body.appendChild(a));
     window.print();
     printAreas.forEach(a => document.body.removeChild(a));
   }
 
- // -----------------------
- // TIRAR Z (por cajero o TODOS)
- // -----------------------
- if (btnTirarZ) {
-   btnTirarZ.addEventListener("click", async () => {
-     // Abrir modal para pedir pass admin
-     mostrarModal(`
-       <h3>Confirmar Tirar Z</h3>
-       <p>Contraseña de Encargado:</p>
-       <input id="z-pass" type="password" style="width:100%; margin:10px 0; padding:6px">
-       <div style="text-align:right">
-         <button id="z-cancel">Cancelar</button>
-         <button id="z-ok">Aceptar</button>
-       </div>
-     `);
+  // -----------------------
+  // TIRAR Z
+  // -----------------------
+  if (btnTirarZ) {
+    btnTirarZ.addEventListener("click", async () => {
+      mostrarModal(`
+        <h3>Confirmar Tirar Z</h3>
+        <p>Contraseña de Encargado:</p>
+        <input id="z-pass" type="password" style="width:100%; margin:10px 0; padding:6px">
+        <div style="text-align:right">
+          <button id="z-cancel">Cancelar</button>
+          <button id="z-ok">Aceptar</button>
+        </div>
+      `, { defaultButtons: false });
 
-     document.getElementById("z-cancel").onclick = cerrarModal;
-     document.getElementById("z-ok").onclick = async () => {
-       const inputPass = document.getElementById("z-pass").value.trim();
-       const snapConfig = await window.get(window.ref(window.db, "config"));
-       const config = snapConfig.exists() ? snapConfig.val() : {};
-       const adminPass = config.passAdmin || "0123456789"; // por defecto
+      setTimeout(() => {
+        document.getElementById("z-cancel").onclick = cerrarModal;
+        document.getElementById("z-ok").onclick = async () => {
+          const inputPass = (document.getElementById("z-pass").value || "").trim();
+          const snapConfig = await window.get(window.ref(window.db, "config"));
+          const config = snapConfig.exists() ? snapConfig.val() : {};
+          const adminPass = config.passAdmin || "0123456789"; // por defecto
 
-       if (inputPass !== adminPass) {
-         alert("Contraseña incorrecta");
-         return;
-       }
-       cerrarModal();
+          if (inputPass !== adminPass) {
+            alert("Contraseña incorrecta");
+            return;
+          }
+          cerrarModal();
 
-       // === Tirar Z real ===
-       const snap = await window.get(window.ref(window.db, "movimientos"));
-       if (!snap.exists()) return alert("No hay movimientos para tirar Z");
-       const allMovArr = Object.values(snap.val());
-       const cajSel = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
+          // Tirar Z real
+          const snap = await window.get(window.ref(window.db, "movimientos"));
+          if (!snap.exists()) return alert("No hay movimientos para tirar Z");
+          const allMovArr = Object.values(snap.val());
+          const cajSel = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
 
-       let data = allMovArr;
-       if (cajSel !== "TODOS") {
-         data = allMovArr.filter(m => (m.cajero || "") === cajSel);
-         if (data.length === 0) return alert(`No hay movimientos para el cajero ${cajSel}`);
-       }
+          let data = allMovArr;
+          if (cajSel !== "TODOS") {
+            data = allMovArr.filter(m => (m.cajero || "") === cajSel);
+            if (data.length === 0) return alert(`No hay movimientos para el cajero ${cajSel}`);
+          }
 
-       // group by cajero y tipo
-       const grouped = {};
-       data.forEach(m => {
-         const caj = m.cajero || "N/A";
-         if (!grouped[caj]) grouped[caj] = { Efectivo: [], Tarjeta: [], otros: [] };
-         if (m.tipo === "Efectivo") grouped[caj].Efectivo.push(m);
-         else if (m.tipo === "Tarjeta") grouped[caj].Tarjeta.push(m);
-         else grouped[caj].otros.push(m);
-       });
+          // group by cajero y tipo
+          const grouped = {};
+          data.forEach(m => {
+            const caj = m.cajero || "N/A";
+            if (!grouped[caj]) grouped[caj] = { Efectivo: [], Tarjeta: [], otros: [] };
+            if (m.tipo === "Efectivo") grouped[caj].Efectivo.push(m);
+            else if (m.tipo === "Tarjeta") grouped[caj].Tarjeta.push(m);
+            else grouped[caj].otros.push(m);
+          });
 
-       let html = `<h2>Reporte Z - ${new Date().toLocaleString()}</h2>`;
-       let grandTotal = 0;
-       Object.keys(grouped).forEach(caj => {
-         html += `<h3>Cajero: ${caj}</h3>`;
-         let totalEf = 0, totalTar = 0;
-         html += `<h4>Efectivo</h4>`;
-         grouped[caj].Efectivo.forEach(m => { 
-           html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
-           totalEf += Number(m.total); 
-         });
-         html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p>`;
-         html += `<h4>Tarjeta</h4>`;
-         grouped[caj].Tarjeta.forEach(m => { 
-           html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
-           totalTar += Number(m.total); 
-         });
-         html += `<p><b>Total Tarjeta Cajero: ${formatoPrecioParaPantalla(totalTar)}</b></p>`;
-         html += `<p><b>Subtotal Cajero: ${formatoPrecioParaPantalla(totalEf + totalTar)}</b></p>`;
-         grandTotal += totalEf + totalTar;
-       });
+          let html = `<h2>Reporte Z - ${new Date().toLocaleString()}</h2>`;
+          let grandTotal = 0;
+          Object.keys(grouped).forEach(caj => {
+            html += `<h3>Cajero: ${caj}</h3>`;
+            let totalEf = 0, totalTar = 0;
+            html += `<h4>Efectivo</h4>`;
+            grouped[caj].Efectivo.forEach(m => {
+              html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
+              totalEf += Number(m.total);
+            });
+            html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p>`;
+            html += `<h4>Tarjeta</h4>`;
+            grouped[caj].Tarjeta.forEach(m => {
+              html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
+              totalTar += Number(m.total);
+            });
+            html += `<p><b>Total Tarjeta Cajero: ${formatoPrecioParaPantalla(totalTar)}</b></p>`;
+            html += `<p><b>Subtotal Cajero: ${formatoPrecioParaPantalla(totalEf + totalTar)}</b></p>`;
+            grandTotal += totalEf + totalTar;
+          });
 
-       html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
-       html += `<br><table border="1" style="width:100%; margin-top:20px"><tr><th>Efectivo Cobrado</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
-       html += `<br><table border="1" style="width:100%; margin-top:10px"><tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
+          html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
+          html += `<br><table border="1" style="width:100%; margin-top:20px"><tr><th>Efectivo Cobrado</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
+          html += `<br><table border="1" style="width:100%; margin-top:10px"><tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
 
-       const area = document.createElement("div");
-       area.className = "print-area";
-       area.style.width = "21cm";
-       area.innerHTML = html;
-       document.body.appendChild(area);
-       window.print();
-       document.body.removeChild(area);
+          const area = document.createElement("div");
+          area.className = "print-area";
+          area.style.width = "21cm";
+          area.innerHTML = html;
+          document.body.appendChild(area);
+          window.print();
+          document.body.removeChild(area);
 
-       // borrar movimientos
-       if (cajSel === "TODOS") {
-         await window.set(window.ref(window.db, "movimientos"), {});
-       } else {
-         const updates = {};
-         Object.values(snap.val()).forEach(m => {
-           if ((m.cajero || "") === cajSel) updates[m.id] = null;
-         });
-         await window.update(window.ref(window.db, "movimientos"), updates);
-       }
-       alert(`Tirar Z completado para ${cajSel}`);
-     };
-   });
- }
+          // borrar movimientos
+          if (cajSel === "TODOS") {
+            await window.set(window.ref(window.db, "movimientos"), {});
+          } else {
+            const updates = {};
+            Object.values(snap.val()).forEach(m => {
+              if ((m.cajero || "") === cajSel) updates[m.id] = null;
+            });
+            await window.update(window.ref(window.db, "movimientos"), updates);
+          }
+          alert(`Tirar Z completado para ${cajSel}`);
+        };
+      }, 20);
+    }));
+  }
 
   // -----------------------
   // CONFIG
@@ -836,57 +904,56 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
     if (inputConfigNombre) inputConfigNombre.value = conf.shopName || "";
   });
 
-if (btnGuardarConfig) {
-  btnGuardarConfig.addEventListener("click", async () => {
-    const shopName = (inputConfigNombre.value || "").trim();
-    const actual = (inputConfigPassActual.value || "").trim();
-    const nueva = (inputConfigPassNueva.value || "").trim();
+  if (btnGuardarConfig) {
+    btnGuardarConfig.addEventListener("click", async () => {
+      const shopName = (inputConfigNombre.value || "").trim();
+      const actual = (inputConfigPassActual.value || "").trim();
+      const nueva = (inputConfigPassNueva.value || "").trim();
 
-    if (!actual || !nueva) return alert("Complete los campos");
+      if (!actual || !nueva) return alert("Complete los campos");
 
-    const snap = await window.get(window.ref(window.db, "config"));
-    if (!snap.exists()) return alert("Error de lectura");
+      const snap = await window.get(window.ref(window.db, "config"));
+      if (!snap.exists()) return alert("Error de lectura");
 
-    const conf = snap.val();
-    if (actual !== conf.passAdmin) return alert("Contraseña actual incorrecta");
+      const conf = snap.val();
+      if (actual !== conf.passAdmin) return alert("Contraseña actual incorrecta");
 
-    if (nueva.length < 4 || nueva.length > 10) {
-      return alert("La nueva contraseña debe tener entre 4 y 10 caracteres");
-    }
+      if (nueva.length < 4 || nueva.length > 10) {
+        return alert("La nueva contraseña debe tener entre 4 y 10 caracteres");
+      }
 
-    // 🔥 preparar lo que se actualizará
-    const updateData = { passAdmin: nueva };
-    if (shopName) updateData.shopName = shopName;
+      const updateData = { passAdmin: nueva };
+      if (shopName) updateData.shopName = shopName;
 
-    await window.update(window.ref(window.db, "config"), updateData);
+      await window.update(window.ref(window.db, "config"), updateData);
 
-    if (configMsg) configMsg.textContent = "Configuración guardada ✅";
+      if (configMsg) configMsg.textContent = "Configuración guardada ✅";
 
-    inputConfigPassActual.value = "";
-    inputConfigPassNueva.value = "";
-  });
-}
-
-btnRestaurar.onclick = async () => {
-  const v = (inputMasterPass.value || "").trim();
-  if (v === "9999") {
-    await window.update(window.ref(window.db, "config"), { passAdmin: "0123456789" });
-    configMsg.textContent = "Contraseña restaurada a 0123456789";
-  } else {
-    configMsg.textContent = "Contraseña maestra incorrecta";
+      inputConfigPassActual.value = "";
+      inputConfigPassNueva.value = "";
+    });
   }
-};
+
+  if (btnRestaurar) {
+    btnRestaurar.onclick = async () => {
+      const v = (inputMasterPass.value || "").trim();
+      if (v === "9999") {
+        await window.update(window.ref(window.db, "config"), { passAdmin: "0123456789" });
+        if (configMsg) configMsg.textContent = "Contraseña restaurada a 0123456789";
+      } else {
+        if (configMsg) configMsg.textContent = "Contraseña maestra incorrecta";
+      }
+    };
+  }
 
   // -----------------------
   // HISTORIAL (render + acciones)
   // -----------------------
   function cargarHistorial() {
-    // carga el historial del mes actual
     const ahora = new Date();
     const año = ahora.getFullYear();
     const mes = String(ahora.getMonth() + 1).padStart(2, "0");
     const pathHistorial = `historial/${año}-${mes}`;
-    // mostrar info en header opcional
     if (historialInfo) {
       const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
       historialInfo.textContent = `Historial de ${meses[Number(mes)-1]} ${año} (se elimina el día 15 del mes siguiente)`;
@@ -897,7 +964,6 @@ btnRestaurar.onclick = async () => {
       tablaHistorialBody.innerHTML = "";
       if (!snap.exists()) return;
       const datos = snap.val();
-      // convertir a array ordenado por fecha descendente
       const arr = Object.values(datos).sort((a,b) => {
         const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
         const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
@@ -918,14 +984,12 @@ btnRestaurar.onclick = async () => {
         tablaHistorialBody.appendChild(tr);
       });
 
-      // attach actions (usar same pathHistorial)
       document.querySelectorAll(".btn-ver-hist").forEach(btn => {
         btn.onclick = async () => {
           const id = btn.dataset.id;
           const snapMov = await window.get(window.ref(window.db, `${pathHistorial}/${id}`));
           if (!snapMov.exists()) return alert("Movimiento no encontrado en historial");
           const mov = snapMov.val();
-          // reutilizar modal del movimiento
           let html = `<h3>Ticket ${mov.id}</h3>`;
           html += `<p>${formatFechaParaHeader(mov.fecha)}</p>`;
           html += `<p>Cajero: ${escapeHtml(mov.cajero)}</p><hr>`;
@@ -934,39 +998,28 @@ btnRestaurar.onclick = async () => {
           });
           html += `<hr><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
           html += `<div style="margin-top:10px"><button id="__print_copy_hist">Imprimir Copia</button><button id="__close_hist">Cerrar</button></div>`;
-          mostrarModal(html);
-          document.getElementById("__close_hist").onclick = cerrarModal;
-          document.getElementById("__print_copy_hist").onclick = () => imprimirTicketMov(mov);
-        };
-      });
-
-      document.querySelectorAll(".btn-del-hist").forEach(btn => {
-        btn.onclick = () => {
-          requireAdminConfirm(async () => {
-            try {
-              await window.remove(window.ref(window.db, `${pathHistorial}/${btn.dataset.id}`));
-            } catch (err) {
-              console.error("Error borrando historial item:", err);
-            }
-          });
+          mostrarModal(html, { defaultButtons: false });
+          setTimeout(() => {
+            document.getElementById("__close_hist").onclick = cerrarModal;
+            document.getElementById("__print_copy_hist").onclick = () => imprimirTicketMov(mov);
+          }, 20);
         };
       });
     });
   }
 
-  // iniciar carga historial
   cargarHistorial();
 
   // -----------------------
-  // LIMPIAR HISTORIAL EL DÍA 15 (elimina mes anterior)
+  // LIMPIAR HISTORIAL EL DÍA 15
   // -----------------------
   async function limpiarHistorialMensual() {
     try {
       const hoy = new Date();
       const dia = hoy.getDate();
-      if (dia === 15) { // si hoy es 15 -> borrar mes anterior
+      if (dia === 15) {
         const año = hoy.getFullYear();
-        const mesAnteriorIndex = hoy.getMonth() - 1; // ayer? mes anterior
+        const mesAnteriorIndex = hoy.getMonth() - 1;
         let añoTarget = año;
         let mesTarget;
         if (mesAnteriorIndex < 0) {
@@ -984,177 +1037,135 @@ btnRestaurar.onclick = async () => {
       console.error("Error en limpiarHistorialMensual:", err);
     }
   }
-  // Ejecutar a la carga
   limpiarHistorialMensual();
-  // Y programar chequeo diario (por si la app queda abierta)
   try {
-    setInterval(() => {
-      limpiarHistorialMensual();
-    }, 24 * 60 * 60 * 1000); // cada 24h
-  } catch (err) {
-    // No crítico si falla
-  }
+    setInterval(() => limpiarHistorialMensual(), 24 * 60 * 60 * 1000);
+  } catch (err) {}
 
   // -----------------------
-// MANEJO OFFLINE
-// -----------------------
-let inicioOffline = null;
-let offlineTimer = null;
-let avisoTimer = null;
-const LIMITE_OFFLINE_MS = 4 * 60 * 60 * 1000; // 4 horas
+  // OFFLINE: mensaje + cola + hooks
+  // -----------------------
+  let inicioOffline = null;
+  let offlineTimer = null;
+  let avisoTimer = null;
+  const LIMITE_OFFLINE_MS = 4 * 60 * 60 * 1000; // 4 horas
+  const OFFLINE_KEY = "supercode_offline_queue";
 
-function mostrarModal(mensaje, bloquear = false) {
-  const overlay = document.getElementById("modal-overlay");
-  const msg = document.getElementById("modal-message");
-  const btnOk = document.getElementById("modal-ok");
-
-  msg.textContent = mensaje;
-  overlay.classList.remove("hidden");
-
-  if (bloquear) {
-    btnOk.style.display = "none"; // sin botón OK
-  } else {
-    btnOk.style.display = "inline-block";
-    btnOk.onclick = () => overlay.classList.add("hidden");
+  function getOfflineQueue() {
+    return JSON.parse(localStorage.getItem(OFFLINE_KEY) || "[]");
   }
-}
+  function setOfflineQueue(q) {
+    localStorage.setItem(OFFLINE_KEY, JSON.stringify(q));
+  }
+  function guardarOffline(tipo, path, data) {
+    const queue = getOfflineQueue();
+    queue.push({ tipo, path, data, timestamp: Date.now() });
+    setOfflineQueue(queue);
+    console.log("💾 Guardado offline:", tipo, path, data);
+  }
 
-function ocultarModal() {
-  document.getElementById("modal-overlay").classList.add("hidden");
-}
-
-// cuando se pierde internet
-window.addEventListener("offline", () => {
-  if (!inicioOffline) inicioOffline = Date.now();
-
-  mostrarModal("¡Atención! No hay internet, por favor comunicate al 3794 576062. No se puede cobrar. Por favor, conéctese cuanto antes a internet para evitar problemas. Podés seguir actualizando stock meintras tanto", false);
-
-  clearInterval(offlineTimer);
-  clearInterval(avisoTimer);
-
-  // timer para corte total
-  offlineTimer = setInterval(() => {
-    const diff = Date.now() - inicioOffline;
-    if (diff > LIMITE_OFFLINE_MS) {
-      mostrarModal("Se acabó el tiempo de tolerancia sin internet. No podés continuar sin internet ❌", true);
-      bloquearCobros();
-      clearInterval(offlineTimer);
-      clearInterval(avisoTimer);
+  async function sincronizarOffline() {
+    const queue = getOfflineQueue();
+    if (!queue.length) return;
+    console.log("🌐 Sincronizando", queue.length, "operaciones offline...");
+    for (const op of queue) {
+      try {
+        if (op.tipo === "set") {
+          const ref = window.ref(window.db, op.path);
+          await _set(ref, op.data);
+        } else if (op.tipo === "push") {
+          const ref = window.push(window.ref(window.db, op.path));
+          await _set(ref, op.data);
+        }
+        console.log("✅ Sincronizado:", op.tipo, op.path);
+      } catch (err) {
+        console.error("❌ Error sincronizando:", op, err);
+      }
     }
-  }, 60000);
+    setOfflineQueue([]);
+  }
 
-  // cada 30 min mostrar aviso de tiempo restante
-  avisoTimer = setInterval(() => {
-    const diff = Date.now() - inicioOffline;
-    const restante = Math.max(0, LIMITE_OFFLINE_MS - diff);
-    const horas = Math.floor(restante / (1000 * 60 * 60));
-    const mins = Math.floor((restante % (1000 * 60 * 60)) / (1000 * 60));
-    mostrarModal(`⚠️ Sin internet. Tiempo restante: ${horas}h ${mins}m para seguir trabajando`, false);
-  }, 30 * 60 * 1000);
-});
-
-// cuando regresa internet
-window.addEventListener("online", () => {
-  ocultarModal();
-  clearInterval(offlineTimer);
-  clearInterval(avisoTimer);
-  inicioOffline = null;
-
-  mostrarModal("¡Ya tenés internet! Podés seguir cobrando, gracias", false);
-
-  // TODO: sincronizar ventas offline con Firebase
-});
-
-// bloqueo total de botones si pasa el límite
-function bloquearCobros() {
-  const botones = document.querySelectorAll("button, input, select");
-  botones.forEach(btn => {
-    btn.disabled = true;
+  window.addEventListener("online", () => {
+    // cuando vuelve internet, sincronizar
+    sincronizarOffline();
+    // limpiar timers/estado offline
+    cerrarModal();
+    clearInterval(offlineTimer);
+    clearInterval(avisoTimer);
+    inicioOffline = null;
+    mostrarModal("¡Ya tenés internet! Podés seguir cobrando sin límite de tiempo, gracias 🙌");
   });
-}
+
+  window.addEventListener("offline", () => {
+    if (!inicioOffline) inicioOffline = Date.now();
+    mostrarModal("¡Atención! No hay internet disponible. Se podrá seguir cobrando durante 4 horas. Por favor, conéctese cuanto antes.", { defaultButtons: true });
+    clearInterval(offlineTimer);
+    clearInterval(avisoTimer);
+
+    offlineTimer = setInterval(() => {
+      const diff = Date.now() - inicioOffline;
+      if (diff > LIMITE_OFFLINE_MS) {
+        mostrarModal("Se acabó el tiempo de tolerancia offline. No puede seguir cobrando sin internet ❌", { defaultButtons: true });
+        bloquearCobros();
+        clearInterval(offlineTimer);
+        clearInterval(avisoTimer);
+      }
+    }, 60 * 1000);
+
+    avisoTimer = setInterval(() => {
+      const diff = Date.now() - inicioOffline;
+      const restante = Math.max(0, LIMITE_OFFLINE_MS - diff);
+      const horas = Math.floor(restante / (1000 * 60 * 60));
+      const mins = Math.floor((restante % (1000 * 60 * 60)) / (1000 * 60));
+      mostrarModal(`⚠️ Sin internet. Tiempo restante: ${horas}h ${mins}m para seguir cobrando.`, { defaultButtons: true });
+    }, 30 * 60 * 1000);
+  });
+
+  function bloquearCobros() {
+    const botones = document.querySelectorAll("button, input, select");
+    botones.forEach(b => b.disabled = true);
+  }
 
   // -----------------------
-// OFFLINE STORAGE (auto-hook)
-// -----------------------
-const OFFLINE_KEY = "supercode_offline_queue";
+  // HOOK a window.set y window.push para cola offline
+  // -----------------------
+  const _set = window.set;
+  const _push = window.push;
 
-// cargar cola de offline
-function getOfflineQueue() {
-  return JSON.parse(localStorage.getItem(OFFLINE_KEY) || "[]");
-}
-function setOfflineQueue(queue) {
-  localStorage.setItem(OFFLINE_KEY, JSON.stringify(queue));
-}
-
-// guardar operación en la cola offline
-function guardarOffline(tipo, path, data) {
-  const queue = getOfflineQueue();
-  queue.push({
-    tipo,
-    path,
-    data,
-    timestamp: Date.now()
-  });
-  setOfflineQueue(queue);
-  console.log("💾 Guardado offline:", tipo, path, data);
-}
-
-// sincronizar al volver internet
-async function sincronizarOffline() {
-  const queue = getOfflineQueue();
-  if (!queue.length) return;
-
-  console.log("🌐 Sincronizando", queue.length, "operaciones offline...");
-
-  for (const op of queue) {
+  function refToPath(ref) {
     try {
-      if (op.tipo === "set") {
-        const ref = window.ref(window.db, op.path);
-        await window.set(ref, op.data);
-      }
-      if (op.tipo === "push") {
-        const ref = window.push(window.ref(window.db, op.path));
-        await window.set(ref, op.data);
-      }
-      console.log("✅ Sincronizado:", op.tipo, op.path);
-    } catch (err) {
-      console.error("❌ Error sincronizando:", op, err);
+      if (!ref) return "";
+      // compat with different ref internals
+      if (ref._path && Array.isArray(ref._path.pieces_)) return ref._path.pieces_.join("/");
+      if (ref.path && ref.path.pieces_) return ref.path.pieces_.join("/");
+      if (typeof ref === "string") return ref;
+      return "";
+    } catch (e) {
+      return "";
     }
   }
 
-  // limpiar cola
-  setOfflineQueue([]);
-}
+  window.set = async (ref, val) => {
+    if (navigator.onLine) {
+      return _set(ref, val);
+    } else {
+      const path = refToPath(ref) || (typeof ref === "string" ? ref : "");
+      guardarOffline("set", path, val);
+    }
+  };
 
-// hook al volver internet
-window.addEventListener("online", sincronizarOffline);
-
-// -----------------------
-// HOOK a window.set y window.push
-// -----------------------
-const _set = window.set;
-const _push = window.push;
-
-window.set = async (ref, val) => {
-  if (navigator.onLine) {
-    return _set(ref, val);
-  } else {
-    guardarOffline("set", ref._path.pieces_.join("/"), val);
-  }
-};
-
-window.push = (ref) => {
-  // devolvemos un ref simulado para guardar en cola
-  if (navigator.onLine) {
-    return _push(ref);
-  } else {
-    return {
-      _offlinePath: ref._path.pieces_.join("/"),
-      set: (val) => guardarOffline("push", ref._path.pieces_.join("/"), val)
-    };
-  }
-};
-
+  window.push = (ref) => {
+    if (navigator.onLine) {
+      return _push(ref);
+    } else {
+      // return mock that has set method (used in sincronizar)
+      const path = refToPath(ref) || (typeof ref === "string" ? ref : "");
+      return {
+        _offlinePath: path,
+        set: (val) => guardarOffline("push", path, val)
+      };
+    }
+  };
 
   // -----------------------
   // Final
