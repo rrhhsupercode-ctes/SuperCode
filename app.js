@@ -135,16 +135,23 @@ async function verificarPassAdmin(pass) {
 }
 
   // require admin via modal input (calls callback only when ok)
-  function requireAdminConfirm(actionCallback) {
-    mostrarModal(`
-      <h3>Contraseña Administrador</h3>
-      <input type="password" id="__admin_input" placeholder="Contraseña admin">
-      <div style="margin-top:10px">
-        <button id="__admin_ok">Aceptar</button>
-        <button id="__admin_cancel">Cancelar</button>
-      </div>
-    `);
-    document.getElementById("__admin_ok").onclick = async () => {
+function requireAdminConfirm(actionCallback) {
+  // mostramos contenido con HTML
+  mostrarModal(`
+    <h3>Contraseña Administrador</h3>
+    <input type="password" id="__admin_input" placeholder="Contraseña admin" style="width:100%; margin:10px 0; padding:6px">
+    <div style="margin-top:10px; text-align:right">
+      <button id="__admin_cancel">Cancelar</button>
+      <button id="__admin_ok">Aceptar</button>
+    </div>
+  `, false, true); // 👈 tercer parámetro indica que es HTML
+
+  // enganchar botones
+  const btnOk = document.getElementById("__admin_ok");
+  const btnCancel = document.getElementById("__admin_cancel");
+
+  if (btnOk) {
+    btnOk.onclick = async () => {
       const v = (document.getElementById("__admin_input").value || "").trim();
       const ok = await verificarPassAdmin(v);
       if (ok) {
@@ -154,9 +161,12 @@ async function verificarPassAdmin(pass) {
         alert("Contraseña incorrecta");
       }
     };
-    document.getElementById("__admin_cancel").onclick = cerrarModal;
   }
 
+  if (btnCancel) {
+    btnCancel.onclick = cerrarModal;
+  }
+}
   // -----------------------
   // NAVIGATION
   // -----------------------
