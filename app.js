@@ -985,24 +985,26 @@ btnRestaurar.onclick = async () => {
     // No crítico si falla
   }
 
-  /*****************************************************
+ /*****************************************************
  * Modal de pérdida de conexión
  *****************************************************/
 function mostrarModalOffline() {
   const overlay = document.getElementById("modal-overlay");
 
   overlay.innerHTML = `
-    <div class="modal">
+    <div class="modal-content-offline">
       <h3>¡Te quedaste sin internet!</h3>
       <p>Para continuar, conectate a internet o comunicate al<br><b>3794 576062</b></p>
     </div>
   `;
   overlay.classList.remove("hidden");
+  overlay.classList.add("active"); // 🔥 activa el fondo oscuro y bloquea clicks
 }
 
 function cerrarModalOffline() {
   const overlay = document.getElementById("modal-overlay");
   overlay.classList.add("hidden");
+  overlay.classList.remove("active");
   overlay.innerHTML = ""; // limpiar contenido
 }
 
@@ -1014,7 +1016,6 @@ window.addEventListener("offline", () => {
 window.addEventListener("online", () => {
   cerrarModalOffline();
 });
-
   // -----------------------
   // Final
   // -----------------------
