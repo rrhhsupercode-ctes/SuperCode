@@ -982,9 +982,9 @@ function cargarHistorial() {
     paginador.style.textAlign = "center";
     paginador.style.margin = "10px 0";
     paginador.innerHTML = `
-      <button id="hist-prev">⬅</button>
+      <button id="hist-prev">◀️</button>
       <span id="hist-dia-label"></span>
-      <button id="hist-next">➡</button>
+      <button id="hist-next">▶️</button>
     `;
     tablaHistorialBody.parentElement.appendChild(paginador);
 
