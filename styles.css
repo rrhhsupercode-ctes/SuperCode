@@ -267,3 +267,36 @@ tbody tr:nth-child(even) {
   text-align: center;
   margin: 8px 0;
 }
+
+/*Botones de paginado de HISTORIAL*/
+/* Contenedor de los botones y label del historial */
+#historial-paginador {
+  display: flex;
+  justify-content: center;   /* centra horizontalmente */
+  align-items: center;       /* alinea verticalmente */
+  gap: 10px;                 /* espacio entre botones y label */
+  margin: 10px 0;            /* separación arriba y abajo */
+}
+
+/* Botones prev / next */
+#historial-paginador button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+#historial-paginador button:hover {
+  background-color: #0056b3;
+}
+
+/* Texto del día */
+#hist-dia-label {
+  font-weight: bold;
+  font-size: 14px;
+  min-width: 120px;   /* evita que se muevan los botones si el texto cambia */
+  text-align: center;
+}
