@@ -408,101 +408,110 @@ async function verificarPassAdmin(pass) {
   }
 
   // -----------------------
-  // STOCK
-  // -----------------------
-  window.onValue(window.ref(window.db, "stock"), snap => {
-    if (!tablaStockBody) return;
-    tablaStockBody.innerHTML = "";
-    if (!snap.exists()) return;
-    const data = snap.val();
-    Object.entries(data).forEach(([codigo, prod]) => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${escapeHtml(codigo)}</td>
-        <td>${escapeHtml(prod.nombre || "")}</td>
-        <td>${Number(prod.cantidad) || 0}</td>
-        <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
-        <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
-        <td>
-          <button class="btn-edit-stock" data-id="${codigo}">Editar</button>
-          <button class="btn-del-stock" data-id="${codigo}">Eliminar</button>
-        </td>
-      `;
-      tablaStockBody.appendChild(tr);
-    });
+// STOCK
+// -----------------------
+window.onValue(window.ref(window.db, "stock"), snap => {
+  if (!tablaStockBody) return;
+  tablaStockBody.innerHTML = "";
+  if (!snap.exists()) return;
 
-    // Attach events
-    document.querySelectorAll(".btn-del-stock").forEach(btn => {
-      btn.onclick = () => {
-        requireAdminConfirm(async () => {
-          await window.remove(window.ref(window.db, `stock/${btn.dataset.id}`));
-        });
-      };
-    });
-    document.querySelectorAll(".btn-edit-stock").forEach(btn => {
-      btn.onclick = () => requireAdminConfirm(() => editarStockModal(btn.dataset.id));
-    });
+  const data = snap.val();
+
+  // Convertir a array y ordenar por fecha (descendente)
+  const ordenados = Object.entries(data).sort(([, a], [, b]) => {
+    const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
+    const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
+    return tb - ta; // más nuevo primero
   });
 
-  if (btnAgregarStock) {
-    btnAgregarStock.addEventListener("click", async () => {
-      const codigo = (inputStockCodigo.value || "").trim();
-      const cantidad = safeNumber(stockCantidadSelect.value);
-      if (!codigo) {
-        alert("Ingrese código");
+  ordenados.forEach(([codigo, prod]) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(codigo)}</td>
+      <td>${escapeHtml(prod.nombre || "")}</td>
+      <td>${Number(prod.cantidad) || 0}</td>
+      <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
+      <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
+      <td>
+        <button class="btn-edit-stock" data-id="${codigo}">Editar</button>
+        <button class="btn-del-stock" data-id="${codigo}">Eliminar</button>
+      </td>
+    `;
+    tablaStockBody.appendChild(tr);
+  });
+
+  // Attach events
+  document.querySelectorAll(".btn-del-stock").forEach(btn => {
+    btn.onclick = () => {
+      requireAdminConfirm(async () => {
+        await window.remove(window.ref(window.db, `stock/${btn.dataset.id}`));
+      });
+    };
+  });
+  document.querySelectorAll(".btn-edit-stock").forEach(btn => {
+    btn.onclick = () => requireAdminConfirm(() => editarStockModal(btn.dataset.id));
+  });
+});
+
+if (btnAgregarStock) {
+  btnAgregarStock.addEventListener("click", async () => {
+    const codigo = (inputStockCodigo.value || "").trim();
+    const cantidad = safeNumber(stockCantidadSelect.value);
+    if (!codigo) {
+      alert("Ingrese código");
+      return;
+    }
+    const refProd = window.ref(window.db, `stock/${codigo}`);
+    const snap = await window.get(refProd);
+    if (snap.exists()) {
+      const prod = snap.val();
+      await window.update(refProd, { cantidad: (Number(prod.cantidad) || 0) + cantidad, fecha: ahoraISO() });
+    } else {
+      await window.set(refProd, {
+        nombre: "PRODUCTO NUEVO",
+        cantidad,
+        precio: "00000,00",
+        fecha: ahoraISO()
+      });
+    }
+    inputStockCodigo.value = "";
+  });
+}
+
+function editarStockModal(codigo) {
+  (async () => {
+    const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
+    if (!snap.exists()) return alert("Producto no encontrado");
+    const prod = snap.val();
+    mostrarModal(`
+      <h3>Editar Producto</h3>
+      <label>Nombre</label><input id="__edit_nombre" value="${escapeHtml(prod.nombre || "")}">
+      <label>Precio (00000,00)</label><input id="__edit_precio" value="${escapeHtml(String(prod.precio || "00000,00"))}">
+      <label>Cantidad</label><input id="__edit_cantidad" type="number" value="${Number(prod.cantidad) || 0}">
+      <div style="margin-top:10px">
+        <button id="__save_prod">Guardar</button>
+        <button id="__cancel_prod">Cancelar</button>
+      </div>
+    `);
+    document.getElementById("__cancel_prod").onclick = cerrarModal;
+    document.getElementById("__save_prod").onclick = async () => {
+      const nombre = (document.getElementById("__edit_nombre").value || "").trim();
+      const precio = (document.getElementById("__edit_precio").value || "").trim();
+      const cantidadVal = safeNumber(document.getElementById("__edit_cantidad").value);
+      if (!/^\d{1,5},\d{2}$/.test(precio)) {
+        alert("Precio inválido. Formato: 00000,00");
         return;
       }
-      const refProd = window.ref(window.db, `stock/${codigo}`);
-      const snap = await window.get(refProd);
-      if (snap.exists()) {
-        const prod = snap.val();
-        await window.update(refProd, { cantidad: (Number(prod.cantidad) || 0) + cantidad, fecha: ahoraISO() });
-      } else {
-        await window.set(refProd, {
-          nombre: "PRODUCTO NUEVO",
-          cantidad,
-          precio: "00000,00",
-          fecha: ahoraISO()
-        });
-      }
-      inputStockCodigo.value = "";
-    });
-  }
-
-  function editarStockModal(codigo) {
-    (async () => {
-      const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
-      if (!snap.exists()) return alert("Producto no encontrado");
-      const prod = snap.val();
-      mostrarModal(`
-        <h3>Editar Producto</h3>
-        <label>Nombre</label><input id="__edit_nombre" value="${escapeHtml(prod.nombre || "")}">
-        <label>Precio (00000,00)</label><input id="__edit_precio" value="${escapeHtml(String(prod.precio || "00000,00"))}">
-        <label>Cantidad</label><input id="__edit_cantidad" type="number" value="${Number(prod.cantidad) || 0}">
-        <div style="margin-top:10px">
-          <button id="__save_prod">Guardar</button>
-          <button id="__cancel_prod">Cancelar</button>
-        </div>
-      `);
-      document.getElementById("__cancel_prod").onclick = cerrarModal;
-      document.getElementById("__save_prod").onclick = async () => {
-        const nombre = (document.getElementById("__edit_nombre").value || "").trim();
-        const precio = (document.getElementById("__edit_precio").value || "").trim();
-        const cantidadVal = safeNumber(document.getElementById("__edit_cantidad").value);
-        if (!/^\d{1,5},\d{2}$/.test(precio)) {
-          alert("Precio inválido. Formato: 00000,00");
-          return;
-        }
-        await window.update(window.ref(window.db, `stock/${codigo}`), {
-          nombre: nombre || "PRODUCTO NUEVO",
-          precio: precio,
-          cantidad: cantidadVal,
-          fecha: ahoraISO()
-        });
-        cerrarModal();
-      };
-    })();
-  }
+      await window.update(window.ref(window.db, `stock/${codigo}`), {
+        nombre: nombre || "PRODUCTO NUEVO",
+        precio: precio,
+        cantidad: cantidadVal,
+        fecha: ahoraISO()
+      });
+      cerrarModal();
+    };
+  })();
+}
 
   // -----------------------
   // CAJEROS
