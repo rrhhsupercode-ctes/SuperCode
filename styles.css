@@ -13,6 +13,10 @@ body {
 }
 
 /* === HEADER === */
+#app-title {
+  color: #ffffff;
+}
+
 header {
   background: #2d3436;
   padding: 12px;
