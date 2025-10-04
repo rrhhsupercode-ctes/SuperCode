@@ -703,7 +703,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
       slice.forEach(it => {
         body += `<hr id="hr-ticket"><p id="texto-ticket">${escapeHtml(it.nombre)} <br>Unidad: ${formatoPrecioParaPantalla(it.precio)}</p> <p id="texto-ticket">(x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p><hr id="hr-ticket">`;
       });
-      const footer = `<p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket">(Pago en: ${escapeHtml(mov.tipo)})</p><br><p id="texto-ticket">Vuelva Pronto</p>`;
+      const footer = `<p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket">(Pago en: ${escapeHtml(mov.tipo)})</p>`;
       const area = document.createElement("div");
       area.className = "print-area";
       area.style.width = "5cm";
