@@ -679,7 +679,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
       html += `<p id="texto-ticket">${formatFechaParaHeader(mov.fecha)}</p>`;
       html += `<p id="texto-ticket">Cajero: ${escapeHtml(mov.cajero)}</p>`;
       (mov.items || []).forEach(it => {
-        html += `<hr style="width: 5cm; border: 1px solid black; margin: auto;"><p id="texto-ticket">${escapeHtml(it.nombre)} <br>Cantidad ${it.cantidad} <br>Precio ${formatoPrecioParaPantalla(it.precio)} <br>Total ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
+        html += `<hr style="width: 5cm; border: 1px solid black; margin: auto;"><p id="texto-ticket">${escapeHtml(it.nombre)} (x${it.cantidad}) <br>Unidad ${formatoPrecioParaPantalla(it.precio)} <br>Total ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
       });
       html += `<p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket">Pago: ${escapeHtml(mov.tipo)}</p>`;
       html += `<div style="margin-top:10px"><button id="__print_copy">Imprimir Copia</button><button id="__close_mov">Cerrar</button></div>`;
@@ -701,7 +701,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
       const header = `<div style="text-align:center"><p id="texto-ticket">WWW.SUPERCODE.COM.AR <br> ${mov.id} <br> Ticket - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p></div>`;
       let body = "";
       slice.forEach(it => {
-        body += `<hr style="width: 5cm; border: 1px solid black; margin: auto;"><p id="texto-ticket">${escapeHtml(it.nombre)} Cantidad: ${it.cantidad} <br>Unidad: ${formatoPrecioParaPantalla(it.precio)} <br>Total: ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p><hr style="width: 5cm; border: 1px solid black; margin: auto;">`;
+        body += `<hr style="width: 5cm; border: 1px solid black; margin: auto;"><p id="texto-ticket">${escapeHtml(it.nombre)} (x${it.cantidad}) <br>Unidad: ${formatoPrecioParaPantalla(it.precio)} <br>Total: ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p><hr style="width: 5cm; border: 1px solid black; margin: auto;">`;
       });
       const footer = `<p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket">(Pago en:${escapeHtml(mov.tipo)})</p><br><p id="texto-ticket">Vuelva Pronto</p>`;
       const area = document.createElement("div");
