@@ -798,8 +798,8 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
            html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
            totalEf += Number(m.total); 
          });
-         html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p><hr>`;
-         html += `<h4>Tarjeta</h4>`;
+         html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p>`;
+         html += `<hr><h4>Tarjeta</h4>`;
          grouped[caj].Tarjeta.forEach(m => { 
            html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
            totalTar += Number(m.total); 
