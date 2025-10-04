@@ -679,9 +679,9 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
       html += `<p id="texto-ticket-modal">${formatFechaParaHeader(mov.fecha)}</p>`;
       html += `<p id="texto-ticket-modal">Cajero: ${escapeHtml(mov.cajero)}</p>`;
       (mov.items || []).forEach(it => {
-        html += `<hr style="width: 5cm; border: 1px solid black; margin: auto;"><p id="texto-ticket-modal">${escapeHtml(it.nombre)} (x${it.cantidad}) <br>Unidad ${formatoPrecioParaPantalla(it.precio)} <br>Total ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
+        html += `<hr id="hr-ticket"><p id="texto-ticket-modal">${escapeHtml(it.nombre)} (x${it.cantidad}) <br>Unidad ${formatoPrecioParaPantalla(it.precio)} <br>Total ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
       });
-      html += `<p id="texto-ticket-modal"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket-modal">Pago en: ${escapeHtml(mov.tipo)}</p>`;
+      html += `<hr id="hr-ticket"><p id="texto-ticket-modal"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket-modal">Pago en: ${escapeHtml(mov.tipo)}</p>`;
       html += `<div style="margin-top:10px"><button id="__print_copy">Imprimir Copia</button><button id="__close_mov">Cerrar</button></div>`;
       mostrarModal(html);
       document.getElementById("__close_mov").onclick = cerrarModal;
@@ -701,7 +701,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
       const header = `<div style="text-align:center"><p id="texto-ticket">WWW.SUPERCODE.COM.AR <br> ${mov.id} <br> Ticket - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p></div>`;
       let body = "";
       slice.forEach(it => {
-        body += `<hr style="width: 5cm; border: 1px solid black; margin: auto;"><p id="texto-ticket">${escapeHtml(it.nombre)} (x${it.cantidad}) <br>Unidad: ${formatoPrecioParaPantalla(it.precio)} <br>Total: ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p><hr style="width: 5cm; border: 1px solid black; margin: auto;">`;
+        body += `<hr id="hr-ticket"><p id="texto-ticket">${escapeHtml(it.nombre)} (x${it.cantidad}) <br>Unidad: ${formatoPrecioParaPantalla(it.precio)} <hr id="hr-ticket">Total: ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p><hr id="hr-ticket">`;
       });
       const footer = `<p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket">(Pago en:${escapeHtml(mov.tipo)})</p><br><p id="texto-ticket">Vuelva Pronto</p>`;
       const area = document.createElement("div");
@@ -918,11 +918,11 @@ btnRestaurar.onclick = async () => {
           // reutilizar modal del movimiento
           let html = `<h3>Ticket ${mov.id}</h3>`;
           html += `<p>${formatFechaParaHeader(mov.fecha)}</p>`;
-          html += `<p>Cajero: ${escapeHtml(mov.cajero)}</p><hr style="width: 5cm; border: 1px solid black; margin: auto;">`;
+          html += `<p>Cajero: ${escapeHtml(mov.cajero)}</p><hr id="hr-ticket">`;
           (mov.items || []).forEach(it => {
             html += `<p>${escapeHtml(it.nombre)} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
           });
-          html += `<hr style="width: 5cm; border: 1px solid black; margin: auto;"><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
+          html += `<hr id="hr-ticket"><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
           html += `<div style="margin-top:10px"><button id="__print_copy_hist">Imprimir Copia</button><button id="__close_hist">Cerrar</button></div>`;
           mostrarModal(html);
           document.getElementById("__close_hist").onclick = cerrarModal;
