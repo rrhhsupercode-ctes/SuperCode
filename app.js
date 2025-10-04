@@ -355,9 +355,29 @@ async function verificarPassAdmin(pass) {
     });
   }
 
+  // Generador de número de ticket secuencial diario
+  function generarNumeroTicket() {
+    const hoy = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+    const ultimaFecha = localStorage.getItem("ticket_fecha");
+    let contador = parseInt(localStorage.getItem("ticket_contador") || "0", 10);
+
+    // Reinicia contador si cambió la fecha
+    if (ultimaFecha !== hoy) {
+      contador = 0;
+      localStorage.setItem("ticket_fecha", hoy);
+    }
+
+    // Sumar 1 al contador
+    contador++;
+    localStorage.setItem("ticket_contador", contador);
+
+    // Devuelve el ID con 6 dígitos
+    return "ID_" + String(contador).padStart(6, "0");
+  }
+
   async function finalizarCobro(tipoPago) {
     cerrarModal();
-    const movId = `ID_${Date.now()}`;
+    const movId = generarNumeroTicket(); // ✅ ahora usa el secuencial
     const mov = {
       id: movId,
       cajero: cajeroActivo ? (cajeroActivo.nro || cajeroActivo.nombre) : "N/A",
@@ -367,6 +387,25 @@ async function verificarPassAdmin(pass) {
       items: carrito.map(it => ({ codigo: it.codigo, nombre: it.nombre, precio: it.precio, cantidad: it.cantidad }))
     };
 
+    // Guardar en movimientos
+    await window.set(window.ref(window.db, `movimientos/${movId}`), mov);
+
+    // --- NUEVO: Guardar copia en HISTORIAL por año-mes ---
+    try {
+      const fechaMov = mov.fecha ? new Date(mov.fecha) : new Date();
+      const año = fechaMov.getFullYear();
+      const mes = String(fechaMov.getMonth() + 1).padStart(2, "0");
+      await window.set(window.ref(window.db, `historial/${año}-${mes}/${movId}`), mov);
+    } catch (err) {
+      console.error("Error guardando en historial:", err);
+    }
+    // --- fin historial ---
+
+    imprimirTicketMov(mov);
+    carrito = [];
+    renderCarrito();
+    alert("Venta registrada ✅");
+  }
     // Guardar en movimientos
     await window.set(window.ref(window.db, `movimientos/${movId}`), mov);
 
