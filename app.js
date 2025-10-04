@@ -702,7 +702,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
 
     for (let p = 0; p < totalParts; p++) {
       const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
-      const shop = configCache?.shopName || "www.supercode.com.ar";
+      const shop = configCache?.shopName || "ZONAPC";
 const header = `<div style="text-align:center"><p id="texto-ticket">${escapeHtml(shop)} <br> ${mov.id} <br> Ticket - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p></div>`;
       let body = "";
       slice.forEach(it => {
