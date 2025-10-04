@@ -7,30 +7,18 @@
 }
 
 body {
-  background: #264653; /* fondo principal */
-  color: #eae2b7;      /* texto secundario (legible) */
+  background: #f0f2f5; /* gris muy claro, no quema la vista */
+  color: #2d3436;
   line-height: 1.5;
 }
 
 /* === HEADER === */
 header {
-  background: #264653;
+  background: #2d3436;
   padding: 12px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
 }
 
-#app-title {
-  font-size: 24px;               
-  font-weight: 800;              
-  text-align: center;            
-  text-transform: uppercase;     
-  letter-spacing: 2px;           
-  color: #f4a261; /* título en naranja suave */
-  text-shadow: 1px 1px 6px rgba(0,0,0,0.5);
-  margin: 5px 0;
-}
-
-/* === NAV === */
 nav {
   display: flex;
   gap: 10px;
@@ -38,8 +26,8 @@ nav {
 }
 
 .nav-btn {
-  background: #2a9d8f; /* contraste sobre el fondo */
-  color: #eae2b7;
+  background: #636e72;
+  color: #fff;
   border: none;
   padding: 10px 16px;
   border-radius: 6px;
@@ -47,9 +35,9 @@ nav {
   font-weight: bold;
   transition: all 0.25s ease;
 }
+
 .nav-btn:hover {
-  background: #f4a261; /* acento al hover */
-  color: #264653;
+  background: #00b894;
   transform: scale(1.05);
 }
 
@@ -63,21 +51,20 @@ main {
 /* === SECCIONES === */
 section {
   margin-top: 20px;
-  background: #2f3e46;
+  background: #ffffff;
   padding: 18px;
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* 🔥 ESTA ES LA QUE FALTABA */
 .hidden {
   display: none;
 }
 
 h2 {
   margin-bottom: 15px;
-  color: #f4a261; /* títulos resaltados */
-  border-left: 5px solid #eae2b7;
+  color: #2d3436;
+  border-left: 5px solid #00b894;
   padding-left: 10px;
 }
 
@@ -85,23 +72,15 @@ h2 {
 label {
   display: block;
   margin-bottom: 10px;
-  color: #eae2b7;
 }
 
 input, select, button {
   padding: 8px 10px;
   margin-top: 4px;
-  border: 1px solid #eae2b7;
+  border: 1px solid #ccc;
   border-radius: 6px;
-  background: #264653;
-  color: #eae2b7;
 }
 
-input:focus, select:focus {
-  outline: 2px solid #f4a261;
-}
-
-/* === BOTONES GENERALES === */
 button {
   cursor: pointer;
   font-weight: bold;
@@ -109,63 +88,59 @@ button {
   transition: all 0.25s ease;
 }
 
+/* === BOTONES GENERALES === */
 button:hover {
   transform: scale(1.05);
 }
 
 /* Botones de acción principales */
 .btn-ver {
-  background: #2a9d8f;
-  color: #eae2b7;
+  background: #00b894;
+  color: #fff;
 }
 .btn-ver:hover {
-  background: #f4a261;
-  color: #264653;
+  background: #55efc4;
 }
 
 .btn-eliminar {
-  background: #e76f51;
+  background: #d63031;
   color: #fff;
 }
 .btn-eliminar:hover {
-  background: #f4a261;
-  color: #264653;
+  background: #ff7675;
 }
 
 .btn-guardar {
-  background: #f4a261;
-  color: #264653;
+  background: #0984e3;
+  color: #fff;
 }
 .btn-guardar:hover {
-  background: #e9c46a;
-  color: #264653;
+  background: #74b9ff;
 }
 
 .btn-restaurar {
-  background: #457b9d;
+  background: #e17055;
   color: #fff;
 }
 .btn-restaurar:hover {
-  background: #1d3557;
+  background: #fab1a0;
 }
 
 #btn-cobrar {
   margin-top: 15px;
-  background: #2a9d8f;
-  color: #eae2b7;
+  background: #00b894;
+  color: #fff;
 }
 #btn-cobrar:hover {
-  background: #f4a261;
-  color: #264653;
+  background: #55efc4;
 }
 
 #btn-tirar-z {
-  background: #e76f51;
+  background: #d63031;
   color: #fff;
 }
 #btn-tirar-z:hover {
-  background: #f4a261;
-  color: #264653;
+  background: #ff7675;
 }
 
 /* === TABLAS === */
@@ -178,20 +153,18 @@ table {
 }
 
 th, td {
-  border: 1px solid #eae2b7;
+  border: 1px solid #ddd;
   padding: 10px;
   text-align: center;
-  color: #eae2b7;
 }
 
 th {
-  background: #2a9d8f;
-  color: #fff;
+  background: #dfe6e9;
   font-weight: bold;
 }
 
 tbody tr:nth-child(even) {
-  background: #2f3e46;
+  background: #f9f9f9;
 }
 
 /* === TOTAL COBRAR === */
@@ -199,7 +172,7 @@ tbody tr:nth-child(even) {
   font-size: 20px;
   font-weight: bold;
   margin-top: 10px;
-  color: #f4a261;
+  color: #d63031;
 }
 
 /* === MODALES === */
@@ -208,13 +181,12 @@ tbody tr:nth-child(even) {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: #2f3e46;
+  background: #fff;
   padding: 22px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.35);
   z-index: 1000;
   min-width: 320px;
-  color: #eae2b7;
 }
 
 .modal.hidden {
@@ -223,28 +195,10 @@ tbody tr:nth-child(even) {
 
 .modal h3 {
   margin-bottom: 12px;
-  color: #f4a261;
 }
 
 .modal button {
   margin: 6px;
-}
-
-#modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.6); /* oscurece fondo */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-}
-
-#modal-overlay.hidden {
-  display: none;
 }
 
 /* === MENSAJES === */
@@ -254,14 +208,27 @@ tbody tr:nth-child(even) {
   font-weight: bold;
 }
 
+/* Colores de feedback */
 .msg-exito {
-  color: #2a9d8f;
+  color: #00b894; /* verde éxito */
 }
 .msg-error {
-  color: #e76f51;
+  color: #d63031; /* rojo error */
 }
 .msg-alerta {
-  color: #e9c46a;
+  color: #e17055; /* naranja advertencia */
+}
+
+
+/* === HISTORIAL === */
+#historial-info {
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: #636e72;
+}
+
+#tabla-historial th {
+  background: #ffeaa7;
 }
 
 /* === IMPRESIÓN TICKET === */
