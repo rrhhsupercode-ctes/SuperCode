@@ -1009,7 +1009,7 @@ btnRestaurar.onclick = async () => {
   try {
     setInterval(() => {
       limpiarHistorialMensual();
-    }, 24 * 60 * 60 * 1000);
+    }, 24 * 60 * 60 * 1000); // cada 24h
   } catch (err) {
     // No crítico si falla
   }
@@ -1060,8 +1060,8 @@ function mostrarModalOffline() {
 function cerrarModalOffline() {
   const overlay = document.getElementById("modal-overlay");
   overlay.classList.add("hidden");
-  overlay.innerHTML = "";
-  overlay.removeAttribute("style");
+  overlay.innerHTML = ""; // limpiar contenido
+  overlay.removeAttribute("style"); // limpiar estilos inline
 }
 
 // Detectar cambios de conexión
@@ -1073,9 +1073,8 @@ window.addEventListener("online", () => {
   cerrarModalOffline();
 });
 
-// -----------------------
-// Final
-// -----------------------
-
-console.log("✅ app.js cargado y listo");
+  // -----------------------
+  // Final
+  // -----------------------
+  console.log("✅ app.js cargado y listo");
 })();
