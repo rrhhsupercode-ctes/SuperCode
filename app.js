@@ -227,7 +227,7 @@ async function verificarPassAdmin(pass) {
     // filtroCajero will be filled by DB listener (includes TODOS)
   })();
 
-// -----------------------
+  // -----------------------
   // COBRAR (login + cart)
   // -----------------------
   if (btnLogin) {
@@ -887,157 +887,123 @@ btnRestaurar.onclick = async () => {
   }
 };
 
-// -----------------------
-// HISTORIAL (render + paginación diaria con mes anterior hasta día 15)
-// -----------------------
-let fechaHistorialActual = new Date(); // empezamos en hoy
-
-function renderHistorialDia(fecha) {
-  const año = fecha.getFullYear();
-  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
-  const dia = fecha.getDate();
-  const pathHistorial = `historial/${año}-${mes}`;
-
-  // Mostrar info en header
-  if (historialInfo) {
-    const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
-                   "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-    historialInfo.textContent = `Historial del día ${dia} de ${meses[Number(mes)-1]} ${año}`;
-  }
-
-  // Leer DB
-  window.get(window.ref(window.db, pathHistorial)).then(snap => {
-    if (!tablaHistorialBody) return;
-    tablaHistorialBody.innerHTML = "";
-    if (!snap.exists()) return;
-
-    const datos = snap.val();
-    const arr = Object.values(datos)
-      .filter(mov => {
-        if (!mov.fecha) return false;
-        const f = new Date(mov.fecha);
-        return (
-          f.getDate() === dia &&
-          f.getMonth() + 1 === Number(mes) &&
-          f.getFullYear() === año
-        );
-      })
-      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
-
-    if (arr.length === 0) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td colspan="6" style="text-align:center">No hay movimientos registrados en este día</td>`;
-      tablaHistorialBody.appendChild(tr);
-      return;
+  // -----------------------
+  // HISTORIAL (render + acciones)
+  // -----------------------
+  function cargarHistorial() {
+    // carga el historial del mes actual
+    const ahora = new Date();
+    const año = ahora.getFullYear();
+    const mes = String(ahora.getMonth() + 1).padStart(2, "0");
+    const pathHistorial = `historial/${año}-${mes}`;
+    // mostrar info en header opcional
+    if (historialInfo) {
+      const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+      historialInfo.textContent = `Historial de ${meses[Number(mes)-1]} ${año} (se elimina el día 15 del mes siguiente)`;
     }
 
-    arr.forEach(mov => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${escapeHtml(mov.id)}</td>
-        <td>${formatoPrecioParaPantalla(mov.total)}</td>
-        <td>${escapeHtml(mov.tipo)}</td>
-        <td>${escapeHtml(mov.cajero || "")}</td>
-        <td>${formatFechaParaHeader(mov.fecha)}</td>
-        <td>
-          <button class="btn-ver-hist" data-path="${pathHistorial}" data-id="${mov.id}">Ver</button>
-        </td>
-      `;
-      tablaHistorialBody.appendChild(tr);
+    window.onValue(window.ref(window.db, pathHistorial), snap => {
+      if (!tablaHistorialBody) return;
+      tablaHistorialBody.innerHTML = "";
+      if (!snap.exists()) return;
+      const datos = snap.val();
+      // convertir a array ordenado por fecha descendente
+      const arr = Object.values(datos).sort((a,b) => {
+        const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
+        const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
+        return tb - ta;
+      });
+      arr.forEach(mov => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${escapeHtml(mov.id)}</td>
+          <td>${formatoPrecioParaPantalla(mov.total)}</td>
+          <td>${escapeHtml(mov.tipo)}</td>
+          <td>${escapeHtml(mov.cajero || "")}</td>
+          <td>${formatFechaParaHeader(mov.fecha)}</td>
+          <td>
+            <button class="btn-ver-hist" data-id="${mov.id}">Ver</button>
+          </td>
+        `;
+        tablaHistorialBody.appendChild(tr);
+      });
+
+      // attach actions (usar same pathHistorial)
+      document.querySelectorAll(".btn-ver-hist").forEach(btn => {
+        btn.onclick = async () => {
+          const id = btn.dataset.id;
+          const snapMov = await window.get(window.ref(window.db, `${pathHistorial}/${id}`));
+          if (!snapMov.exists()) return alert("Movimiento no encontrado en historial");
+          const mov = snapMov.val();
+          // reutilizar modal del movimiento
+          let html = `<h3>Ticket ${mov.id}</h3>`;
+          html += `<p>${formatFechaParaHeader(mov.fecha)}</p>`;
+          html += `<p>Cajero: ${escapeHtml(mov.cajero)}</p><hr id="hr-ticket">`;
+          (mov.items || []).forEach(it => {
+            html += `<p>${escapeHtml(it.nombre)} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
+          });
+          html += `<hr id="hr-ticket"><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
+          html += `<div style="margin-top:10px"><button id="__print_copy_hist">Imprimir Copia</button><button id="__close_hist">Cerrar</button></div>`;
+          mostrarModal(html);
+          document.getElementById("__close_hist").onclick = cerrarModal;
+          document.getElementById("__print_copy_hist").onclick = () => imprimirTicketMov(mov);
+        };
+      });
+
+      document.querySelectorAll(".btn-del-hist").forEach(btn => {
+        btn.onclick = () => {
+          requireAdminConfirm(async () => {
+            try {
+              await window.remove(window.ref(window.db, `${pathHistorial}/${btn.dataset.id}`));
+            } catch (err) {
+              console.error("Error borrando historial item:", err);
+            }
+          });
+        };
+      });
     });
+  }
 
-    // acciones de los botones "Ver"
-    document.querySelectorAll(".btn-ver-hist").forEach(btn => {
-      btn.onclick = async () => {
-        const id = btn.dataset.id;
-        const path = btn.dataset.path;
-        const snapMov = await window.get(window.ref(window.db, `${path}/${id}`));
-        if (!snapMov.exists()) return alert("Movimiento no encontrado en historial");
-        const mov = snapMov.val();
-        let html = `<h3>Ticket ${mov.id}</h3>`;
-        html += `<p>${formatFechaParaHeader(mov.fecha)}</p>`;
-        html += `<p>Cajero: ${escapeHtml(mov.cajero)}</p><hr id="hr-ticket">`;
-        (mov.items || []).forEach(it => {
-          html += `<p>${escapeHtml(it.nombre)} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
-        });
-        html += `<hr id="hr-ticket"><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
-        html += `<div style="margin-top:10px"><button id="__print_copy_hist">Imprimir Copia</button><button id="__close_hist">Cerrar</button></div>`;
-        mostrarModal(html);
-        document.getElementById("__close_hist").onclick = cerrarModal;
-        document.getElementById("__print_copy_hist").onclick = () => imprimirTicketMov(mov);
-      };
-    });
-  });
+  // iniciar carga historial
+  cargarHistorial();
 
-  // Actualizar label
-  document.getElementById("hist-dia-label").textContent = `Día ${dia}/${mes}/${año}`;
-}
-
-function cargarHistorial() {
-  // Crear controles de paginación si no existen
-  let paginador = document.getElementById("historial-paginador");
-  if (!paginador) {
-    paginador = document.createElement("div");
-    paginador.id = "historial-paginador";
-    paginador.style.textAlign = "center";
-    paginador.style.margin = "10px 0";
-    paginador.innerHTML = `
-      <button id="hist-prev">◀️</button>
-      <span id="hist-dia-label"></span>
-      <button id="hist-next">▶️</button>
-    `;
-    tablaHistorialBody.parentElement.appendChild(paginador);
-
-    document.getElementById("hist-prev").onclick = () => {
-      fechaHistorialActual.setDate(fechaHistorialActual.getDate() - 1);
-      renderHistorialDia(fechaHistorialActual);
-    };
-    document.getElementById("hist-next").onclick = () => {
+  // -----------------------
+  // LIMPIAR HISTORIAL EL DÍA 15 (elimina mes anterior)
+  // -----------------------
+  async function limpiarHistorialMensual() {
+    try {
       const hoy = new Date();
-      const f = new Date(fechaHistorialActual);
-      f.setDate(f.getDate() + 1);
-      if (f > hoy) return; // no pasar del día actual
-      fechaHistorialActual = f;
-      renderHistorialDia(fechaHistorialActual);
-    };
-  }
-
-  // Render inicial
-  renderHistorialDia(fechaHistorialActual);
-}
-
-// iniciar carga historial
-cargarHistorial();
-
-// -----------------------
-// LIMPIAR HISTORIAL EL DÍA 15 (elimina mes anterior)
-// -----------------------
-async function limpiarHistorialMensual() {
-  try {
-    const hoy = new Date();
-    const dia = hoy.getDate();
-    if (dia === 15) {
-      const año = hoy.getFullYear();
-      const mesAnteriorIndex = hoy.getMonth() - 1;
-      let añoTarget = año;
-      let mesTarget;
-      if (mesAnteriorIndex < 0) {
-        añoTarget = año - 1;
-        mesTarget = 12;
-      } else {
-        mesTarget = mesAnteriorIndex + 1;
+      const dia = hoy.getDate();
+      if (dia === 15) { // si hoy es 15 -> borrar mes anterior
+        const año = hoy.getFullYear();
+        const mesAnteriorIndex = hoy.getMonth() - 1; // ayer? mes anterior
+        let añoTarget = año;
+        let mesTarget;
+        if (mesAnteriorIndex < 0) {
+          añoTarget = año - 1;
+          mesTarget = 12;
+        } else {
+          mesTarget = mesAnteriorIndex + 1;
+        }
+        const mesStr = String(mesTarget).padStart(2, "0");
+        const pathHistorial = `historial/${añoTarget}-${mesStr}`;
+        await window.remove(window.ref(window.db, pathHistorial));
+        console.log(`🗑 Historial de ${añoTarget}-${mesStr} eliminado (ejecutado día 15)`);
       }
-      const mesStr = String(mesTarget).padStart(2, "0");
-      const pathHistorial = `historial/${añoTarget}-${mesStr}`;
-      await window.remove(window.ref(window.db, pathHistorial));
-      console.log(`🗑 Historial de ${añoTarget}-${mesStr} eliminado (ejecutado día 15)`);
+    } catch (err) {
+      console.error("Error en limpiarHistorialMensual:", err);
     }
-  } catch (err) {
-    console.error("Error en limpiarHistorialMensual:", err);
   }
-}
-limpiarHistorialMensual();
-setInterval(limpiarHistorialMensual, 24 * 60 * 60 * 1000); // cada 24h
+  // Ejecutar a la carga
+  limpiarHistorialMensual();
+  // Y programar chequeo diario (por si la app queda abierta)
+  try {
+    setInterval(() => {
+      limpiarHistorialMensual();
+    }, 24 * 60 * 60 * 1000); // cada 24h
+  } catch (err) {
+    // No crítico si falla
+  }
 
 /*****************************************************
  * Modal de pérdida de conexión
