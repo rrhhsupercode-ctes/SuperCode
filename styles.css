@@ -263,3 +263,8 @@ tbody tr:nth-child(even) {
   border-top: 1px solid #ddd;
   margin: 6px auto;
 }
+
+.linea {
+  display: block;
+  height: 2px; /* controlás el espacio exacto entre líneas en modal de reimprimir ticket*/
+}
