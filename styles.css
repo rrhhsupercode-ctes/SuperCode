@@ -7,16 +7,28 @@
 }
 
 body {
-  background: #f0f2f5; /* gris muy claro, no quema la vista */
-  color: #2d3436;
+  background: #264653; /* nuevo color de fondo */
+  color: #f4a261; /* color primario de letras */
   line-height: 1.5;
 }
 
 /* === HEADER === */
 header {
-  background: #2d3436;
+  background: #264653;
   padding: 12px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  text-align: center;
+}
+
+header h1, header h2, header h3 {
+  color: #f4a261; /* texto llamativo */
+  text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
+  transition: color 2s ease, text-shadow 2s ease;
+}
+
+header h1:hover, header h2:hover, header h3:hover {
+  color: #eae2b7; /* cambio suave al pasar mouse */
+  text-shadow: 3px 3px 10px rgba(0,0,0,0.8);
 }
 
 nav {
@@ -26,8 +38,8 @@ nav {
 }
 
 .nav-btn {
-  background: #636e72;
-  color: #fff;
+  background: #f4a261;
+  color: #264653;
   border: none;
   padding: 10px 16px;
   border-radius: 6px;
@@ -37,7 +49,8 @@ nav {
 }
 
 .nav-btn:hover {
-  background: #00b894;
+  background: #eae2b7;
+  color: #264653;
   transform: scale(1.05);
 }
 
@@ -51,10 +64,11 @@ main {
 /* === SECCIONES === */
 section {
   margin-top: 20px;
-  background: #ffffff;
+  background: #eae2b7;
+  color: #264653;
   padding: 18px;
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .hidden {
@@ -63,8 +77,8 @@ section {
 
 h2 {
   margin-bottom: 15px;
-  color: #2d3436;
-  border-left: 5px solid #00b894;
+  color: #f4a261;
+  border-left: 5px solid #f4a261;
   padding-left: 10px;
 }
 
@@ -72,6 +86,7 @@ h2 {
 label {
   display: block;
   margin-bottom: 10px;
+  color: #f4a261;
 }
 
 input, select, button {
@@ -95,11 +110,12 @@ button:hover {
 
 /* Botones de acción principales */
 .btn-ver {
-  background: #00b894;
-  color: #fff;
+  background: #f4a261;
+  color: #264653;
 }
 .btn-ver:hover {
-  background: #55efc4;
+  background: #eae2b7;
+  color: #264653;
 }
 
 .btn-eliminar {
@@ -111,28 +127,28 @@ button:hover {
 }
 
 .btn-guardar {
-  background: #0984e3;
+  background: #2a9d8f;
   color: #fff;
 }
 .btn-guardar:hover {
-  background: #74b9ff;
+  background: #48c9b0;
 }
 
 .btn-restaurar {
-  background: #e17055;
+  background: #e76f51;
   color: #fff;
 }
 .btn-restaurar:hover {
-  background: #fab1a0;
+  background: #f4a261;
 }
 
 #btn-cobrar {
   margin-top: 15px;
-  background: #00b894;
-  color: #fff;
+  background: #f4a261;
+  color: #264653;
 }
 #btn-cobrar:hover {
-  background: #55efc4;
+  background: #eae2b7;
 }
 
 #btn-tirar-z {
@@ -159,12 +175,13 @@ th, td {
 }
 
 th {
-  background: #dfe6e9;
+  background: #f4a261;
+  color: #264653;
   font-weight: bold;
 }
 
 tbody tr:nth-child(even) {
-  background: #f9f9f9;
+  background: #f1f1f1;
 }
 
 /* === TOTAL COBRAR === */
@@ -181,12 +198,13 @@ tbody tr:nth-child(even) {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: #fff;
+  background: #eae2b7; /* color más pálido */
   padding: 22px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-  z-index: 1000;
+  z-index: 1001;
   min-width: 320px;
+  color: #264653;
 }
 
 .modal.hidden {
@@ -195,10 +213,32 @@ tbody tr:nth-child(even) {
 
 .modal h3 {
   margin-bottom: 12px;
+  color: #f4a261;
 }
 
 .modal button {
   margin: 6px;
+}
+
+/* Fondo borroso detrás del modal */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  backdrop-filter: blur(5px);
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+body.modal-active::before {
+  opacity: 1;
+  pointer-events: all;
 }
 
 /* === MENSAJES === */
@@ -208,15 +248,14 @@ tbody tr:nth-child(even) {
   font-weight: bold;
 }
 
-/* Colores de feedback */
 .msg-exito {
-  color: #00b894; /* verde éxito */
+  color: #2a9d8f;
 }
 .msg-error {
-  color: #d63031; /* rojo error */
+  color: #d63031;
 }
 .msg-alerta {
-  color: #e17055; /* naranja advertencia */
+  color: #e76f51;
 }
 
 /* === IMPRESIÓN TICKET === */
@@ -239,49 +278,49 @@ tbody tr:nth-child(even) {
 #historial-info {
   font-size: 14px;
   margin-bottom: 10px;
-  color: #636e72;
+  color: #eae2b7;
 }
 
 #tabla-historial th {
-  background: #ffeaa7;
+  background: #f4a261;
+  color: #264653;
 }
 
 /* HR del ticket */
 #hr-ticket {
-  width: 4.8cm;   /* ancho fijo de 4.8 cm */
+  width: 4.8cm;
   border: none;
-  border-top: 1px solid #000; /* línea simple */
-  margin: 6px auto; /* centrado horizontal */
+  border-top: 1px solid #000;
+  margin: 6px auto;
 }
 
 /* Texto del ticket */
 #texto-ticket {
-  font-size: 9px;   /* tamaño pequeño */
-  text-align: center; /* centrado */
-  margin: 2px 0;    /* separación mínima */
+  font-size: 9px;
+  text-align: center;
+  margin: 2px 0;
+  color: #264653;
 }
 
-/* Texto del ticket en modal */
 #texto-ticket-modal {
-  font-size: 15px;  /* tamaño mayor */
+  font-size: 15px;
   text-align: center;
   margin: 8px 0;
+  color: #264653;
 }
 
-/*Botones de paginado de HISTORIAL*/
-/* Contenedor de los botones y label del historial */
+/* === Paginador Historial === */
 #historial-paginador {
   display: flex;
-  justify-content: center;   /* centra horizontalmente */
-  align-items: center;       /* alinea verticalmente */
-  gap: 10px;                 /* espacio entre botones y label */
-  margin: 10px 0;            /* separación arriba y abajo */
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
 }
 
-/* Botones prev / next */
 #historial-paginador button {
-  background-color: #007bff;
-  color: white;
+  background-color: #f4a261;
+  color: #264653;
   border: none;
   padding: 6px 12px;
   border-radius: 6px;
@@ -290,13 +329,12 @@ tbody tr:nth-child(even) {
 }
 
 #historial-paginador button:hover {
-  background-color: #0056b3;
+  background-color: #eae2b7;
 }
 
-/* Texto del día */
 #hist-dia-label {
   font-weight: bold;
   font-size: 14px;
-  min-width: 120px;   /* evita que se muevan los botones si el texto cambia */
+  min-width: 120px;
   text-align: center;
 }
