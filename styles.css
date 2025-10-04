@@ -245,3 +245,25 @@ tbody tr:nth-child(even) {
 #tabla-historial th {
   background: #ffeaa7;
 }
+
+/* HR del ticket */
+#hr-ticket {
+  width: 4.8cm;   /* ancho fijo de 4.8 cm */
+  border: none;
+  border-top: 1px solid #000; /* línea simple */
+  margin: 6px auto; /* centrado horizontal */
+}
+
+/* Texto del ticket */
+#texto-ticket {
+  font-size: 9px;   /* tamaño pequeño */
+  text-align: center; /* centrado */
+  margin: 2px 0;    /* separación mínima */
+}
+
+/* Texto del ticket en modal */
+#texto-ticket-modal {
+  font-size: 15px;  /* tamaño mayor */
+  text-align: center;
+  margin: 8px 0;
+}
