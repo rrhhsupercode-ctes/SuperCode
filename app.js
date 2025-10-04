@@ -888,42 +888,42 @@ btnRestaurar.onclick = async () => {
 };
 
 // -----------------------
-// HISTORIAL (render + paginación diaria)
+// HISTORIAL (render + paginación diaria con mes anterior hasta día 15)
 // -----------------------
-let diaActualHistorial = new Date().getDate(); // día inicial (hoy)
+let fechaHistorialActual = new Date(); // empezamos en hoy
 
-function renderHistorialDia(dia) {
-  const ahora = new Date();
-  const año = ahora.getFullYear();
-  const mes = String(ahora.getMonth() + 1).padStart(2, "0");
+function renderHistorialDia(fecha) {
+  const año = fecha.getFullYear();
+  const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+  const dia = fecha.getDate();
   const pathHistorial = `historial/${año}-${mes}`;
 
-  // mostrar info en header opcional
+  // Mostrar info en header
   if (historialInfo) {
-    const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-    historialInfo.textContent = `Historial del día ${dia} de ${meses[Number(mes)-1]} ${año} (se elimina el 15 del mes siguiente)`;
+    const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+                   "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    historialInfo.textContent = `Historial del día ${dia} de ${meses[Number(mes)-1]} ${año}`;
   }
 
+  // Leer DB
   window.get(window.ref(window.db, pathHistorial)).then(snap => {
     if (!tablaHistorialBody) return;
     tablaHistorialBody.innerHTML = "";
     if (!snap.exists()) return;
-    const datos = snap.val();
 
-    // convertir a array y filtrar SOLO por el día actual
+    const datos = snap.val();
     const arr = Object.values(datos)
       .filter(mov => {
         if (!mov.fecha) return false;
-        const fecha = new Date(mov.fecha);
-        return fecha.getDate() === dia;
+        const f = new Date(mov.fecha);
+        return (
+          f.getDate() === dia &&
+          f.getMonth() + 1 === Number(mes) &&
+          f.getFullYear() === año
+        );
       })
-      .sort((a,b) => {
-        const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
-        const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
-        return tb - ta;
-      });
+      .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
 
-    // si no hay movimientos ese día, lo indicamos
     if (arr.length === 0) {
       const tr = document.createElement("tr");
       tr.innerHTML = `<td colspan="6" style="text-align:center">No hay movimientos registrados en este día</td>`;
@@ -940,17 +940,18 @@ function renderHistorialDia(dia) {
         <td>${escapeHtml(mov.cajero || "")}</td>
         <td>${formatFechaParaHeader(mov.fecha)}</td>
         <td>
-          <button class="btn-ver-hist" data-id="${mov.id}">Ver</button>
+          <button class="btn-ver-hist" data-path="${pathHistorial}" data-id="${mov.id}">Ver</button>
         </td>
       `;
       tablaHistorialBody.appendChild(tr);
     });
 
-    // attach actions
+    // acciones de los botones "Ver"
     document.querySelectorAll(".btn-ver-hist").forEach(btn => {
       btn.onclick = async () => {
         const id = btn.dataset.id;
-        const snapMov = await window.get(window.ref(window.db, `${pathHistorial}/${id}`));
+        const path = btn.dataset.path;
+        const snapMov = await window.get(window.ref(window.db, `${path}/${id}`));
         if (!snapMov.exists()) return alert("Movimiento no encontrado en historial");
         const mov = snapMov.val();
         let html = `<h3>Ticket ${mov.id}</h3>`;
@@ -967,12 +968,13 @@ function renderHistorialDia(dia) {
       };
     });
   });
+
+  // Actualizar label
+  document.getElementById("hist-dia-label").textContent = `Día ${dia}/${mes}/${año}`;
 }
 
 function cargarHistorial() {
-  renderHistorialDia(diaActualHistorial);
-
-  // Crear controles de paginación (prev / next)
+  // Crear controles de paginación si no existen
   let paginador = document.getElementById("historial-paginador");
   if (!paginador) {
     paginador = document.createElement("div");
@@ -987,21 +989,21 @@ function cargarHistorial() {
     tablaHistorialBody.parentElement.appendChild(paginador);
 
     document.getElementById("hist-prev").onclick = () => {
-      diaActualHistorial--;
-      if (diaActualHistorial < 1) diaActualHistorial = 1; // límite inferior
-      renderHistorialDia(diaActualHistorial);
-      document.getElementById("hist-dia-label").textContent = `Día ${diaActualHistorial}`;
+      fechaHistorialActual.setDate(fechaHistorialActual.getDate() - 1);
+      renderHistorialDia(fechaHistorialActual);
     };
     document.getElementById("hist-next").onclick = () => {
-      diaActualHistorial++;
-      const hoy = new Date().getDate();
-      if (diaActualHistorial > hoy) diaActualHistorial = hoy; // límite superior
-      renderHistorialDia(diaActualHistorial);
-      document.getElementById("hist-dia-label").textContent = `Día ${diaActualHistorial}`;
+      const hoy = new Date();
+      const f = new Date(fechaHistorialActual);
+      f.setDate(f.getDate() + 1);
+      if (f > hoy) return; // no pasar del día actual
+      fechaHistorialActual = f;
+      renderHistorialDia(fechaHistorialActual);
     };
   }
 
-  document.getElementById("hist-dia-label").textContent = `Día ${diaActualHistorial}`;
+  // Render inicial
+  renderHistorialDia(fechaHistorialActual);
 }
 
 // iniciar carga historial
@@ -1036,7 +1038,6 @@ async function limpiarHistorialMensual() {
 }
 limpiarHistorialMensual();
 setInterval(limpiarHistorialMensual, 24 * 60 * 60 * 1000); // cada 24h
-
 
 /*****************************************************
  * Modal de pérdida de conexión
