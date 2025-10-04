@@ -7,28 +7,16 @@
 }
 
 body {
-  background: #264653; /* nuevo color de fondo */
-  color: #f4a261; /* color primario de letras */
+  background: #f0f2f5; /* gris muy claro, no quema la vista */
+  color: #2d3436;
   line-height: 1.5;
 }
 
 /* === HEADER === */
 header {
-  background: #264653;
+  background: #2d3436;
   padding: 12px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-  text-align: center;
-}
-
-header h1, header h2, header h3 {
-  color: #f4a261; /* texto llamativo */
-  text-shadow: 2px 2px 6px rgba(0,0,0,0.6);
-  transition: color 2s ease, text-shadow 2s ease;
-}
-
-header h1:hover, header h2:hover, header h3:hover {
-  color: #eae2b7; /* cambio suave al pasar mouse */
-  text-shadow: 3px 3px 10px rgba(0,0,0,0.8);
 }
 
 nav {
@@ -38,8 +26,8 @@ nav {
 }
 
 .nav-btn {
-  background: #f4a261;
-  color: #264653;
+  background: #636e72;
+  color: #fff;
   border: none;
   padding: 10px 16px;
   border-radius: 6px;
@@ -49,8 +37,7 @@ nav {
 }
 
 .nav-btn:hover {
-  background: #eae2b7;
-  color: #264653;
+  background: #00b894;
   transform: scale(1.05);
 }
 
@@ -64,11 +51,10 @@ main {
 /* === SECCIONES === */
 section {
   margin-top: 20px;
-  background: #eae2b7;
-  color: #264653;
+  background: #ffffff;
   padding: 18px;
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 .hidden {
@@ -77,8 +63,8 @@ section {
 
 h2 {
   margin-bottom: 15px;
-  color: #f4a261;
-  border-left: 5px solid #f4a261;
+  color: #2d3436;
+  border-left: 5px solid #00b894;
   padding-left: 10px;
 }
 
@@ -86,7 +72,6 @@ h2 {
 label {
   display: block;
   margin-bottom: 10px;
-  color: #f4a261;
 }
 
 input, select, button {
@@ -110,12 +95,11 @@ button:hover {
 
 /* Botones de acción principales */
 .btn-ver {
-  background: #f4a261;
-  color: #264653;
+  background: #00b894;
+  color: #fff;
 }
 .btn-ver:hover {
-  background: #eae2b7;
-  color: #264653;
+  background: #55efc4;
 }
 
 .btn-eliminar {
@@ -127,28 +111,28 @@ button:hover {
 }
 
 .btn-guardar {
-  background: #2a9d8f;
+  background: #0984e3;
   color: #fff;
 }
 .btn-guardar:hover {
-  background: #48c9b0;
+  background: #74b9ff;
 }
 
 .btn-restaurar {
-  background: #e76f51;
+  background: #e17055;
   color: #fff;
 }
 .btn-restaurar:hover {
-  background: #f4a261;
+  background: #fab1a0;
 }
 
 #btn-cobrar {
   margin-top: 15px;
-  background: #f4a261;
-  color: #264653;
+  background: #00b894;
+  color: #fff;
 }
 #btn-cobrar:hover {
-  background: #eae2b7;
+  background: #55efc4;
 }
 
 #btn-tirar-z {
@@ -175,13 +159,12 @@ th, td {
 }
 
 th {
-  background: #f4a261;
-  color: #264653;
+  background: #dfe6e9;
   font-weight: bold;
 }
 
 tbody tr:nth-child(even) {
-  background: #f1f1f1;
+  background: #f9f9f9;
 }
 
 /* === TOTAL COBRAR === */
@@ -198,13 +181,12 @@ tbody tr:nth-child(even) {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: #eae2b7; /* color más pálido */
+  background: #fff;
   padding: 22px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-  z-index: 1001;
+  z-index: 1000;
   min-width: 320px;
-  color: #264653;
 }
 
 .modal.hidden {
@@ -213,32 +195,10 @@ tbody tr:nth-child(even) {
 
 .modal h3 {
   margin-bottom: 12px;
-  color: #f4a261;
 }
 
 .modal button {
   margin: 6px;
-}
-
-/* Fondo borroso detrás del modal */
-body::before {
-  content: "";
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  backdrop-filter: blur(5px);
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 1000;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-
-body.modal-active::before {
-  opacity: 1;
-  pointer-events: all;
 }
 
 /* === MENSAJES === */
@@ -248,14 +208,15 @@ body.modal-active::before {
   font-weight: bold;
 }
 
+/* Colores de feedback */
 .msg-exito {
-  color: #2a9d8f;
+  color: #00b894; /* verde éxito */
 }
 .msg-error {
-  color: #d63031;
+  color: #d63031; /* rojo error */
 }
 .msg-alerta {
-  color: #e76f51;
+  color: #e17055; /* naranja advertencia */
 }
 
 /* === IMPRESIÓN TICKET === */
@@ -278,49 +239,49 @@ body.modal-active::before {
 #historial-info {
   font-size: 14px;
   margin-bottom: 10px;
-  color: #eae2b7;
+  color: #636e72;
 }
 
 #tabla-historial th {
-  background: #f4a261;
-  color: #264653;
+  background: #ffeaa7;
 }
 
 /* HR del ticket */
 #hr-ticket {
-  width: 4.8cm;
+  width: 4.8cm;   /* ancho fijo de 4.8 cm */
   border: none;
-  border-top: 1px solid #000;
-  margin: 6px auto;
+  border-top: 1px solid #000; /* línea simple */
+  margin: 6px auto; /* centrado horizontal */
 }
 
 /* Texto del ticket */
 #texto-ticket {
-  font-size: 9px;
-  text-align: center;
-  margin: 2px 0;
-  color: #264653;
+  font-size: 9px;   /* tamaño pequeño */
+  text-align: center; /* centrado */
+  margin: 2px 0;    /* separación mínima */
 }
 
+/* Texto del ticket en modal */
 #texto-ticket-modal {
-  font-size: 15px;
+  font-size: 15px;  /* tamaño mayor */
   text-align: center;
   margin: 8px 0;
-  color: #264653;
 }
 
-/* === Paginador Historial === */
+/*Botones de paginado de HISTORIAL*/
+/* Contenedor de los botones y label del historial */
 #historial-paginador {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin: 10px 0;
+  justify-content: center;   /* centra horizontalmente */
+  align-items: center;       /* alinea verticalmente */
+  gap: 10px;                 /* espacio entre botones y label */
+  margin: 10px 0;            /* separación arriba y abajo */
 }
 
+/* Botones prev / next */
 #historial-paginador button {
-  background-color: #f4a261;
-  color: #264653;
+  background-color: #007bff;
+  color: white;
   border: none;
   padding: 6px 12px;
   border-radius: 6px;
@@ -329,12 +290,13 @@ body.modal-active::before {
 }
 
 #historial-paginador button:hover {
-  background-color: #eae2b7;
+  background-color: #0056b3;
 }
 
+/* Texto del día */
 #hist-dia-label {
   font-weight: bold;
   font-size: 14px;
-  min-width: 120px;
+  min-width: 120px;   /* evita que se muevan los botones si el texto cambia */
   text-align: center;
 }
