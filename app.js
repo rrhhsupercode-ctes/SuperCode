@@ -253,11 +253,7 @@ async function verificarPassAdmin(pass) {
       loginModal.classList.add("hidden");
       cobroControles.classList.remove("hidden");
       const appTitle = document.getElementById("app-title");
-      if (appTitle) {
-  const shop = configCache?.shopName || "SUPERCODE";
-  appTitle.textContent = `${shop} - Cajero ${cajeroActivo.nro}`;
-}
-
+      if (appTitle) appTitle.textContent = `SUPERCODE - Cajero ${cajeroActivo.nro}`;
     });
   }
 
@@ -702,8 +698,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
 
     for (let p = 0; p < totalParts; p++) {
       const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
-      const shop = configCache?.shopName || "WWW.SUPERCODE.COM.AR";
-const header = `<div style="text-align:center"><p id="texto-ticket">${escapeHtml(shop)} <br> ${mov.id} <br> Ticket - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p></div>`;
+      const header = `<div style="text-align:center"><p id="texto-ticket">WWW.SUPERCODE.COM.AR <br> ${mov.id} <br> Ticket - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p></div>`;
       let body = "";
       slice.forEach(it => {
         body += `<hr id="hr-ticket"><p id="texto-ticket">${escapeHtml(it.nombre)} <br> ${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
