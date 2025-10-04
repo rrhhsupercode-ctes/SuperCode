@@ -250,3 +250,7 @@ tbody tr:nth-child(even) {
 #texto-ticket {
   font-size: 9px;
 }
+
+#texto-ticket-modal{
+  font-size: 15px;
+}
