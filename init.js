@@ -21,3 +21,25 @@
     }
   })();
 })();
+
+/*****************************************************
+ * Control de modales con desenfoque
+ *****************************************************/
+
+// Abrir modal (quita .hidden y activa desenfoque)
+window.abrirModal = function(idModal) {
+  const modal = document.getElementById(idModal);
+  if (modal) {
+    modal.classList.remove("hidden");
+    document.body.classList.add("modal-active"); // activa desenfoque
+  }
+};
+
+// Cerrar modal (pone .hidden y quita desenfoque)
+window.cerrarModal = function(idModal) {
+  const modal = document.getElementById(idModal);
+  if (modal) {
+    modal.classList.add("hidden");
+    document.body.classList.remove("modal-active"); // desactiva desenfoque
+  }
+};
