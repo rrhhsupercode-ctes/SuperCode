@@ -370,18 +370,23 @@ async function finalizarCobro(tipoPago) {
   cerrarModal();
   const movId = generarNumeroTicket();
   const mov = {
-    id: movId,
+    id: movId, // ✅ siempre fijo ID_000001 etc.
     cajero: cajeroActivo ? (cajeroActivo.nro || cajeroActivo.nombre) : "N/A",
     total,
     tipo: tipoPago,
     fecha: ahoraISO(),
-    items: carrito.map(it => ({ codigo: it.codigo, nombre: it.nombre, precio: it.precio, cantidad: it.cantidad }))
+    items: carrito.map(it => ({
+      codigo: it.codigo,
+      nombre: it.nombre,
+      precio: it.precio,
+      cantidad: it.cantidad
+    }))
   };
 
-  // Guardar en movimientos (con push)
+  // Guardar en movimientos (push => clave random, pero mov.id mantiene ID_XXXXXX)
   await window.push(window.ref(window.db, `movimientos`), mov);
 
-  // Guardar en HISTORIAL por año-mes (con push)
+  // Guardar en HISTORIAL por año-mes (también con push)
   try {
     const fechaMov = mov.fecha ? new Date(mov.fecha) : new Date();
     const año = fechaMov.getFullYear();
