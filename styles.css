@@ -254,3 +254,10 @@ tbody tr:nth-child(even) {
 #texto-ticket-modal{
   font-size: 15px;
 }
+
+#hr-ticket {
+  width: 4.8cm;
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 6px auto;
+}
