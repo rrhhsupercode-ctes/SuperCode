@@ -387,15 +387,15 @@ async function verificarPassAdmin(pass) {
       items: carrito.map(it => ({ codigo: it.codigo, nombre: it.nombre, precio: it.precio, cantidad: it.cantidad }))
     };
 
-    // Guardar en movimientos
-    await window.set(window.ref(window.db, `movimientos/${movId}`), mov);
+    // Guardar en movimientos (usando push para no sobrescribir)
+    await window.push(window.ref(window.db, `movimientos`), mov);
 
-    // --- NUEVO: Guardar copia en HISTORIAL por año-mes ---
+    // --- NUEVO: Guardar copia en HISTORIAL por año-mes (también con push)
     try {
       const fechaMov = mov.fecha ? new Date(mov.fecha) : new Date();
       const año = fechaMov.getFullYear();
       const mes = String(fechaMov.getMonth() + 1).padStart(2, "0");
-      await window.set(window.ref(window.db, `historial/${año}-${mes}/${movId}`), mov);
+      await window.push(window.ref(window.db, `historial/${año}-${mes}`), mov);
     } catch (err) {
       console.error("Error guardando en historial:", err);
     }
@@ -406,7 +406,6 @@ async function verificarPassAdmin(pass) {
     renderCarrito();
     alert("Venta registrada ✅");
   }
-
   // -----------------------
   // STOCK
   // -----------------------
