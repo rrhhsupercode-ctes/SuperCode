@@ -4,11 +4,11 @@
  *****************************************************/
 (() => {
   const ramasIniciales = {
-    config: { shopName: "SUPERCODE", passAdmin: "0123456789", masterPass: "9999" },
+    config: { shopName: "ZONAPC", passAdmin: "0123456789", masterPass: "9999" },
     cajeros: {},
     stock: {},
     movimientos: {},
-    historial: {}   // 🔥 Nueva rama para el historial
+    historial: {}
   };
 
   (async () => {
