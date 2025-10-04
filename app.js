@@ -679,7 +679,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
       html += `<p id="texto-ticket-modal">${formatFechaParaHeader(mov.fecha)}</p>`;
       html += `<p id="texto-ticket-modal">Cajero: ${escapeHtml(mov.cajero)}</p>`;
       (mov.items || []).forEach(it => {
-        html += `<hr id="hr-ticket"><p id="texto-ticket-modal">${escapeHtml(it.nombre)} </p><br><p id="texto-ticket-modal">${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
+        html += `<hr id="hr-ticket"><p id="texto-ticket-modal">${escapeHtml(it.nombre)} </p><span class="linea"></span><p id="texto-ticket-modal">${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
       });
       html += `<hr id="hr-ticket"><p id="texto-ticket-modal"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket-modal">Pago en: ${escapeHtml(mov.tipo)}</p>`;
       html += `<div style="margin-top:10px"><button id="__print_copy">Imprimir Copia</button><button id="__close_mov">Cerrar</button></div>`;
@@ -701,7 +701,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
       const header = `<div style="text-align:center"><p id="texto-ticket">WWW.SUPERCODE.COM.AR <br> ${mov.id} <br> Ticket - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p></div>`;
       let body = "";
       slice.forEach(it => {
-        body += `<hr id="hr-ticket"><p id="texto-ticket">${escapeHtml(it.nombre)} <br>${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
+        body += `<hr id="hr-ticket"><p id="texto-ticket">${escapeHtml(it.nombre)} <br> ${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
       });
       const footer = `<hr id="hr-ticket"><p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket">(Pago en: ${escapeHtml(mov.tipo)})</p>`;
       const area = document.createElement("div");
