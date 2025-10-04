@@ -249,10 +249,12 @@ tbody tr:nth-child(even) {
 /* === IMPRESIÓN DE TICKET === */
 #texto-ticket {
   font-size: 9px;
+  text-align: center;
 }
 
 #texto-ticket-modal{
   font-size: 15px;
+  text-align: center;
 }
 
 #hr-ticket {
