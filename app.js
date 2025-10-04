@@ -701,9 +701,9 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
       const header = `<div style="text-align:center"><p id="texto-ticket">WWW.SUPERCODE.COM.AR <br> ${mov.id} <br> Ticket - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p></div>`;
       let body = "";
       slice.forEach(it => {
-        body += `<hr id="hr-ticket"><p id="texto-ticket">${escapeHtml(it.nombre)} <br>${formatoPrecioParaPantalla(it.precio)}</p> <p id="texto-ticket">(x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p><hr id="hr-ticket">`;
+        body += `<hr id="hr-ticket"><p id="texto-ticket">${escapeHtml(it.nombre)} <br>${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
       });
-      const footer = `<p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket">(Pago en: ${escapeHtml(mov.tipo)})</p>`;
+      const footer = `<hr id="hr-ticket"><p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket">(Pago en: ${escapeHtml(mov.tipo)})</p>`;
       const area = document.createElement("div");
       area.className = "print-area";
       area.style.width = "5cm";
