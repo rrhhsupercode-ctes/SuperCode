@@ -675,13 +675,13 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
       const snap = await window.get(window.ref(window.db, `movimientos/${id}`));
       if (!snap.exists()) return alert("Movimiento no encontrado");
       const mov = snap.val();
-      let html = `<p id="texto-ticket">Ticket ${mov.id}</p>`;
-      html += `<p id="texto-ticket">${formatFechaParaHeader(mov.fecha)}</p>`;
-      html += `<p id="texto-ticket">Cajero: ${escapeHtml(mov.cajero)}</p>`;
+      let html = `<p id="texto-ticket-modal">Ticket ${mov.id}</p>`;
+      html += `<p id="texto-ticket-modal">${formatFechaParaHeader(mov.fecha)}</p>`;
+      html += `<p id="texto-ticket-modal">Cajero: ${escapeHtml(mov.cajero)}</p>`;
       (mov.items || []).forEach(it => {
         html += `<hr style="width: 5cm; border: 1px solid black; margin: auto;"><p id="texto-ticket">${escapeHtml(it.nombre)} (x${it.cantidad}) <br>Unidad ${formatoPrecioParaPantalla(it.precio)} <br>Total ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
       });
-      html += `<p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket">Pago: ${escapeHtml(mov.tipo)}</p>`;
+      html += `<p id="texto-ticket-modal"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket-modal">Pago en: ${escapeHtml(mov.tipo)}</p>`;
       html += `<div style="margin-top:10px"><button id="__print_copy">Imprimir Copia</button><button id="__close_mov">Cerrar</button></div>`;
       mostrarModal(html);
       document.getElementById("__close_mov").onclick = cerrarModal;
