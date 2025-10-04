@@ -791,21 +791,21 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
        let html = `<h2>Reporte Z - ${new Date().toLocaleString()}</h2>`;
        let grandTotal = 0;
        Object.keys(grouped).forEach(caj => {
-         html += `<h3>Cajero: ${caj}</h3>`;
+         html += `<h3>Cajero: ${caj}</h3><hr>`;
          let totalEf = 0, totalTar = 0;
          html += `<h4>Efectivo</h4>`;
          grouped[caj].Efectivo.forEach(m => { 
            html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
            totalEf += Number(m.total); 
          });
-         html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p>`;
+         html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p><hr>`;
          html += `<h4>Tarjeta</h4>`;
          grouped[caj].Tarjeta.forEach(m => { 
            html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
            totalTar += Number(m.total); 
          });
-         html += `<p><b>Total Tarjeta Cajero: ${formatoPrecioParaPantalla(totalTar)}</b></p>`;
-         html += `<p><b>Subtotal Cajero: ${formatoPrecioParaPantalla(totalEf + totalTar)}</b></p>`;
+         html += `<p><b>Total Tarjeta Cajero: ${formatoPrecioParaPantalla(totalTar)}</b></p><hr>`;
+         html += `<p><b>Subtotal Cajero: ${formatoPrecioParaPantalla(totalEf + totalTar)}</b></p><hr>`;
          grandTotal += totalEf + totalTar;
        });
 
