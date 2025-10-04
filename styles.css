@@ -7,18 +7,30 @@
 }
 
 body {
-  background: #f0f2f5; /* gris muy claro, no quema la vista */
-  color: #2d3436;
+  background: #264653; /* fondo principal */
+  color: #eae2b7;      /* texto secundario (legible) */
   line-height: 1.5;
 }
 
 /* === HEADER === */
 header {
-  background: #2d3436;
+  background: #264653;
   padding: 12px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
 }
 
+#app-title {
+  font-size: 24px;               
+  font-weight: 800;              
+  text-align: center;            
+  text-transform: uppercase;     
+  letter-spacing: 2px;           
+  color: #f4a261; /* título en naranja suave */
+  text-shadow: 1px 1px 6px rgba(0,0,0,0.5);
+  margin: 5px 0;
+}
+
+/* === NAV === */
 nav {
   display: flex;
   gap: 10px;
@@ -26,8 +38,8 @@ nav {
 }
 
 .nav-btn {
-  background: #636e72;
-  color: #fff;
+  background: #2a9d8f; /* contraste sobre el fondo */
+  color: #eae2b7;
   border: none;
   padding: 10px 16px;
   border-radius: 6px;
@@ -35,9 +47,9 @@ nav {
   font-weight: bold;
   transition: all 0.25s ease;
 }
-
 .nav-btn:hover {
-  background: #00b894;
+  background: #f4a261; /* acento al hover */
+  color: #264653;
   transform: scale(1.05);
 }
 
@@ -51,20 +63,21 @@ main {
 /* === SECCIONES === */
 section {
   margin-top: 20px;
-  background: #ffffff;
+  background: #2f3e46;
   padding: 18px;
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
 }
 
+/* 🔥 ESTA ES LA QUE FALTABA */
 .hidden {
   display: none;
 }
 
 h2 {
   margin-bottom: 15px;
-  color: #2d3436;
-  border-left: 5px solid #00b894;
+  color: #f4a261; /* títulos resaltados */
+  border-left: 5px solid #eae2b7;
   padding-left: 10px;
 }
 
@@ -72,15 +85,23 @@ h2 {
 label {
   display: block;
   margin-bottom: 10px;
+  color: #eae2b7;
 }
 
 input, select, button {
   padding: 8px 10px;
   margin-top: 4px;
-  border: 1px solid #ccc;
+  border: 1px solid #eae2b7;
   border-radius: 6px;
+  background: #264653;
+  color: #eae2b7;
 }
 
+input:focus, select:focus {
+  outline: 2px solid #f4a261;
+}
+
+/* === BOTONES GENERALES === */
 button {
   cursor: pointer;
   font-weight: bold;
@@ -88,59 +109,63 @@ button {
   transition: all 0.25s ease;
 }
 
-/* === BOTONES GENERALES === */
 button:hover {
   transform: scale(1.05);
 }
 
 /* Botones de acción principales */
 .btn-ver {
-  background: #00b894;
-  color: #fff;
+  background: #2a9d8f;
+  color: #eae2b7;
 }
 .btn-ver:hover {
-  background: #55efc4;
+  background: #f4a261;
+  color: #264653;
 }
 
 .btn-eliminar {
-  background: #d63031;
+  background: #e76f51;
   color: #fff;
 }
 .btn-eliminar:hover {
-  background: #ff7675;
+  background: #f4a261;
+  color: #264653;
 }
 
 .btn-guardar {
-  background: #0984e3;
-  color: #fff;
+  background: #f4a261;
+  color: #264653;
 }
 .btn-guardar:hover {
-  background: #74b9ff;
+  background: #e9c46a;
+  color: #264653;
 }
 
 .btn-restaurar {
-  background: #e17055;
+  background: #457b9d;
   color: #fff;
 }
 .btn-restaurar:hover {
-  background: #fab1a0;
+  background: #1d3557;
 }
 
 #btn-cobrar {
   margin-top: 15px;
-  background: #00b894;
-  color: #fff;
+  background: #2a9d8f;
+  color: #eae2b7;
 }
 #btn-cobrar:hover {
-  background: #55efc4;
+  background: #f4a261;
+  color: #264653;
 }
 
 #btn-tirar-z {
-  background: #d63031;
+  background: #e76f51;
   color: #fff;
 }
 #btn-tirar-z:hover {
-  background: #ff7675;
+  background: #f4a261;
+  color: #264653;
 }
 
 /* === TABLAS === */
@@ -153,18 +178,20 @@ table {
 }
 
 th, td {
-  border: 1px solid #ddd;
+  border: 1px solid #eae2b7;
   padding: 10px;
   text-align: center;
+  color: #eae2b7;
 }
 
 th {
-  background: #dfe6e9;
+  background: #2a9d8f;
+  color: #fff;
   font-weight: bold;
 }
 
 tbody tr:nth-child(even) {
-  background: #f9f9f9;
+  background: #2f3e46;
 }
 
 /* === TOTAL COBRAR === */
@@ -172,7 +199,7 @@ tbody tr:nth-child(even) {
   font-size: 20px;
   font-weight: bold;
   margin-top: 10px;
-  color: #d63031;
+  color: #f4a261;
 }
 
 /* === MODALES === */
@@ -181,12 +208,13 @@ tbody tr:nth-child(even) {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: #fff;
+  background: #2f3e46;
   padding: 22px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.35);
   z-index: 1000;
   min-width: 320px;
+  color: #eae2b7;
 }
 
 .modal.hidden {
@@ -195,6 +223,7 @@ tbody tr:nth-child(even) {
 
 .modal h3 {
   margin-bottom: 12px;
+  color: #f4a261;
 }
 
 .modal button {
@@ -208,15 +237,14 @@ tbody tr:nth-child(even) {
   font-weight: bold;
 }
 
-/* Colores de feedback */
 .msg-exito {
-  color: #00b894; /* verde éxito */
+  color: #2a9d8f;
 }
 .msg-error {
-  color: #d63031; /* rojo error */
+  color: #e76f51;
 }
 .msg-alerta {
-  color: #e17055; /* naranja advertencia */
+  color: #e9c46a;
 }
 
 /* === IMPRESIÓN TICKET === */
@@ -235,36 +263,26 @@ tbody tr:nth-child(even) {
   }
 }
 
-/* === HISTORIAL === */
-#historial-info {
-  font-size: 14px;
-  margin-bottom: 10px;
-  color: #636e72;
-}
-
-#tabla-historial th {
-  background: #ffeaa7;
-}
-
-/* === IMPRESIÓN DE TICKET === */
 #texto-ticket {
   font-size: 9px;
   text-align: center;
+  color: #000;
 }
 
-#texto-ticket-modal{
+#texto-ticket-modal {
   font-size: 15px;
   text-align: center;
+  color: #000;
 }
 
 #hr-ticket {
   width: 4.8cm;
   border: none;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid #ccc;
   margin: 6px auto;
 }
 
 .linea {
   display: block;
-  height: 2px; /* controlás el espacio exacto entre líneas en modal de reimprimir ticket*/
+  height: 2px;
 }
