@@ -301,7 +301,7 @@ tbody tr:nth-child(even) {
   text-align: center;
 }
 
-.app-title {
+#app-title {
   text-align: center;        /* Centra el texto */
   font-size: 2rem;           /* Tamaño grande */
   font-weight: bold;         /* Negrita */
