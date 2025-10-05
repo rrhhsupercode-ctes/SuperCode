@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>SuperCode POS</title>
+  <title>Cobros - Zona PC</title>
   <link rel="stylesheet" href="styles.css">
 
   <!-- Firebase SDK -->
@@ -11,7 +11,7 @@
 </head>
 <body>
   <header>
-    <h1 id="app-title"><center>SUPERCODE</center></h1>
+    <h1 id="app-title"><center>ZONAPC</center></h1>
     <nav>
       <button class="nav-btn" data-section="cobro">Cobrar</button>
       <button class="nav-btn" data-section="movimientos">Movimientos</button>
@@ -26,10 +26,10 @@
     <!-- COBRAR -->
     <section id="cobro">
       <div id="login-modal">
-        <h2>Login Cajero</h2>
+        <h2>👥Cajero(a)👥</h2>
         <select id="login-usuario"></select>
         <input id="login-pass" type="password" placeholder="Contraseña">
-        <button id="btn-login">Entrar</button>
+        <button id="btn-login">🔑Ingresar🔑</button>
         <p id="login-msg" class="msg-error"></p>
       </div>
 
@@ -53,12 +53,12 @@
     <section id="movimientos" class="hidden">
       <h2>Movimientos</h2>
 
-      <label for="filtroCajero">Nro Cajero:</label>
+      <label for="filtroCajero">Nro Cajero(a):</label>
       <select id="filtroCajero">
         <option value="TODOS">TODOS</option>
       </select>
       
-      <button id="btn-tirar-z">Tirar Z</button>
+      <button id="btn-tirar-z">Tirar Z</button><p>⚠️ADVERTENCIA: Tirar Z no puede revertirse⚠️</p>
       <table id="tabla-movimientos">
         <thead>
           <tr>
@@ -88,7 +88,7 @@
       <h2>Stock</h2>
       <input id="stock-codigo" placeholder="Código producto">
       <select id="stock-cantidad"></select>
-      <button id="agregar-stock">Agregar Stock</button>
+      <button id="agregar-stock">➕Agregar Stock➕</button>
       <table id="tabla-stock">
         <thead>
           <tr>
@@ -102,11 +102,11 @@
     <!-- CAJEROS -->
     <section id="cajeros" class="hidden">
       <h2>Cajeros</h2>
-      <select id="cajero-nro"></select>
-      <input id="cajero-nombre" placeholder="Nombre">
-      <input id="cajero-dni" placeholder="DNI">
-      <input id="cajero-pass" type="password" placeholder="Contraseña">
-      <button id="agregar-cajero">Agregar Cajero</button>
+      <p>👥</p><select id="cajero-nro"></select>
+      <p>🔠</p><input id="cajero-nombre" placeholder="Nombre">
+      <p>🔢</p><input id="cajero-dni" placeholder="DNI">
+      <p>🔣</p><input id="cajero-pass" type="password" placeholder="Contraseña">
+      <button id="agregar-cajero">➕Agregar Cajero(a)➕</button>
       <table id="tabla-cajeros">
         <thead>
           <tr>
@@ -121,7 +121,7 @@
     <section id="config" class="hidden">
       <h2>Configuración</h2>
       
-      <input id="config-nombre" placeholder="Nombre Tienda">
+      <p>🏪</p><input id="config-nombre" placeholder="Nombre de Tienda"><p>🏪</p>
       
       <div id="admin-pass-config">
         <input id="config-pass-actual" type="password" placeholder="Contraseña actual">
@@ -132,7 +132,7 @@
       </div>
 
       <input id="master-pass" placeholder="Contraseña Maestra">
-      <button id="btn-restaurar" class="btn-restaurar">Restaurar Contraseña</button>
+      <button id="btn-restaurar" class="btn-restaurar">🔑Restaurar Contraseña🔑</button>
     </section>
   </main>
 
