@@ -728,7 +728,7 @@ function imprimirTicketMov(mov) {
   const printAreas = [];
 
   // 🔥 Forzar lectura del nombre de la tienda en el momento de imprimir
-  let shopName = "ZONAPC"; // valor por defecto
+  let shopName = "WWW.ZONAPC.COM"; // valor por defecto
   try {
     if (window.configCache && window.configCache.shopName) {
       shopName = window.configCache.shopName.toUpperCase();
