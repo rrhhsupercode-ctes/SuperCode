@@ -714,7 +714,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
         html += `<hr id="hr-ticket"><p id="texto-ticket-modal">${escapeHtml(it.nombre)} </p><span class="linea"></span><p id="texto-ticket-modal">${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
       });
       html += `<hr id="hr-ticket"><p id="texto-ticket-modal"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket-modal">Pago en: ${escapeHtml(mov.tipo)}</p>`;
-      html += `<div style="margin-top:10px"><button id="__print_copy">📃​Imprimir</button><button id="__close_mov">❌Cancelar</button></div>`;
+      html += `<div style="margin-top:10px"><button id="__print_copy">🧾​​Imprimir</button><button id="__close_mov">❌Cancelar</button></div>`;
       mostrarModal(html);
       document.getElementById("__close_mov").onclick = cerrarModal;
       document.getElementById("__print_copy").onclick = () => imprimirTicketMov(mov);
@@ -1112,7 +1112,7 @@ function cargarHistorial() {
         <td>${escapeHtml(mov.cajero || "")}</td>
         <td>${formatFechaParaHeader(mov.fecha)}</td>
         <td>
-          <button class="btn-ver-hist" data-id="${mov.id}">📃</button>
+          <button class="btn-ver-hist" data-id="${mov.id}">🧾​</button>
         </td>
       `;
       tablaHistorialBody.appendChild(tr);
