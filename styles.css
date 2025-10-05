@@ -300,3 +300,13 @@ tbody tr:nth-child(even) {
   min-width: 120px;   /* evita que se muevan los botones si el texto cambia */
   text-align: center;
 }
+
+.app-title {
+  text-align: center;        /* Centra el texto */
+  font-size: 2rem;           /* Tamaño grande */
+  font-weight: bold;         /* Negrita */
+  letter-spacing: 1px;       /* Espaciado entre letras */
+  color: #222;               /* Color de texto */
+  text-transform: uppercase; /* MAYÚSCULAS */
+  margin: 10px 0;            /* Separación arriba y abajo */
+}
