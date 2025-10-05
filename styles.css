@@ -310,3 +310,10 @@ tbody tr:nth-child(even) {
   text-transform: uppercase; /* MAYÚSCULAS */
   margin: 10px 0;            /* Separación arriba y abajo */
 }
+
+p.emoji {
+  display: inline-block;
+  font-size: 2rem;
+  margin: 0 0.5rem 0 0; /* ajusta separación si hace falta */
+  vertical-align: middle;
+}
