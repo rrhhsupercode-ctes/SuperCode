@@ -747,103 +747,134 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
   }
 
  // -----------------------
- // TIRAR Z (por cajero o TODOS)
- // -----------------------
- if (btnTirarZ) {
-   btnTirarZ.addEventListener("click", async () => {
-     // Abrir modal para pedir pass admin
-     mostrarModal(`
-       <h3>Confirmar Tirar Z</h3>
-       <p>Contraseña de Encargado:</p>
-       <input id="z-pass" type="password" style="width:100%; margin:10px 0; padding:6px">
-       <div style="text-align:right">
-         <button id="z-cancel">Cancelar</button>
-         <button id="z-ok">Aceptar</button>
-       </div>
-     `);
+// TIRAR Z (por cajero o TODOS)
+// -----------------------
+if (btnTirarZ) {
+  btnTirarZ.addEventListener("click", async () => {
+    // Abrir modal para pedir pass admin
+    mostrarModal(`
+      <h3>Confirmar Tirar Z</h3>
+      <p>Contraseña de Encargado:</p>
+      <input id="z-pass" type="password" style="width:100%; margin:10px 0; padding:6px">
+      <div style="text-align:right">
+        <button id="z-cancel">Cancelar</button>
+        <button id="z-ok">Aceptar</button>
+      </div>
+    `);
 
-     document.getElementById("z-cancel").onclick = cerrarModal;
-     document.getElementById("z-ok").onclick = async () => {
-       const inputPass = document.getElementById("z-pass").value.trim();
-       const snapConfig = await window.get(window.ref(window.db, "config"));
-       const config = snapConfig.exists() ? snapConfig.val() : {};
-       const adminPass = config.passAdmin || "0123456789"; // por defecto
+    document.getElementById("z-cancel").onclick = cerrarModal;
+    document.getElementById("z-ok").onclick = async () => {
+      const inputPass = document.getElementById("z-pass").value.trim();
+      const snapConfig = await window.get(window.ref(window.db, "config"));
+      const config = snapConfig.exists() ? snapConfig.val() : {};
+      const adminPass = config.passAdmin || "0123456789"; // por defecto
 
-       if (inputPass !== adminPass) {
-         alert("Contraseña incorrecta");
-         return;
-       }
-       cerrarModal();
+      if (inputPass !== adminPass) {
+        alert("Contraseña incorrecta");
+        return;
+      }
+      cerrarModal();
 
-       // === Tirar Z real ===
-       const snap = await window.get(window.ref(window.db, "movimientos"));
-       if (!snap.exists()) return alert("No hay movimientos para tirar Z");
-       const allMovArr = Object.values(snap.val());
-       const cajSel = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
+      // === Tirar Z real ===
+      const snap = await window.get(window.ref(window.db, "movimientos"));
+      if (!snap.exists()) return alert("No hay movimientos para tirar Z");
+      const allMovArr = Object.values(snap.val());
+      const cajSel = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
 
-       let data = allMovArr;
-       if (cajSel !== "TODOS") {
-         data = allMovArr.filter(m => (m.cajero || "") === cajSel);
-         if (data.length === 0) return alert(`No hay movimientos para el cajero ${cajSel}`);
-       }
+      let data = allMovArr;
+      if (cajSel !== "TODOS") {
+        data = allMovArr.filter(m => (m.cajero || "") === cajSel);
+        if (data.length === 0) return alert(`No hay movimientos para el cajero ${cajSel}`);
+      }
 
-       // group by cajero y tipo
-       const grouped = {};
-       data.forEach(m => {
-         const caj = m.cajero || "N/A";
-         if (!grouped[caj]) grouped[caj] = { Efectivo: [], Tarjeta: [], otros: [] };
-         if (m.tipo === "Efectivo") grouped[caj].Efectivo.push(m);
-         else if (m.tipo === "Tarjeta") grouped[caj].Tarjeta.push(m);
-         else grouped[caj].otros.push(m);
-       });
+      // group by cajero y tipo
+      const grouped = {};
+      data.forEach(m => {
+        const caj = m.cajero || "N/A";
+        if (!grouped[caj]) grouped[caj] = { Efectivo: [], Tarjeta: [], otros: [] };
+        if (m.tipo === "Efectivo") grouped[caj].Efectivo.push(m);
+        else if (m.tipo === "Tarjeta") grouped[caj].Tarjeta.push(m);
+        else grouped[caj].otros.push(m);
+      });
 
-       let html = `<h2>Reporte Z - ${new Date().toLocaleString()}</h2>`;
-       let grandTotal = 0;
-       Object.keys(grouped).forEach(caj => {
-         html += `<h3>Cajero: ${caj}</h3><hr>`;
-         let totalEf = 0, totalTar = 0;
-         html += `<h4>Efectivo</h4>`;
-         grouped[caj].Efectivo.forEach(m => { 
-           html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
-           totalEf += Number(m.total); 
-         });
-         html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p>`;
-         html += `<hr><h4>Tarjeta</h4>`;
-         grouped[caj].Tarjeta.forEach(m => { 
-           html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
-           totalTar += Number(m.total); 
-         });
-         html += `<p><b>Total Tarjeta Cajero: ${formatoPrecioParaPantalla(totalTar)}</b></p><hr>`;
-         html += `<p><b>Subtotal Cajero: ${formatoPrecioParaPantalla(totalEf + totalTar)}</b></p><hr>`;
-         grandTotal += totalEf + totalTar;
-       });
+      let html = `<h2>Reporte Z - ${new Date().toLocaleString()}</h2>`;
+      let grandTotal = 0;
+      const resumenZItems = [];
 
-       html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
-       html += `<br><table border="1" style="width:100%; margin-top:20px"><tr><th>Efectivo Cobrado</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
-       html += `<br><table border="1" style="width:100%; margin-top:10px"><tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
+      Object.keys(grouped).forEach(caj => {
+        html += `<h3>Cajero: ${caj}</h3><hr>`;
+        let totalEf = 0, totalTar = 0;
+        html += `<h4>Efectivo</h4>`;
+        grouped[caj].Efectivo.forEach(m => { 
+          html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
+          totalEf += Number(m.total); 
+        });
+        html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p>`;
+        html += `<hr><h4>Tarjeta</h4>`;
+        grouped[caj].Tarjeta.forEach(m => { 
+          html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
+          totalTar += Number(m.total); 
+        });
+        html += `<p><b>Total Tarjeta Cajero: ${formatoPrecioParaPantalla(totalTar)}</b></p><hr>`;
+        html += `<p><b>Subtotal Cajero: ${formatoPrecioParaPantalla(totalEf + totalTar)}</b></p><hr>`;
+        grandTotal += totalEf + totalTar;
 
-       const area = document.createElement("div");
-       area.className = "print-area";
-       area.style.width = "21cm";
-       area.innerHTML = html;
-       document.body.appendChild(area);
-       window.print();
-       document.body.removeChild(area);
+        resumenZItems.push({
+          cajero: caj,
+          totalEfectivo: totalEf,
+          totalTarjeta: totalTar,
+          subtotal: totalEf + totalTar
+        });
+      });
 
-       // borrar movimientos
-       if (cajSel === "TODOS") {
-         await window.set(window.ref(window.db, "movimientos"), {});
-       } else {
-         const updates = {};
-         Object.values(snap.val()).forEach(m => {
-           if ((m.cajero || "") === cajSel) updates[m.id] = null;
-         });
-         await window.update(window.ref(window.db, "movimientos"), updates);
-       }
-       alert(`Tirar Z completado para ${cajSel}`);
-     };
-   });
- }
+      html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
+      html += `<br><table border="1" style="width:100%; margin-top:20px"><tr><th>Efectivo Cobrado</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
+      html += `<br><table border="1" style="width:100%; margin-top:10px"><tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
+
+      // Imprimir
+      const area = document.createElement("div");
+      area.className = "print-area";
+      area.style.width = "21cm";
+      area.innerHTML = html;
+      document.body.appendChild(area);
+      window.print();
+      document.body.removeChild(area);
+
+      // === NUEVO: Guardar copia de Z en HISTORIAL ===
+      try {
+        const ahora = new Date();
+        const año = ahora.getFullYear();
+        const mes = String(ahora.getMonth() + 1).padStart(2, "0");
+        const idZ = "Z-" + ahora.getTime();
+        const path = `historial/${año}-${mes}/${idZ}`;
+
+        await window.set(window.ref(window.db, path), {
+          id: idZ,
+          tipo: "TIRAR Z",
+          cajero: cajSel,
+          total: grandTotal,
+          fecha: ahora.toISOString(),
+          items: resumenZItems
+        });
+      } catch (err) {
+        console.error("Error guardando Z en historial:", err);
+      }
+
+      // Borrar movimientos
+      if (cajSel === "TODOS") {
+        await window.set(window.ref(window.db, "movimientos"), {});
+      } else {
+        const updates = {};
+        Object.values(snap.val()).forEach(m => {
+          if ((m.cajero || "") === cajSel) updates[m.id] = null;
+        });
+        await window.update(window.ref(window.db, "movimientos"), updates);
+      }
+
+      alert(`Tirar Z completado para ${cajSel}`);
+    };
+  });
+}
 
   // -----------------------
   // CONFIG
@@ -897,47 +928,41 @@ btnRestaurar.onclick = async () => {
 };
 
 // -----------------------
-// HISTORIAL (render + acciones) - con paginación por DÍA
+// HISTORIAL (render + acciones) - con paginación por DÍA + soporte TIRAR Z
 // -----------------------
 function cargarHistorial() {
-  // Determinar rango: desde día 1 del mes previo (si hoy < 15) o desde día 1 del mes actual (si hoy >= 15)
   const ahora = new Date();
   const hoyDia = ahora.getDate();
   let startYear = ahora.getFullYear();
-  let startMonthIndex; // 0-based
+  let startMonthIndex;
 
   if (hoyDia >= 15) {
-    // desde 1 del mes actual
     startMonthIndex = ahora.getMonth();
   } else {
-    // desde 1 del mes anterior
     startMonthIndex = ahora.getMonth() - 1;
     if (startMonthIndex < 0) {
       startMonthIndex = 11;
-      startYear = startYear - 1;
+      startYear--;
     }
   }
 
   const startDate = new Date(startYear, startMonthIndex, 1);
-  const endDate = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate()); // hasta hoy
+  const endDate = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
 
-  // Mostrar info en header opcional
   if (historialInfo) {
     const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-    const textoMes = `${meses[startDate.getMonth()]} ${startDate.getFullYear()} → ${meses[endDate.getMonth()]} ${endDate.getFullYear()}`;
     historialInfo.textContent = `Historial desde ${startDate.getDate()}/${String(startDate.getMonth()+1).padStart(2,"0")}/${startDate.getFullYear()} hasta ${endDate.getDate()}/${String(endDate.getMonth()+1).padStart(2,"0")}/${endDate.getFullYear()}`;
   }
 
-  // Generar array de días entre startDate y endDate (inclusive) en formato YYYY-MM-DD
   function toDateKey(d) {
-    return d.toISOString().slice(0,10); // YYYY-MM-DD
+    return d.toISOString().slice(0,10);
   }
+
   const dayPages = [];
   for (let d = new Date(startDate.getFullYear(), startDate.getMonth(), 1); d <= endDate; d.setDate(d.getDate() + 1)) {
     dayPages.push(toDateKey(new Date(d)));
   }
 
-  // Contenedores de paginador (crear sólo si no existen)
   const tablaHistorialEl = document.getElementById("tabla-historial");
   if (tablaHistorialEl && !document.getElementById("historial-paginador-top")) {
     const pagTop = document.createElement("div");
@@ -957,13 +982,11 @@ function cargarHistorial() {
   const pagTopEl = document.getElementById("historial-paginador-top");
   const pagBottomEl = document.getElementById("historial-paginador-bottom");
 
-  // Estado local para historial
-  let monthsSnapshots = {}; // { "YYYY-MM": {id: mov, ...} }
-  let histByDay = {}; // { "YYYY-MM-DD": [mov, ...] }
-  let movCache = {}; // { movId: { mov, monthKey } }
-  let currentIndex = dayPages.length - 1; // mostrar por defecto el día más reciente
+  let monthsSnapshots = {};
+  let histByDay = {};
+  let movCache = {};
+  let currentIndex = dayPages.length - 1;
 
-  // Helper: formatea YYYY-MM-DD a "DD NombreMes YYYY" centrado
   function formatoDiaReadable(dateKey) {
     if (!dateKey) return "";
     const d = new Date(dateKey + "T00:00:00");
@@ -972,7 +995,6 @@ function cargarHistorial() {
     return `${dd} ${meses[d.getMonth()]} ${d.getFullYear()}`;
   }
 
-  // Reconstruir histByDay y movCache a partir de monthsSnapshots
   function rebuildFromSnapshots() {
     histByDay = {};
     movCache = {};
@@ -980,7 +1002,6 @@ function cargarHistorial() {
       if (!dataset) return;
       Object.entries(dataset).forEach(([id, mov]) => {
         if (!mov) return;
-        // intentar obtener fecha en formato YYYY-MM-DD desde mov.fecha
         let dateKey = "";
         try {
           dateKey = mov.fecha ? (new Date(mov.fecha)).toISOString().slice(0,10) : (monthKey + "-01");
@@ -992,7 +1013,6 @@ function cargarHistorial() {
         movCache[mov.id] = { mov, monthKey };
       });
     });
-    // ordenar los arrays de cada día por fecha descendente (hora)
     Object.keys(histByDay).forEach(k => {
       histByDay[k].sort((a,b) => {
         const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
@@ -1002,7 +1022,6 @@ function cargarHistorial() {
     });
   }
 
-  // Render del paginador (ambos, top y bottom)
   function renderPaginators() {
     const total = dayPages.length;
     const currentLabel = formatoDiaReadable(dayPages[currentIndex]);
@@ -1022,7 +1041,6 @@ function cargarHistorial() {
     if (pagTopEl) pagTopEl.innerHTML = buildHtml(prevDisabled, nextDisabled);
     if (pagBottomEl) pagBottomEl.innerHTML = buildHtml(prevDisabled, nextDisabled);
 
-    // attach listeners (delegated re-creating each render is fine)
     ["historial-paginador-top", "historial-paginador-bottom"].forEach(pid => {
       const container = document.getElementById(pid);
       if (!container) return;
@@ -1033,7 +1051,6 @@ function cargarHistorial() {
     });
   }
 
-  // Render tabla para un día concreto (index en dayPages)
   function renderDay(index) {
     if (!tablaHistorialBody) return;
     tablaHistorialBody.innerHTML = "";
@@ -1041,7 +1058,6 @@ function cargarHistorial() {
     const dateKey = dayPages[index];
     const items = histByDay[dateKey] || [];
 
-    // si no hay movimientos, mostrar fila vacía con mensaje
     if (!items.length) {
       const tr = document.createElement("tr");
       tr.innerHTML = `<td colspan="6">No hay movimientos para ${formatoDiaReadable(dateKey)}</td>`;
@@ -1064,39 +1080,53 @@ function cargarHistorial() {
       tablaHistorialBody.appendChild(tr);
     });
 
-    // attach actions (usar memcache movCache si existe)
     document.querySelectorAll(".btn-ver-hist").forEach(btn => {
       btn.onclick = async () => {
         const id = btn.dataset.id;
         const item = movCache[id];
         let mov = item ? item.mov : null;
         if (!mov) {
-          // fallback: intentar leer desde DB buscando en el mes correspondiente
           const monthKey = (dateKey || "").slice(0,7);
           const snapMov = await window.get(window.ref(window.db, `historial/${monthKey}/${id}`));
           if (!snapMov.exists()) return alert("Movimiento no encontrado en historial");
           mov = snapMov.val();
         }
-        // reutilizar modal del movimiento
+
         let html = `<h3>Ticket ${mov.id}</h3>`;
         html += `<p>${formatFechaParaHeader(mov.fecha)}</p>`;
         html += `<p>Cajero: ${escapeHtml(mov.cajero)}</p><hr id="hr-ticket">`;
-        (mov.items || []).forEach(it => {
-          html += `<p>${escapeHtml(it.nombre)} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
-        });
-        html += `<hr id="hr-ticket"><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
-        html += `<div style="margin-top:10px"><button id="__print_copy_hist">Imprimir Copia</button><button id="__close_hist">Cerrar</button></div>`;
+
+        if (mov.tipo === "TIRAR Z") {
+          // Mostrar datos del cierre Z
+          html += `<p><b>Corte Z</b></p>`;
+          html += `<p>Total del día: ${formatoPrecioParaPantalla(mov.total)}</p>`;
+          if (mov.detalle) {
+            html += `<hr><p>Detalle:</p>`;
+            Object.entries(mov.detalle).forEach(([k,v]) => {
+              html += `<p>${escapeHtml(k)}: ${formatoPrecioParaPantalla(v)}</p>`;
+            });
+          }
+          html += `<div style="margin-top:10px"><button id="__print_z_hist">Imprimir Corte Z</button><button id="__close_hist">Cerrar</button></div>`;
+        } else {
+          // Ticket de venta normal
+          (mov.items || []).forEach(it => {
+            html += `<p>${escapeHtml(it.nombre)} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
+          });
+          html += `<hr id="hr-ticket"><p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
+          html += `<div style="margin-top:10px"><button id="__print_copy_hist">Imprimir Copia</button><button id="__close_hist">Cerrar</button></div>`;
+        }
+
         mostrarModal(html);
-        // cerrarModal() ya remueve la clase modal-active si aplicaste el cambio anterior
         const closeBtn = document.getElementById("__close_hist");
         if (closeBtn) closeBtn.onclick = cerrarModal;
         const printBtn = document.getElementById("__print_copy_hist");
         if (printBtn) printBtn.onclick = () => imprimirTicketMov(mov);
+        const printZBtn = document.getElementById("__print_z_hist");
+        if (printZBtn) printZBtn.onclick = () => imprimirCorteZ(mov);
       };
     });
   }
 
-  // Helper: montar monthKeys entre startDate y endDate (p.ej. ["2025-09","2025-10"])
   function buildMonthKeys(startD, endD) {
     const keys = [];
     const cur = new Date(startD.getFullYear(), startD.getMonth(), 1);
@@ -1109,30 +1139,87 @@ function cargarHistorial() {
     return keys;
   }
 
-  // Suscribirse a los meses necesarios con onValue para mantener histórico reactivo
   const monthKeys = buildMonthKeys(startDate, endDate);
   monthKeys.forEach(monthKey => {
-    // inicializar snapshot vacío
     monthsSnapshots[monthKey] = null;
-    // suscribirse
     window.onValue(window.ref(window.db, `historial/${monthKey}`), snap => {
       monthsSnapshots[monthKey] = snap.exists() ? snap.val() : null;
-      // reconstruir estructura y render
       rebuildFromSnapshots();
-      // si currentIndex fuera fuera de rango por eliminación, ajustarlo
       if (currentIndex > dayPages.length - 1) currentIndex = dayPages.length - 1;
       renderPaginators();
       renderDay(currentIndex);
     });
   });
 
-  // Primer render (si no llegaron snapshots aún, mostrará vacío)
   renderPaginators();
   renderDay(currentIndex);
 }
 
 // iniciar carga historial
 cargarHistorial();
+
+  /*****************************************************
+ * Imprimir Corte Z (desde historial)
+ *****************************************************/
+function imprimirCorteZ(mov) {
+  if (!mov || mov.tipo !== "TIRAR Z") {
+    alert("No hay datos válidos para imprimir el corte Z.");
+    return;
+  }
+
+  // Crear una ventana temporal para impresión
+  const printWindow = window.open("", "_blank", "width=600,height=800");
+  if (!printWindow) {
+    alert("Bloqueador de ventanas emergentes activo. Permitir pop-ups para imprimir.");
+    return;
+  }
+
+  const fecha = formatFechaParaHeader(mov.fecha || new Date().toISOString());
+  const totalDia = formatoPrecioParaPantalla(mov.total || 0);
+
+  let contenido = `
+    <html>
+    <head>
+      <title>Corte Z - ${mov.id}</title>
+      <style>
+        body { font-family: monospace; padding: 10px; }
+        h2, h3 { text-align: center; margin: 5px 0; }
+        hr { border: none; border-top: 1px dashed #000; margin: 5px 0; }
+        .linea { display: flex; justify-content: space-between; }
+      </style>
+    </head>
+    <body>
+      <h2>${mov.shopName || "SUPERCODE"}</h2>
+      <h3>CORTE Z</h3>
+      <p>ID: ${mov.id}</p>
+      <p>Fecha: ${fecha}</p>
+      <p>Cajero: ${mov.cajero || "N/D"}</p>
+      <hr>
+      <div class="linea"><span><b>Total del día:</b></span><span><b>${totalDia}</b></span></div>
+  `;
+
+  if (mov.detalle) {
+    contenido += `<hr><h4>Detalle:</h4>`;
+    Object.entries(mov.detalle).forEach(([k, v]) => {
+      contenido += `<div class="linea"><span>${k}</span><span>${formatoPrecioParaPantalla(v)}</span></div>`;
+    });
+  }
+
+  contenido += `
+      <hr>
+      <p style="text-align:center">Reimpresión de Corte Z</p>
+      <p style="text-align:center">Gracias por usar SUPERCODE</p>
+    </body>
+    </html>
+  `;
+
+  printWindow.document.open();
+  printWindow.document.write(contenido);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+  printWindow.close();
+}
 
 /*****************************************************
  * Modal de pérdida de conexión
