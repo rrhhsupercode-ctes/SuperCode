@@ -1158,8 +1158,8 @@ function cargarHistorial() {
 // iniciar carga historial
 cargarHistorial();
 
-  /*****************************************************
- * Imprimir Corte Z (desde historial)
+/*****************************************************
+ * Imprimir Corte Z (desde historial) — versión completa
  *****************************************************/
 function imprimirCorteZ(mov) {
   if (!mov || mov.tipo !== "TIRAR Z") {
@@ -1167,58 +1167,40 @@ function imprimirCorteZ(mov) {
     return;
   }
 
-  // Crear una ventana temporal para impresión
-  const printWindow = window.open("", "_blank", "width=600,height=800");
-  if (!printWindow) {
-    alert("Bloqueador de ventanas emergentes activo. Permitir pop-ups para imprimir.");
-    return;
-  }
+  const fecha = new Date(mov.fecha || new Date()).toLocaleString();
+  const cajSel = mov.cajero || "TODOS";
+  const resumenZItems = mov.items || [];
+  const grandTotal = mov.total || 0;
 
-  const fecha = formatFechaParaHeader(mov.fecha || new Date().toISOString());
-  const totalDia = formatoPrecioParaPantalla(mov.total || 0);
+  let html = `<h2>Reporte Z - ${fecha}</h2>`;
+  resumenZItems.forEach(item => {
+    html += `<h3>Cajero: ${item.cajero}</h3><hr>`;
+    html += `<h4>Efectivo</h4>`;
+    html += `<p><b>Total Efectivo Cajero:</b> ${formatoPrecioParaPantalla(item.totalEfectivo)}</p>`;
+    html += `<hr><h4>Tarjeta</h4>`;
+    html += `<p><b>Total Tarjeta Cajero:</b> ${formatoPrecioParaPantalla(item.totalTarjeta)}</p><hr>`;
+    html += `<p><b>Subtotal Cajero:</b> ${formatoPrecioParaPantalla(item.subtotal)}</p><hr>`;
+  });
 
-  let contenido = `
-    <html>
-    <head>
-      <title>Corte Z - ${mov.id}</title>
-      <style>
-        body { font-family: monospace; padding: 10px; }
-        h2, h3 { text-align: center; margin: 5px 0; }
-        hr { border: none; border-top: 1px dashed #000; margin: 5px 0; }
-        .linea { display: flex; justify-content: space-between; }
-      </style>
-    </head>
-    <body>
-      <h2>${mov.shopName || "SUPERCODE"}</h2>
-      <h3>CORTE Z</h3>
-      <p>ID: ${mov.id}</p>
-      <p>Fecha: ${fecha}</p>
-      <p>Cajero: ${mov.cajero || "N/D"}</p>
-      <hr>
-      <div class="linea"><span><b>Total del día:</b></span><span><b>${totalDia}</b></span></div>
-  `;
+  html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
+  html += `<br><table border="1" style="width:100%; margin-top:20px">
+              <tr><th>Efectivo Cobrado</th><th>Firma Cajero</th><th>Firma Encargado</th></tr>
+              <tr><td></td><td></td><td></td></tr>
+           </table>`;
+  html += `<br><table border="1" style="width:100%; margin-top:10px">
+              <tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr>
+              <tr><td></td><td></td><td></td></tr>
+           </table>`;
 
-  if (mov.detalle) {
-    contenido += `<hr><h4>Detalle:</h4>`;
-    Object.entries(mov.detalle).forEach(([k, v]) => {
-      contenido += `<div class="linea"><span>${k}</span><span>${formatoPrecioParaPantalla(v)}</span></div>`;
-    });
-  }
+  // Crear e imprimir el área de contenido
+  const area = document.createElement("div");
+  area.className = "print-area";
+  area.style.width = "21cm";
+  area.innerHTML = html;
 
-  contenido += `
-      <hr>
-      <p style="text-align:center">Reimpresión de Corte Z</p>
-      <p style="text-align:center">Gracias por usar SUPERCODE</p>
-    </body>
-    </html>
-  `;
-
-  printWindow.document.open();
-  printWindow.document.write(contenido);
-  printWindow.document.close();
-  printWindow.focus();
-  printWindow.print();
-  printWindow.close();
+  document.body.appendChild(area);
+  window.print();
+  document.body.removeChild(area);
 }
 
 /*****************************************************
