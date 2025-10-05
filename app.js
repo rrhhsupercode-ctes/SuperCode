@@ -140,8 +140,8 @@ async function verificarPassAdmin(pass) {
       <h3>Contraseña Administrador</h3>
       <input type="password" id="__admin_input" placeholder="Contraseña admin">
       <div style="margin-top:10px">
-        <button id="__admin_ok">Aceptar</button>
-        <button id="__admin_cancel">Cancelar</button>
+        <button id="__admin_ok">✅Aceptar</button>
+        <button id="__admin_cancel">❌Cancelar</button>
       </div>
     `);
     document.getElementById("__admin_ok").onclick = async () => {
@@ -347,9 +347,9 @@ if (appTitle) {
       mostrarModal(`
         <h3>¿Efectivo o Tarjeta?</h3>
         <div style="margin-top:10px">
-          <button id="__pay_cash">Efectivo</button>
-          <button id="__pay_card">Tarjeta</button>
-          <button id="__pay_cancel">Cancelar</button>
+          <button id="__pay_cash">💵Efectivo</button>
+          <button id="__pay_card">💳Tarjeta</button>
+          <button id="__pay_cancel">❌Cancelar</button>
         </div>
       `);
       document.getElementById("__pay_cancel").onclick = cerrarModal;
@@ -400,14 +400,14 @@ if (appTitle) {
       const mes = String(fechaMov.getMonth() + 1).padStart(2, "0");
       await window.set(window.ref(window.db, `historial/${año}-${mes}/${movId}`), mov);
     } catch (err) {
-      console.error("Error guardando en historial:", err);
+      console.error("❌Error guardando en historial:", err);
     }
     // --- fin historial ---
 
     imprimirTicketMov(mov);
     carrito = [];
     renderCarrito();
-    alert("Venta registrada ✅");
+    alert("✅Venta finalizada");
   }
 
   // -----------------------
@@ -436,8 +436,8 @@ window.onValue(window.ref(window.db, "stock"), snap => {
       <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
       <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
       <td>
-        <button class="btn-edit-stock" data-id="${codigo}">Editar</button>
-        <button class="btn-del-stock" data-id="${codigo}">Eliminar</button>
+        <button class="btn-edit-stock" data-id="${codigo}">✏️</button>
+        <button class="btn-del-stock" data-id="${codigo}">❌​</button>
       </td>
     `;
     tablaStockBody.appendChild(tr);
@@ -492,8 +492,8 @@ function editarStockModal(codigo) {
       <label>Precio (00000,00)</label><input id="__edit_precio" value="${escapeHtml(String(prod.precio || "00000,00"))}">
       <label>Cantidad</label><input id="__edit_cantidad" type="number" value="${Number(prod.cantidad) || 0}">
       <div style="margin-top:10px">
-        <button id="__save_prod">Guardar</button>
-        <button id="__cancel_prod">Cancelar</button>
+        <button id="__save_prod">✅Guardar</button>
+        <button id="__cancel_prod">❌Cancelar</button>
       </div>
     `);
     document.getElementById("__cancel_prod").onclick = cerrarModal;
@@ -538,8 +538,8 @@ function editarStockModal(codigo) {
           <td>${escapeHtml(caj.nombre || "")}</td>
           <td>${escapeHtml(caj.dni || "")}</td>
           <td>
-            <button class="btn-edit-caj" data-id="${nro}">Editar</button>
-            <button class="btn-del-caj" data-id="${nro}">Eliminar</button>
+            <button class="btn-edit-caj" data-id="${nro}">✏️</button>
+            <button class="btn-del-caj" data-id="${nro}">❌</button>
           </td>
         `;
         tablaCajerosBody.appendChild(tr);
@@ -598,8 +598,8 @@ function editarStockModal(codigo) {
         <label>DNI</label><input id="__edit_caj_dni" value="${escapeHtml(caj.dni || "")}">
         <label>Pass</label><input id="__edit_caj_pass" value="${escapeHtml(caj.pass || "")}">
         <div style="margin-top:10px">
-          <button id="__save_caj">Guardar</button>
-          <button id="__cancel_caj">Cancelar</button>
+          <button id="__save_caj">✅Guardar</button>
+          <button id="__cancel_caj">❌Cancelar</button>
         </div>
       `);
       document.getElementById("__cancel_caj").onclick = cerrarModal;
@@ -652,8 +652,8 @@ function editarStockModal(codigo) {
         <td>${formatoPrecioParaPantalla(mov.total)}</td>
         <td>${escapeHtml(mov.tipo)}</td>
         <td>
-          <button class="btn-ver-mov" data-id="${mov.id}">Ver</button>
-          <button class="btn-del-mov" data-id="${mov.id}">Eliminar</button>
+          <button class="btn-ver-mov" data-id="${mov.id}">📃</button>
+          <button class="btn-del-mov" data-id="${mov.id}">❌</button>
         </td>
       `;
       tablaMovimientosBody.appendChild(tr);
@@ -705,7 +705,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
   function verMovimientoModal(id) {
     (async () => {
       const snap = await window.get(window.ref(window.db, `movimientos/${id}`));
-      if (!snap.exists()) return alert("Movimiento no encontrado");
+      if (!snap.exists()) return alert("⛔Movimiento no encontrado⛔");
       const mov = snap.val();
       let html = `<p id="texto-ticket-modal">Ticket ${mov.id}</p>`;
       html += `<p id="texto-ticket-modal">${formatFechaParaHeader(mov.fecha)}</p>`;
@@ -714,7 +714,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
         html += `<hr id="hr-ticket"><p id="texto-ticket-modal">${escapeHtml(it.nombre)} </p><span class="linea"></span><p id="texto-ticket-modal">${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
       });
       html += `<hr id="hr-ticket"><p id="texto-ticket-modal"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket-modal">Pago en: ${escapeHtml(mov.tipo)}</p>`;
-      html += `<div style="margin-top:10px"><button id="__print_copy">Imprimir Copia</button><button id="__close_mov">Cerrar</button></div>`;
+      html += `<div style="margin-top:10px"><button id="__print_copy">📃​Imprimir</button><button id="__close_mov">❌Cancelar</button></div>`;
       mostrarModal(html);
       document.getElementById("__close_mov").onclick = cerrarModal;
       document.getElementById("__print_copy").onclick = () => imprimirTicketMov(mov);
@@ -786,12 +786,12 @@ if (btnTirarZ) {
   btnTirarZ.addEventListener("click", async () => {
     // Abrir modal para pedir pass admin
     mostrarModal(`
-      <h3>Confirmar Tirar Z</h3>
-      <p>Contraseña de Encargado:</p>
+      <h3>Confirme: Tirar Z</h3>
+      <p>Contraseña de Encargado: ¡No se podrá cancelar después de imprimir!</p>
       <input id="z-pass" type="password" style="width:100%; margin:10px 0; padding:6px">
       <div style="text-align:right">
-        <button id="z-cancel">Cancelar</button>
-        <button id="z-ok">Aceptar</button>
+        <button id="z-cancel">❌Cancelar</button>
+        <button id="z-ok">✅Aceptar</button>
       </div>
     `);
 
@@ -803,21 +803,21 @@ if (btnTirarZ) {
       const adminPass = config.passAdmin || "0123456789"; // por defecto
 
       if (inputPass !== adminPass) {
-        alert("Contraseña incorrecta");
+        alert("❌Contraseña incorrecta❌");
         return;
       }
       cerrarModal();
 
       // === Tirar Z real ===
       const snap = await window.get(window.ref(window.db, "movimientos"));
-      if (!snap.exists()) return alert("No hay movimientos para tirar Z");
+      if (!snap.exists()) return alert("❌No hay movimientos para tirar Z❌");
       const allMovArr = Object.values(snap.val());
       const cajSel = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
 
       let data = allMovArr;
       if (cajSel !== "TODOS") {
         data = allMovArr.filter(m => (m.cajero || "") === cajSel);
-        if (data.length === 0) return alert(`No hay movimientos para el cajero ${cajSel}`);
+        if (data.length === 0) return alert(`❌No hay movimientos para el cajero ${cajSel}❌`);
       }
 
       // group by cajero y tipo
@@ -890,7 +890,7 @@ if (btnTirarZ) {
           items: resumenZItems
         });
       } catch (err) {
-        console.error("Error guardando Z en historial:", err);
+        console.error("⛔Error guardando Z en historial:", err);
       }
 
       // Borrar movimientos
@@ -904,7 +904,7 @@ if (btnTirarZ) {
         await window.update(window.ref(window.db, "movimientos"), updates);
       }
 
-      alert(`Tirar Z completado para ${cajSel}`);
+      alert(`✔️Tirar Z completado para ${cajSel}✔️`);
     };
   });
 }
@@ -931,13 +931,13 @@ if (btnGuardarConfig) {
     const actual = (inputConfigPassActual.value || "").trim();
     const nueva = (inputConfigPassNueva.value || "").trim();
 
-    if (!actual || !nueva) return alert("Complete los campos");
+    if (!actual || !nueva) return alert("⛔Complete los campos⛔");
 
     const snap = await window.get(window.ref(window.db, "config"));
-    if (!snap.exists()) return alert("Error de lectura");
+    if (!snap.exists()) return alert("❌Error de lectura❌");
 
     const conf = snap.val();
-    if (actual !== conf.passAdmin) return alert("Contraseña actual incorrecta");
+    if (actual !== conf.passAdmin) return alert("❌Contraseña actual incorrecta❌");
 
     if (nueva.length < 4 || nueva.length > 10) {
       return alert("La nueva contraseña debe tener entre 4 y 10 caracteres");
@@ -949,7 +949,7 @@ if (btnGuardarConfig) {
 
     await window.update(window.ref(window.db, "config"), updateData);
 
-    if (configMsg) configMsg.textContent = "Configuración guardada ✅";
+    if (configMsg) configMsg.textContent = "Guardado con éxito ✅";
 
     inputConfigPassActual.value = "";
     inputConfigPassNueva.value = "";
@@ -961,7 +961,7 @@ btnRestaurar.onclick = async () => {
     await window.update(window.ref(window.db, "config"), { passAdmin: "0123456789" });
     configMsg.textContent = "Contraseña restaurada a 0123456789";
   } else {
-    configMsg.textContent = "Contraseña maestra incorrecta";
+    configMsg.textContent = "Contraseña administrativa incorrecta";
   }
 };
 
@@ -1112,7 +1112,7 @@ function cargarHistorial() {
         <td>${escapeHtml(mov.cajero || "")}</td>
         <td>${formatFechaParaHeader(mov.fecha)}</td>
         <td>
-          <button class="btn-ver-hist" data-id="${mov.id}">Ver</button>
+          <button class="btn-ver-hist" data-id="${mov.id}">📃</button>
         </td>
       `;
       tablaHistorialBody.appendChild(tr);
@@ -1261,8 +1261,8 @@ function mostrarModalOffline() {
   overlay.innerHTML = `
     <div class="modal-container">
       <div class="modal">
-        <h3>¡Te quedaste sin internet!</h3>
-        <p>Para continuar, conectáte a internet o comunicate al <b>3794 576062</b></p>
+        <h3>⛔​¡Te quedaste sin internet!⛔​</h3>
+        <p>Para continuar, conectáte a internet o comunicate al 📲 <b>3794 576062</b></p>
       </div>
     </div>
   `;
