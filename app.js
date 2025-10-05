@@ -876,15 +876,21 @@ if (btnTirarZ) {
   });
 }
 
-  // -----------------------
-  // CONFIG
-  // -----------------------
-  window.onValue(window.ref(window.db, "config"), snap => {
-    if (!snap.exists()) return;
-    const conf = snap.val();
-    configCache = conf;
-    if (inputConfigNombre) inputConfigNombre.value = conf.shopName || "";
-  });
+// -----------------------
+// CONFIG
+// -----------------------
+window.onValue(window.ref(window.db, "config"), snap => {
+  if (!snap.exists()) return;
+  const conf = snap.val();
+  configCache = conf;
+
+  if (inputConfigNombre) inputConfigNombre.value = conf.shopName || "";
+
+  const appTitle = document.getElementById("app-title");
+  if (appTitle) {
+    appTitle.textContent = conf.shopName || "ZONAPC";
+  }
+});
 
 if (btnGuardarConfig) {
   btnGuardarConfig.addEventListener("click", async () => {
@@ -916,7 +922,6 @@ if (btnGuardarConfig) {
     inputConfigPassNueva.value = "";
   });
 }
-
 btnRestaurar.onclick = async () => {
   const v = (inputMasterPass.value || "").trim();
   if (v === "9999") {
