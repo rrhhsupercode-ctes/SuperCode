@@ -58,7 +58,7 @@
         <option value="TODOS">TODOS</option>
       </select>
       
-      <button id="btn-tirar-z">Tirar Z</button><p>⚠️ADVERTENCIA: Tirar Z no puede revertirse⚠️</p>
+      <button id="btn-tirar-z">Tirar Z</button><p class="emoji">⚠️</p>ADVERTENCIA: Tirar Z no puede revertirse<p class="emoji">⚠️</p>
       <table id="tabla-movimientos">
         <thead>
           <tr>
@@ -102,10 +102,10 @@
     <!-- CAJEROS -->
     <section id="cajeros" class="hidden">
       <h2>Cajeros</h2>
-      👥<select id="cajero-nro"></select>
-      🔠<input id="cajero-nombre" placeholder="Nombre">
-      🔢<input id="cajero-dni" placeholder="DNI">
-      🔣<input id="cajero-pass" type="password" placeholder="Contraseña">
+      <p class="emoji">👥</p><select id="cajero-nro"></select>
+      <p class="emoji">🔠</p><input id="cajero-nombre" placeholder="Nombre">
+      <p class="emoji">🔢</p><input id="cajero-dni" placeholder="DNI">
+      <p class="emoji">🔣</p><input id="cajero-pass" type="password" placeholder="Contraseña">
       <button id="agregar-cajero">➕Agregar Cajero(a)➕</button>
       <table id="tabla-cajeros">
         <thead>
@@ -121,7 +121,7 @@
     <section id="config" class="hidden">
       <h2>Configuración</h2>
       
-      <p>🏪</p><input id="config-nombre" placeholder="Nombre de Tienda"><p>🏪</p>
+      <p class="emoji">🏪</p><input id="config-nombre" placeholder="Nombre de Tienda"><p class="emoji">🏪</p>
       
       <div id="admin-pass-config">
         <input id="config-pass-actual" type="password" placeholder="Contraseña actual">
