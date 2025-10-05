@@ -313,7 +313,7 @@ tbody tr:nth-child(even) {
 
 .emoji {
   display: inline-block;
-  font-size: 32px;
+  font-size: 24px;
   margin: 0 0.5rem 0 0; /* ajusta separación si hace falta */
   vertical-align: middle;
 }
