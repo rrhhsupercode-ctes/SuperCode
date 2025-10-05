@@ -1201,7 +1201,7 @@ cargarHistorial();
  *****************************************************/
 function imprimirCorteZ(mov) {
   if (!mov || mov.tipo !== "TIRAR Z") {
-    alert("No hay datos válidos para imprimir el corte Z.");
+    alert("No hay datos válidos para imprimir Z");
     return;
   }
 
@@ -1210,8 +1210,8 @@ function imprimirCorteZ(mov) {
   const grandTotal = mov.total || 0;
 
   let html = `
-    <h2 style="text-align:center">${mov.shopName || "SUPERCODE"}</h2>
-    <h3 style="text-align:center">CORTE Z</h3>
+    <h2 style="text-align:center">${mov.shopName || "ZONAPC"}</h2>
+    <h3 style="text-align:center">REIMPRESIÓN Z</h3>
     <p style="text-align:center">${fecha}</p>
     <hr>
   `;
@@ -1237,8 +1237,8 @@ function imprimirCorteZ(mov) {
       <tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr>
       <tr><td></td><td></td><td></td></tr>
     </table>
-    <p style="text-align:center; margin-top:20px">Reimpresión de Corte Z</p>
-    <p style="text-align:center">Gracias por usar SUPERCODE</p>
+    <p style="text-align:center; margin-top:20px">Reimpresión de Z</p>
+    <p style="text-align:center">Gracias por usar ZONAPC</p>
   `;
 
   // Crear e imprimir el área de contenido
