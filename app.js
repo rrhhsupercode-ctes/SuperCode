@@ -652,7 +652,7 @@ function editarStockModal(codigo) {
         <td>${formatoPrecioParaPantalla(mov.total)}</td>
         <td>${escapeHtml(mov.tipo)}</td>
         <td>
-          <button class="btn-ver-mov" data-id="${mov.id}">📃</button>
+          <button class="btn-ver-mov" data-id="${mov.id}">🧾</button>
           <button class="btn-del-mov" data-id="${mov.id}">❌</button>
         </td>
       `;
