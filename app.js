@@ -721,22 +721,24 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
     })();
   }
 
-// Print ticket with pagination
 function imprimirTicketMov(mov) {
   const itemsPerPage = 9999;
   const items = mov.items || [];
   const totalParts = Math.max(1, Math.ceil(items.length / itemsPerPage));
   const printAreas = [];
 
-  // 🔥 Obtener nombre del comercio desde configCache o usar "ZONAPC"
-  const shopName = (window.configCache && window.configCache.shopName) 
-    ? window.configCache.shopName.toUpperCase()
-    : "ZONAPC";
+  // 🔥 Forzar lectura del nombre de la tienda en el momento de imprimir
+  let shopName = "ZONAPC"; // valor por defecto
+  try {
+    if (window.configCache && window.configCache.shopName) {
+      shopName = window.configCache.shopName.toUpperCase();
+    }
+  } catch (err) {
+    console.warn("No se pudo leer configCache, usando ZONAPC", err);
+  }
 
   for (let p = 0; p < totalParts; p++) {
     const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
-
-    // 👇 Se reemplaza el texto fijo "WWW.SUPERCODE.COM.AR" por el nombre de la tienda
     const header = `
       <div style="text-align:center">
         <p id="texto-ticket">
@@ -772,7 +774,6 @@ function imprimirTicketMov(mov) {
     printAreas.push(area);
   }
 
-  // append, print, remove
   printAreas.forEach(a => document.body.appendChild(a));
   window.print();
   printAreas.forEach(a => document.body.removeChild(a));
