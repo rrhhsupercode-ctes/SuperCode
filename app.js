@@ -1159,7 +1159,7 @@ function cargarHistorial() {
 cargarHistorial();
 
 /*****************************************************
- * Imprimir Corte Z (desde historial) — versión completa
+ * Imprimir Corte Z (desde historial) — versión final idéntica al original
  *****************************************************/
 function imprimirCorteZ(mov) {
   if (!mov || mov.tipo !== "TIRAR Z") {
@@ -1168,11 +1168,16 @@ function imprimirCorteZ(mov) {
   }
 
   const fecha = new Date(mov.fecha || new Date()).toLocaleString();
-  const cajSel = mov.cajero || "TODOS";
   const resumenZItems = mov.items || [];
   const grandTotal = mov.total || 0;
 
-  let html = `<h2>Reporte Z - ${fecha}</h2>`;
+  let html = `
+    <h2 style="text-align:center">${mov.shopName || "SUPERCODE"}</h2>
+    <h3 style="text-align:center">CORTE Z</h3>
+    <p style="text-align:center">${fecha}</p>
+    <hr>
+  `;
+
   resumenZItems.forEach(item => {
     html += `<h3>Cajero: ${item.cajero}</h3><hr>`;
     html += `<h4>Efectivo</h4>`;
@@ -1182,15 +1187,21 @@ function imprimirCorteZ(mov) {
     html += `<p><b>Subtotal Cajero:</b> ${formatoPrecioParaPantalla(item.subtotal)}</p><hr>`;
   });
 
-  html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
-  html += `<br><table border="1" style="width:100%; margin-top:20px">
-              <tr><th>Efectivo Cobrado</th><th>Firma Cajero</th><th>Firma Encargado</th></tr>
-              <tr><td></td><td></td><td></td></tr>
-           </table>`;
-  html += `<br><table border="1" style="width:100%; margin-top:10px">
-              <tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr>
-              <tr><td></td><td></td><td></td></tr>
-           </table>`;
+  html += `
+    <h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>
+    <br>
+    <table border="1" style="width:100%; margin-top:20px">
+      <tr><th>Efectivo Cobrado</th><th>Firma Cajero</th><th>Firma Encargado</th></tr>
+      <tr><td></td><td></td><td></td></tr>
+    </table>
+    <br>
+    <table border="1" style="width:100%; margin-top:10px">
+      <tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr>
+      <tr><td></td><td></td><td></td></tr>
+    </table>
+    <p style="text-align:center; margin-top:20px">Reimpresión de Corte Z</p>
+    <p style="text-align:center">Gracias por usar SUPERCODE</p>
+  `;
 
   // Crear e imprimir el área de contenido
   const area = document.createElement("div");
