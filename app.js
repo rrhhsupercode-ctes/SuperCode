@@ -252,8 +252,11 @@ async function verificarPassAdmin(pass) {
       cajeroActivo = caj;
       loginModal.classList.add("hidden");
       cobroControles.classList.remove("hidden");
-      const appTitle = document.getElementById("app-title");
-      if (appTitle) appTitle.textContent = `SUPERCODE - Cajero ${cajeroActivo.nro}`;
+const appTitle = document.getElementById("app-title");
+if (appTitle) {
+  const nombreTienda = (configCache && configCache.shopName) ? configCache.shopName : "ZONAPC";
+  appTitle.textContent = `${nombreTienda} - Cajero ${cajeroActivo.nro}`;
+}
     });
   }
 
