@@ -718,33 +718,62 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
     })();
   }
 
-  // Print ticket with pagination
-  function imprimirTicketMov(mov) {
-    const itemsPerPage = 9999;
-    const items = mov.items || [];
-    const totalParts = Math.max(1, Math.ceil(items.length / itemsPerPage));
-    const printAreas = [];
+// Print ticket with pagination
+function imprimirTicketMov(mov) {
+  const itemsPerPage = 9999;
+  const items = mov.items || [];
+  const totalParts = Math.max(1, Math.ceil(items.length / itemsPerPage));
+  const printAreas = [];
 
-    for (let p = 0; p < totalParts; p++) {
-      const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
-      const header = `<div style="text-align:center"><p id="texto-ticket">WWW.SUPERCODE.COM.AR <br> ${mov.id} <br> Ticket - Cajero:${escapeHtml(mov.cajero)} <br> ${formatFechaParaHeader(mov.fecha)}</p></div>`;
-      let body = "";
-      slice.forEach(it => {
-        body += `<hr id="hr-ticket"><p id="texto-ticket">${escapeHtml(it.nombre)} <br> ${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
-      });
-      const footer = `<hr id="hr-ticket"><p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket">(Pago en: ${escapeHtml(mov.tipo)})</p>`;
-      const area = document.createElement("div");
-      area.className = "print-area";
-      area.style.width = "5cm";
-      area.innerHTML = header + body + footer;
-      printAreas.push(area);
-    }
+  // 🔥 Obtener nombre del comercio desde configCache o usar "ZONAPC"
+  const shopName = (window.configCache && window.configCache.shopName) 
+    ? window.configCache.shopName.toUpperCase()
+    : "ZONAPC";
 
-    // append, print, remove
-    printAreas.forEach(a => document.body.appendChild(a));
-    window.print();
-    printAreas.forEach(a => document.body.removeChild(a));
+  for (let p = 0; p < totalParts; p++) {
+    const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
+
+    // 👇 Se reemplaza el texto fijo "WWW.SUPERCODE.COM.AR" por el nombre de la tienda
+    const header = `
+      <div style="text-align:center">
+        <p id="texto-ticket">
+          ${escapeHtml(shopName)} <br>
+          ${mov.id} <br>
+          Ticket - Cajero: ${escapeHtml(mov.cajero)} <br>
+          ${formatFechaParaHeader(mov.fecha)}
+        </p>
+      </div>
+    `;
+
+    let body = "";
+    slice.forEach(it => {
+      body += `
+        <hr id="hr-ticket">
+        <p id="texto-ticket">
+          ${escapeHtml(it.nombre)} <br>
+          ${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}
+        </p>
+      `;
+    });
+
+    const footer = `
+      <hr id="hr-ticket">
+      <p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p>
+      <p id="texto-ticket">(Pago en: ${escapeHtml(mov.tipo)})</p>
+    `;
+
+    const area = document.createElement("div");
+    area.className = "print-area";
+    area.style.width = "5cm";
+    area.innerHTML = header + body + footer;
+    printAreas.push(area);
   }
+
+  // append, print, remove
+  printAreas.forEach(a => document.body.appendChild(a));
+  window.print();
+  printAreas.forEach(a => document.body.removeChild(a));
+}
 
  // -----------------------
 // TIRAR Z (por cajero o TODOS)
