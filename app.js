@@ -1265,55 +1265,18 @@ function mostrarModalOffline() {
     </div>
   `;
 
-  overlay.classList.remove("hidden");
-
-  // Bloquear interacción y centrar usando flex
-  Object.assign(overlay.style, {
-    position: "fixed",
-    inset: "0", // top:0; right:0; bottom:0; left:0;
-    background: "rgba(0, 0, 0, 0.75)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: "999999",
-    pointerEvents: "all",
-    cursor: "not-allowed"
-  });
-
-  const modal = overlay.querySelector(".modal-offline");
-  Object.assign(modal.style, {
-    background: "#fff",
-    padding: "25px 30px",
-    borderRadius: "12px",
-    boxShadow: "0 4px 25px rgba(0,0,0,0.5)",
-    textAlign: "center",
-    maxWidth: "400px",
-    width: "90%",
-    fontFamily: "Arial, sans-serif",
-    animation: "fadeIn 0.3s ease"
-  });
-
-  const h3 = modal.querySelector("h3");
-  h3.style.color = "#d63031";
-  h3.style.marginBottom = "12px";
-
-  const p = modal.querySelector("p");
-  p.style.fontSize = "15px";
-  p.style.lineHeight = "1.4";
-  p.style.color = "#2d3436";
+  overlay.classList.remove("hidden"); // muestra el modal
 }
 
 function cerrarModalOffline() {
   const overlay = document.getElementById("modal-overlay");
-  overlay.classList.add("hidden");
-  overlay.innerHTML = ""; // limpiar contenido
-  overlay.removeAttribute("style"); // limpiar estilos inline
+  overlay.classList.add("hidden");    // oculta el modal
+  overlay.innerHTML = "";             // limpia el contenido
 }
 
 // Detectar cambios de conexión
 window.addEventListener("offline", mostrarModalOffline);
 window.addEventListener("online", cerrarModalOffline);
-
 
   // -----------------------
   // Final
