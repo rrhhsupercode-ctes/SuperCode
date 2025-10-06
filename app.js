@@ -61,6 +61,7 @@
   // Navigation
   const navBtns = document.querySelectorAll(".nav-btn");
   const sections = document.querySelectorAll("main section");
+  const btnBuscarStock = document.getElementById("buscar-stock");
 
   // -----------------------
   // Estado local
