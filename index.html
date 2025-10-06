@@ -27,30 +27,39 @@
 
   <main>
     <!-- COBRAR -->
-    <section id="cobro">
-      <div id="login-modal">
-        <h2>👥Cajero(a)👥</h2>
-        <select id="login-usuario"></select>
-        <input id="login-pass" type="password" placeholder="Contraseña">
-        <button id="btn-login">🔑Ingresar🔑</button>
-        <p id="login-msg" class="msg-error"></p>
-      </div>
+<section id="cobro">
+  <div id="login-modal">
+    <h2>👥Cajero(a)👥</h2>
+    <select id="login-usuario"></select>
+    <input id="login-pass" type="password" placeholder="Contraseña">
+    <button id="btn-login">🔑Ingresar🔑</button>
+    <p id="login-msg" class="msg-error"></p>
+  </div>
 
-      <div id="cobro-controles" class="hidden">
-        <select id="cobro-cantidad"></select>
-        <input id="cobro-codigo" placeholder="Código producto">
-        <table id="tabla-cobro">
-          <thead>
-            <tr>
-              <th>Cant</th><th>Producto</th><th>Precio Unidad</th><th>Total</th><th>Acción</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <div id="total-div">TOTAL: $0</div>
-        <button id="btn-cobrar" class="hidden">Cobrar</button>
-      </div>
-    </section>
+  <div id="cobro-controles" class="hidden">
+    <select id="cobro-cantidad"></select>
+    
+    <!-- Nuevo select de productos y botón OK -->
+    <div style="display:flex; gap:5px; align-items:center; margin-bottom:5px;">
+      <input id="cobro-codigo" placeholder="Código producto" style="flex:1;">
+      <select id="cobro-productos" style="flex:2;">
+        <option value="">Elija un Item</option>
+      </select>
+      <button id="btn-add-product">OK</button>
+    </div>
+
+    <table id="tabla-cobro">
+      <thead>
+        <tr>
+          <th>Cant</th><th>Producto</th><th>Precio Unidad</th><th>Total</th><th>Acción</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="total-div">TOTAL: $0</div>
+    <button id="btn-cobrar" class="hidden">Cobrar</button>
+  </div>
+</section>
 
     <!-- MOVIMIENTOS -->
     <section id="movimientos" class="hidden">
