@@ -229,187 +229,149 @@ async function verificarPassAdmin(pass) {
   })();
 
   // -----------------------
-  // COBRAR (login + cart)
-  // -----------------------
-  if (btnLogin) {
-    btnLogin.addEventListener("click", async () => {
-      const nro = (loginUsuario.value || "").trim();
-      const pass = (loginPass.value || "").trim();
-      loginMsg.textContent = "";
-      if (!nro || !pass) {
-        loginMsg.textContent = "Complete usuario y contraseña";
-        return;
-      }
-      const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
-      if (!snap.exists()) {
-        loginMsg.textContent = "Cajero no encontrado";
-        return;
-      }
-      const caj = snap.val();
-      if (caj.pass !== pass) {
-        loginMsg.textContent = "Contraseña incorrecta";
-        return;
-      }
-      cajeroActivo = caj;
-      loginModal.classList.add("hidden");
-      cobroControles.classList.remove("hidden");
-const appTitle = document.getElementById("app-title");
-if (appTitle) {
-  const nombreTienda = (configCache && configCache.shopName) ? configCache.shopName : "ZONAPC";
-  appTitle.textContent = `${nombreTienda} - Cajero ${cajeroActivo.nro}`;
+// COBRAR (login + cart)
+// -----------------------
+
+// Referencias nuevas
+const cobroProductosSelect = document.getElementById("cobro-productos");
+const btnAddProduct = document.getElementById("btn-add-product");
+
+if (btnLogin) {
+  btnLogin.addEventListener("click", async () => {
+    const nro = (loginUsuario.value || "").trim();
+    const pass = (loginPass.value || "").trim();
+    loginMsg.textContent = "";
+    if (!nro || !pass) {
+      loginMsg.textContent = "Complete usuario y contraseña";
+      return;
+    }
+    const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
+    if (!snap.exists()) {
+      loginMsg.textContent = "Cajero no encontrado";
+      return;
+    }
+    const caj = snap.val();
+    if (caj.pass !== pass) {
+      loginMsg.textContent = "Contraseña incorrecta";
+      return;
+    }
+    cajeroActivo = caj;
+    loginModal.classList.add("hidden");
+    cobroControles.classList.remove("hidden");
+    const appTitle = document.getElementById("app-title");
+    if (appTitle) {
+      const nombreTienda = (configCache && configCache.shopName) ? configCache.shopName : "ZONAPC";
+      appTitle.textContent = `${nombreTienda} - Cajero ${cajeroActivo.nro}`;
+    }
+  });
 }
+
+// Función para agregar producto al carrito
+async function agregarProductoCarrito(codigo) {
+  codigo = (codigo || "").trim();
+  const cantidad = safeNumber(cobroCantidadSelect.value);
+  if (!codigo) return;
+  const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
+  if (!snap.exists()) {
+    alert("Producto no encontrado en stock");
+    return;
+  }
+  const prod = snap.val();
+  const precioNumber = (typeof prod.precio === "number") ? prod.precio : Number(String(prod.precio).replace(",", "."));
+  if (Number(prod.cantidad) < cantidad) {
+    alert("Stock insuficiente");
+    return;
+  }
+
+  // Si ya está en carrito, sumar cantidades
+  const idx = carrito.findIndex(it => it.codigo === codigo);
+  if (idx >= 0) {
+    carrito[idx].cantidad += cantidad;
+  } else {
+    carrito.push({
+      codigo,
+      nombre: prod.nombre,
+      precio: Number(precioNumber) || 0,
+      cantidad
     });
   }
 
-  if (cobroCodigo) {
-    cobroCodigo.addEventListener("keydown", async (e) => {
-      if (e.key !== "Enter") return;
-      const codigo = (cobroCodigo.value || "").trim();
-      const cantidad = safeNumber(cobroCantidadSelect.value);
-      if (!codigo) return;
-      const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
-      if (!snap.exists()) {
-        alert("Producto no encontrado en stock");
-        cobroCodigo.value = "";
-        return;
-      }
-      const prod = snap.val();
-      // normalize price to number
-      const precioNumber = (typeof prod.precio === "number") ? prod.precio : Number(String(prod.precio).replace(",", "."));
-      if (Number(prod.cantidad) < cantidad) {
-        alert("Stock insuficiente");
-        return;
-      }
+  // Actualizar stock en DB
+  await window.update(window.ref(window.db, `stock/${codigo}`), { cantidad: Math.max(0, Number(prod.cantidad) - cantidad) });
+  renderCarrito();
+}
 
-      // If product already in carrito, sum quantities
-      const idx = carrito.findIndex(it => it.codigo === codigo);
-      if (idx >= 0) {
-        carrito[idx].cantidad += cantidad;
-      } else {
-        carrito.push({
-          codigo,
-          nombre: prod.nombre,
-          precio: Number(precioNumber) || 0,
-          cantidad
-        });
-      }
+// Enter en input de código
+if (cobroCodigo) {
+  cobroCodigo.addEventListener("keydown", async (e) => {
+    if (e.key !== "Enter") return;
+    await agregarProductoCarrito(cobroCodigo.value);
+    cobroCodigo.value = "";
+  });
+}
 
-      // update stock quantity in DB
-      await window.update(window.ref(window.db, `stock/${codigo}`), { cantidad: Math.max(0, Number(prod.cantidad) - cantidad) });
+// Click en botón OK (usa select o input)
+if (btnAddProduct) {
+  btnAddProduct.addEventListener("click", async () => {
+    let codigo = cobroProductosSelect.value;
+    if (!codigo) codigo = cobroCodigo.value;
+    if (!codigo) return alert("Seleccione un producto o ingrese un código");
+    await agregarProductoCarrito(codigo);
+    cobroCodigo.value = "";
+    cobroProductosSelect.value = "";
+  });
+}
 
-      renderCarrito();
-      cobroCodigo.value = "";
-    });
-  }
+// Render del carrito
+function renderCarrito() {
+  if (!tablaCobroBody) return;
+  tablaCobroBody.innerHTML = "";
+  total = 0;
+  carrito.forEach((it, i) => {
+    const tr = document.createElement("tr");
+    const rowTotal = Number(it.precio) * Number(it.cantidad);
+    total += rowTotal;
+    tr.innerHTML = `
+      <td>${it.cantidad}</td>
+      <td>${escapeHtml(it.nombre)}</td>
+      <td>${formatoPrecioParaPantalla(it.precio)}</td>
+      <td>${formatoPrecioParaPantalla(rowTotal)}</td>
+      <td><button class="btn-delete-cart" data-i="${i}">Eliminar</button></td>
+    `;
+    tablaCobroBody.appendChild(tr);
+  });
+  if (totalDiv) totalDiv.textContent = `TOTAL: ${formatoPrecioParaPantalla(total)}`;
+  if (btnCobrar) btnCobrar.classList.toggle("hidden", carrito.length === 0);
 
-  function renderCarrito() {
-    if (!tablaCobroBody) return;
-    tablaCobroBody.innerHTML = "";
-    total = 0;
-    carrito.forEach((it, i) => {
-      const tr = document.createElement("tr");
-      const rowTotal = Number(it.precio) * Number(it.cantidad);
-      total += rowTotal;
-      tr.innerHTML = `
-        <td>${it.cantidad}</td>
-        <td>${escapeHtml(it.nombre)}</td>
-        <td>${formatoPrecioParaPantalla(it.precio)}</td>
-        <td>${formatoPrecioParaPantalla(rowTotal)}</td>
-        <td><button class="btn-delete-cart" data-i="${i}">Eliminar</button></td>
-      `;
-      tablaCobroBody.appendChild(tr);
-    });
-    if (totalDiv) totalDiv.textContent = `TOTAL: ${formatoPrecioParaPantalla(total)}`;
-    if (btnCobrar) btnCobrar.classList.toggle("hidden", carrito.length === 0);
-
-    // attach delete handlers (requires admin)
-    document.querySelectorAll(".btn-delete-cart").forEach(btn => {
-      btn.onclick = () => {
-        const i = Number(btn.dataset.i);
-        const it = carrito[i];
-        requireAdminConfirm(async () => {
-          // restore stock
-          const snap = await window.get(window.ref(window.db, `stock/${it.codigo}`));
-          if (snap.exists()) {
-            const prod = snap.val();
-            await window.update(window.ref(window.db, `stock/${it.codigo}`), { cantidad: Number(prod.cantidad) + Number(it.cantidad) });
-          }
-          carrito.splice(i, 1);
-          renderCarrito();
-        });
-      };
-    });
-  }
-
-  if (btnCobrar) {
-    btnCobrar.addEventListener("click", () => {
-      if (!cajeroActivo) return alert("Ingrese con un cajero primero");
-      if (carrito.length === 0) return;
-      mostrarModal(`
-        <h3>¿Efectivo o Tarjeta?</h3>
-        <div style="margin-top:10px">
-          <button id="__pay_cash">💵Efectivo</button>
-          <button id="__pay_card">💳Tarjeta</button>
-          <button id="__pay_cancel">❌Cancelar</button>
-        </div>
-      `);
-      document.getElementById("__pay_cancel").onclick = cerrarModal;
-      document.getElementById("__pay_cash").onclick = () => finalizarCobro("Efectivo");
-      document.getElementById("__pay_card").onclick = () => finalizarCobro("Tarjeta");
-    });
-  }
-
-  // Generador de número de ticket secuencial diario
-  function generarNumeroTicket() {
-    const hoy = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
-    const ultimaFecha = localStorage.getItem("ticket_fecha");
-    let contador = parseInt(localStorage.getItem("ticket_contador") || "0", 10);
-
-    // Reinicia contador si cambió la fecha
-    if (ultimaFecha !== hoy) {
-      contador = 0;
-      localStorage.setItem("ticket_fecha", hoy);
-    }
-
-    // Sumar 1 al contador
-    contador++;
-    localStorage.setItem("ticket_contador", contador);
-
-    // Devuelve el ID con 6 dígitos
-    return "ID_" + String(contador).padStart(6, "0");
-  }
-
-  async function finalizarCobro(tipoPago) {
-    cerrarModal();
-    const movId = generarNumeroTicket(); // ✅ ahora usa el secuencial
-    const mov = {
-      id: movId,
-      cajero: cajeroActivo ? (cajeroActivo.nro || cajeroActivo.nombre) : "N/A",
-      total,
-      tipo: tipoPago,
-      fecha: ahoraISO(),
-      items: carrito.map(it => ({ codigo: it.codigo, nombre: it.nombre, precio: it.precio, cantidad: it.cantidad }))
+  // Attach delete handlers (requires admin)
+  document.querySelectorAll(".btn-delete-cart").forEach(btn => {
+    btn.onclick = () => {
+      const i = Number(btn.dataset.i);
+      const it = carrito[i];
+      requireAdminConfirm(async () => {
+        const snap = await window.get(window.ref(window.db, `stock/${it.codigo}`));
+        if (snap.exists()) {
+          const prod = snap.val();
+          await window.update(window.ref(window.db, `stock/${it.codigo}`), { cantidad: Number(prod.cantidad) + Number(it.cantidad) });
+        }
+        carrito.splice(i, 1);
+        renderCarrito();
+      });
     };
+  });
+}
 
-    // Guardar en movimientos
-    await window.set(window.ref(window.db, `movimientos/${movId}`), mov);
-
-    // --- NUEVO: Guardar copia en HISTORIAL por año-mes ---
-    try {
-      const fechaMov = mov.fecha ? new Date(mov.fecha) : new Date();
-      const año = fechaMov.getFullYear();
-      const mes = String(fechaMov.getMonth() + 1).padStart(2, "0");
-      await window.set(window.ref(window.db, `historial/${año}-${mes}/${movId}`), mov);
-    } catch (err) {
-      console.error("❌Error guardando en historial:", err);
-    }
-    // --- fin historial ---
-
-    imprimirTicketMov(mov);
-    carrito = [];
-    renderCarrito();
-    alert("✅Venta finalizada");
-  }
+// Actualizar select de productos en tiempo real
+if (cobroProductosSelect) {
+  window.onValue(window.ref(window.db, "stock"), snap => {
+    if (!snap.exists()) return;
+    const data = snap.val();
+    cobroProductosSelect.innerHTML = '<option value="">Elija un Item</option>';
+    Object.entries(data).forEach(([codigo, prod]) => {
+      cobroProductosSelect.innerHTML += `<option value="${codigo}">${escapeHtml(prod.nombre || codigo)}</option>`;
+    });
+  });
+}
 
 // -----------------------
 // STOCK
