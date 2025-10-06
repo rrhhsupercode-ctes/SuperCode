@@ -1253,46 +1253,59 @@ function imprimirCorteZ(mov) {
 }
 
 /*****************************************************
- * Modal de pérdida de conexión
+ * Modal de pérdida de conexión (bloquea la app)
  *****************************************************/
 function mostrarModalOffline() {
   const overlay = document.getElementById("modal-overlay");
 
   overlay.innerHTML = `
-    <div class="modal-container">
-      <div class="modal">
-        <h3>⛔​¡Te quedaste sin internet!⛔​</h3>
-        <p>Para continuar, conectáte a internet o comunicate al 📲 <b>3794 576062</b></p>
-      </div>
+    <div class="modal-offline">
+      <h3>⛔ ¡Te quedaste sin internet! ⛔</h3>
+      <p>Para continuar, conectáte a internet o comunicate al 📲 <b>3794 576062</b></p>
     </div>
   `;
 
   overlay.classList.remove("hidden");
 
-  // Aseguramos estilos para centrar
+  // Bloquear interacción y centrar
   Object.assign(overlay.style, {
     position: "fixed",
-    top: 0,
-    left: 0,
+    top: "0",
+    left: "0",
     width: "100%",
     height: "100%",
-    background: "rgba(0,0,0,0.6)",
+    background: "rgba(0, 0, 0, 0.75)", // Fondo más oscuro
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: 9999
+    zIndex: "9999",
+    pointerEvents: "all",  // bloquea clics debajo
+    cursor: "not-allowed"
   });
 
-  const modal = overlay.querySelector(".modal");
+  // Estilo del modal interno
+  const modal = overlay.querySelector(".modal-offline");
   Object.assign(modal.style, {
     background: "#fff",
-    padding: "20px",
-    borderRadius: "10px",
-    boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+    padding: "25px 30px",
+    borderRadius: "12px",
+    boxShadow: "0 4px 25px rgba(0,0,0,0.5)",
     textAlign: "center",
     maxWidth: "400px",
-    width: "90%"
+    width: "90%",
+    fontFamily: "Arial, sans-serif",
+    animation: "fadeIn 0.3s ease"
   });
+
+  // Texto más llamativo
+  const h3 = modal.querySelector("h3");
+  h3.style.color = "#d63031";
+  h3.style.marginBottom = "12px";
+
+  const p = modal.querySelector("p");
+  p.style.fontSize = "15px";
+  p.style.lineHeight = "1.4";
+  p.style.color = "#2d3436";
 }
 
 function cerrarModalOffline() {
@@ -1303,13 +1316,8 @@ function cerrarModalOffline() {
 }
 
 // Detectar cambios de conexión
-window.addEventListener("offline", () => {
-  mostrarModalOffline();
-});
-
-window.addEventListener("online", () => {
-  cerrarModalOffline();
-});
+window.addEventListener("offline", mostrarModalOffline);
+window.addEventListener("online", cerrarModalOffline);
 
   // -----------------------
   // Final
