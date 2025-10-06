@@ -1257,34 +1257,31 @@ function imprimirCorteZ(mov) {
  *****************************************************/
 function mostrarModalOffline() {
   const overlay = document.getElementById("modal-overlay");
+
   overlay.innerHTML = `
     <div class="modal-offline">
       <h3>⛔ ¡Te quedaste sin internet! ⛔</h3>
       <p>Para continuar, conectáte a internet o comunicate al 📲 <b>3794 576062</b></p>
     </div>
   `;
-  overlay.classList.remove("hidden");
-}
 
-  // Bloquear interacción y forzar centrado absoluto
+  overlay.classList.remove("hidden");
+
+  // Bloquear interacción y centrar usando flex
   Object.assign(overlay.style, {
     position: "fixed",
-    inset: "0", // reemplaza top/left/right/bottom
+    inset: "0", // top:0; right:0; bottom:0; left:0;
     background: "rgba(0, 0, 0, 0.75)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
     zIndex: "999999",
     pointerEvents: "all",
-    cursor: "not-allowed",
+    cursor: "not-allowed"
   });
 
   const modal = overlay.querySelector(".modal-offline");
   Object.assign(modal.style, {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
     background: "#fff",
     padding: "25px 30px",
     borderRadius: "12px",
@@ -1316,6 +1313,7 @@ function cerrarModalOffline() {
 // Detectar cambios de conexión
 window.addEventListener("offline", mostrarModalOffline);
 window.addEventListener("online", cerrarModalOffline);
+
 
   // -----------------------
   // Final
