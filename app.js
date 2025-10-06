@@ -410,7 +410,7 @@ if (appTitle) {
     alert("✅Venta finalizada");
   }
 
-  // -----------------------
+// -----------------------
 // STOCK
 // -----------------------
 window.onValue(window.ref(window.db, "stock"), snap => {
@@ -443,7 +443,7 @@ window.onValue(window.ref(window.db, "stock"), snap => {
     tablaStockBody.appendChild(tr);
   });
 
-  // Attach events
+  // Re-attach events a los botones
   document.querySelectorAll(".btn-del-stock").forEach(btn => {
     btn.onclick = () => {
       requireAdminConfirm(async () => {
@@ -456,6 +456,9 @@ window.onValue(window.ref(window.db, "stock"), snap => {
   });
 });
 
+// -----------------------
+// Agregar Stock
+// -----------------------
 if (btnAgregarStock) {
   btnAgregarStock.addEventListener("click", async () => {
     const codigo = (inputStockCodigo.value || "").trim();
@@ -481,6 +484,73 @@ if (btnAgregarStock) {
   });
 }
 
+// -----------------------
+// Buscar Stock por código o nombre
+// -----------------------
+if (btnBuscarStock) {
+  btnBuscarStock.addEventListener("click", async () => {
+    const query = (inputStockCodigo.value || "").trim().toLowerCase();
+    if (!query) {
+      alert("Ingrese código o nombre para buscar");
+      return;
+    }
+
+    const snap = await window.get(window.ref(window.db, "stock"));
+    if (!snap.exists()) {
+      alert("No hay productos cargados");
+      return;
+    }
+
+    const data = snap.val();
+
+    // Filtrar productos por código o nombre
+    const resultados = Object.entries(data).filter(([codigo, prod]) => {
+      return codigo.toLowerCase().includes(query) || (prod.nombre || "").toLowerCase().includes(query);
+    });
+
+    // Limpiar tabla y mostrar resultados
+    tablaStockBody.innerHTML = "";
+
+    if (resultados.length === 0) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="6">No se encontraron productos</td>`;
+      tablaStockBody.appendChild(tr);
+      return;
+    }
+
+    resultados.forEach(([codigo, prod]) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(codigo)}</td>
+        <td>${escapeHtml(prod.nombre || "")}</td>
+        <td>${Number(prod.cantidad) || 0}</td>
+        <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
+        <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
+        <td>
+          <button class="btn-edit-stock" data-id="${codigo}">✏️</button>
+          <button class="btn-del-stock" data-id="${codigo}">❌​</button>
+        </td>
+      `;
+      tablaStockBody.appendChild(tr);
+    });
+
+    // Re-attach events a los botones
+    document.querySelectorAll(".btn-del-stock").forEach(btn => {
+      btn.onclick = () => {
+        requireAdminConfirm(async () => {
+          await window.remove(window.ref(window.db, `stock/${btn.dataset.id}`));
+        });
+      };
+    });
+    document.querySelectorAll(".btn-edit-stock").forEach(btn => {
+      btn.onclick = () => requireAdminConfirm(() => editarStockModal(btn.dataset.id));
+    });
+  });
+}
+
+// -----------------------
+// Editar Stock
+// -----------------------
 function editarStockModal(codigo) {
   (async () => {
     const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
