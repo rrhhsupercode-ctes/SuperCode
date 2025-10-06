@@ -437,13 +437,13 @@ window.onValue(window.ref(window.db, "stock"), snap => {
       <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
       <td>
         <button class="btn-edit-stock" data-id="${codigo}">✏️</button>
-        <button class="btn-del-stock" data-id="${codigo}">❌​</button>
+        <button class="btn-del-stock" data-id="${codigo}">❌</button>
       </td>
     `;
     tablaStockBody.appendChild(tr);
   });
 
-  // Re-attach events a los botones
+  // Reasignar eventos a botones
   document.querySelectorAll(".btn-del-stock").forEach(btn => {
     btn.onclick = () => {
       requireAdminConfirm(async () => {
@@ -456,9 +456,7 @@ window.onValue(window.ref(window.db, "stock"), snap => {
   });
 });
 
-// -----------------------
-// Agregar Stock
-// -----------------------
+// === Botón AGREGAR STOCK ===
 if (btnAgregarStock) {
   btnAgregarStock.addEventListener("click", async () => {
     const codigo = (inputStockCodigo.value || "").trim();
@@ -484,40 +482,24 @@ if (btnAgregarStock) {
   });
 }
 
-// -----------------------
-// Buscar Stock por código o nombre
-// -----------------------
+// === Botón BUSCAR STOCK ===
 if (btnBuscarStock) {
   btnBuscarStock.addEventListener("click", async () => {
-    const query = (inputStockCodigo.value || "").trim().toLowerCase();
-    if (!query) {
-      alert("Ingrese código o nombre para buscar");
-      return;
-    }
+    const termino = (inputStockCodigo.value || "").trim().toLowerCase();
+    if (!termino) return alert("Ingrese código o nombre a buscar");
 
     const snap = await window.get(window.ref(window.db, "stock"));
-    if (!snap.exists()) {
-      alert("No hay productos cargados");
-      return;
-    }
+    if (!snap.exists()) return alert("No hay productos cargados");
 
     const data = snap.val();
-
-    // Filtrar productos por código o nombre
     const resultados = Object.entries(data).filter(([codigo, prod]) => {
-      return codigo.toLowerCase().includes(query) || (prod.nombre || "").toLowerCase().includes(query);
+      return codigo.toLowerCase().includes(termino) || (prod.nombre || "").toLowerCase().includes(termino);
     });
 
-    // Limpiar tabla y mostrar resultados
+    if (resultados.length === 0) return alert("No se encontraron productos");
+
+    // Limpiar tabla y mostrar solo resultados
     tablaStockBody.innerHTML = "";
-
-    if (resultados.length === 0) {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td colspan="6">No se encontraron productos</td>`;
-      tablaStockBody.appendChild(tr);
-      return;
-    }
-
     resultados.forEach(([codigo, prod]) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
@@ -528,13 +510,13 @@ if (btnBuscarStock) {
         <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
         <td>
           <button class="btn-edit-stock" data-id="${codigo}">✏️</button>
-          <button class="btn-del-stock" data-id="${codigo}">❌​</button>
+          <button class="btn-del-stock" data-id="${codigo}">❌</button>
         </td>
       `;
       tablaStockBody.appendChild(tr);
     });
 
-    // Re-attach events a los botones
+    // Reasignar eventos a botones dentro de los resultados
     document.querySelectorAll(".btn-del-stock").forEach(btn => {
       btn.onclick = () => {
         requireAdminConfirm(async () => {
@@ -548,9 +530,7 @@ if (btnBuscarStock) {
   });
 }
 
-// -----------------------
-// Editar Stock
-// -----------------------
+// === Función para editar producto ===
 function editarStockModal(codigo) {
   (async () => {
     const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
