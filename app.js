@@ -1257,15 +1257,14 @@ function imprimirCorteZ(mov) {
  *****************************************************/
 function mostrarModalOffline() {
   const overlay = document.getElementById("modal-overlay");
-
   overlay.innerHTML = `
     <div class="modal-offline">
       <h3>⛔ ¡Te quedaste sin internet! ⛔</h3>
       <p>Para continuar, conectáte a internet o comunicate al 📲 <b>3794 576062</b></p>
     </div>
   `;
-
   overlay.classList.remove("hidden");
+}
 
   // Bloquear interacción y forzar centrado absoluto
   Object.assign(overlay.style, {
