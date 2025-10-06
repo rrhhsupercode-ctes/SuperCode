@@ -1267,25 +1267,25 @@ function mostrarModalOffline() {
 
   overlay.classList.remove("hidden");
 
-  // Bloquear interacción y centrar
+  // Bloquear interacción y forzar centrado absoluto
   Object.assign(overlay.style, {
     position: "fixed",
-    top: "0",
-    left: "0",
-    width: "100%",
-    height: "100%",
-    background: "rgba(0, 0, 0, 0.75)", // Fondo más oscuro
+    inset: "0", // reemplaza top/left/right/bottom
+    background: "rgba(0, 0, 0, 0.75)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    zIndex: "9999",
-    pointerEvents: "all",  // bloquea clics debajo
-    cursor: "not-allowed"
+    zIndex: "999999",
+    pointerEvents: "all",
+    cursor: "not-allowed",
   });
 
-  // Estilo del modal interno
   const modal = overlay.querySelector(".modal-offline");
   Object.assign(modal.style, {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
     background: "#fff",
     padding: "25px 30px",
     borderRadius: "12px",
@@ -1297,7 +1297,6 @@ function mostrarModalOffline() {
     animation: "fadeIn 0.3s ease"
   });
 
-  // Texto más llamativo
   const h3 = modal.querySelector("h3");
   h3.style.color = "#d63031";
   h3.style.marginBottom = "12px";
