@@ -29,7 +29,6 @@
   const inputStockCodigo = document.getElementById("stock-codigo");
   const stockCantidadSelect = document.getElementById("stock-cantidad");
   const btnAgregarStock = document.getElementById("agregar-stock");
-  const btnBuscarStock = document.getElementById("buscar-stock");
   const tablaStockBody = document.querySelector("#tabla-stock tbody");
 
   // Cajeros
@@ -482,17 +481,6 @@ if (btnAgregarStock) {
   });
 }
 
-if (btnBuscarStock) {
-  btnBuscarStock.onclick = () => {
-    // Llama al buscador del navegador
-    // Esto funciona igual que Ctrl+F
-    window.focus();   // asegúrate que la ventana está activa
-    document.execCommand("findString", false, ""); // intenta abrir el buscador en algunos navegadores
-    // Nota: algunos navegadores no permiten programáticamente abrir Ctrl+F
-    alert("Usá Ctrl+F (o Cmd+F en Mac) para buscar dentro de la página."); 
-  };
-}
-  
 function editarStockModal(codigo) {
   (async () => {
     const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
