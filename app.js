@@ -109,17 +109,27 @@
     return Number.isFinite(n) ? n : 0;
   }
 
-  // Modal helpers (modalOverlay must exist)
+// Mostrar modales
 function mostrarModal(html) {
-    if (!modalOverlay) return alert("Modal no disponible");
-    modalOverlay.innerHTML = `<div class="modal">${html}</div>`; // envuelto en div.modal
-    modalOverlay.classList.remove("hidden");
+  if (!modalOverlay) return alert("Modal no disponible");
+
+  // Colocar contenido envuelto en .modal
+  modalOverlay.innerHTML = `<div class="modal">${html}</div>`;
+
+  // Forzar overlay como flex y centrar contenido
+  modalOverlay.classList.remove("hidden");
+  modalOverlay.style.display = "flex";
+  modalOverlay.style.justifyContent = "center";
+  modalOverlay.style.alignItems = "center";
 }
-  function cerrarModal() {
-    if (!modalOverlay) return;
-    modalOverlay.innerHTML = "";
-    modalOverlay.classList.add("hidden");
-  }
+
+// Cerrar modal
+function cerrarModal() {
+  if (!modalOverlay) return;
+  modalOverlay.innerHTML = "";
+  modalOverlay.classList.add("hidden");
+  modalOverlay.style.display = "none";
+}
 
   // verifica pass admin consultando config en DB
 async function verificarPassAdmin(pass) {
