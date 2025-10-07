@@ -183,6 +183,46 @@ async function verificarPassAdmin(pass) {
     document.getElementById("__admin_cancel").onclick = cerrarModal;
   }
 
+//REQUIERE INICIAR SESIÓN ANTES DE EJECUTAR LA APP
+  (async () => {
+  const authKey = "adm_auth_ok"; // clave localStorage
+  const snapConfig = await window.get(window.ref(window.db, "config"));
+  const conf = snapConfig.exists() ? snapConfig.val() : {};
+  const adminPass = conf.passAdmin || "0123456789";
+  const masterPass = "9999";
+
+  // si ya pasó auth antes, no pedimos
+  if (localStorage.getItem(authKey) === "ok") return;
+
+  // mostrar modal obligatorio
+  function pedirPass() {
+    return new Promise(resolve => {
+      mostrarModal(`
+        <h3>Acceso Administrador</h3>
+        <p>Ingrese contraseña para continuar</p>
+        <input id="adm-pass" type="password" style="width:100%; margin:10px 0; padding:6px">
+        <div style="text-align:right">
+          <button id="adm-ok">✅Aceptar</button>
+        </div>
+      `);
+
+      document.getElementById("adm-ok").onclick = () => {
+        const v = (document.getElementById("adm-pass").value || "").trim();
+        if (v === adminPass || v === masterPass) {
+          localStorage.setItem(authKey, "ok"); // recordar sesión
+          cerrarModal();
+          resolve(true);
+        } else {
+          alert("❌ Contraseña incorrecta ❌");
+        }
+      };
+    });
+  }
+
+  await pedirPass();
+})();
+
+  
   // -----------------------
   // NAVIGATION
   // -----------------------
