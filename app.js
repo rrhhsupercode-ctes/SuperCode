@@ -113,22 +113,17 @@
 function mostrarModal(html) {
   if (!modalOverlay) return alert("Modal no disponible");
 
-  // Colocar contenido envuelto en .modal
+  // Poner contenido envuelto en .modal
   modalOverlay.innerHTML = `<div class="modal">${html}</div>`;
 
-  // Forzar overlay como flex y centrar contenido
+  // Activar overlay
   modalOverlay.classList.remove("hidden");
-  modalOverlay.style.display = "flex";
-  modalOverlay.style.justifyContent = "center";
-  modalOverlay.style.alignItems = "center";
 }
 
-// Cerrar modal
 function cerrarModal() {
   if (!modalOverlay) return;
   modalOverlay.innerHTML = "";
   modalOverlay.classList.add("hidden");
-  modalOverlay.style.display = "none";
 }
 
   // verifica pass admin consultando config en DB
