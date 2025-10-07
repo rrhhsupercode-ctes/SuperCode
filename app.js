@@ -644,12 +644,14 @@ function editarStockModal(codigo) {
     });
   });
 
-  if (btnAgregarCajero) {
-    btnAgregarCajero.addEventListener("click", async () => {
+ if (btnAgregarCajero) {
+  btnAgregarCajero.addEventListener("click", () => {
+    requireAdminConfirm(async () => {
       const nro = (cajeroNroSelect.value || "").trim();
       const nombre = (inputCajeroNombre.value || "").trim();
       const dni = (inputCajeroDni.value || "").trim();
       const pass = (inputCajeroPass.value || "").trim();
+
       if (!nombre || !dni || !pass) {
         alert("Complete todos los campos");
         return;
@@ -658,12 +660,21 @@ function editarStockModal(codigo) {
         alert("DNI inválido (debe tener 8 dígitos numéricos)");
         return;
       }
-      await window.set(window.ref(window.db, `cajeros/${nro}`), { nro, nombre, dni, pass });
-      inputCajeroNombre.value = "";
-      inputCajeroDni.value = "";
-      inputCajeroPass.value = "";
+
+      try {
+        await window.set(window.ref(window.db, `cajeros/${nro}`), { nro, nombre, dni, pass });
+        cajerosCache[nro] = { nro, nombre, dni, pass }; // actualizar cache
+        renderCajeros(); // actualizar tabla
+        inputCajeroNombre.value = "";
+        inputCajeroDni.value = "";
+        inputCajeroPass.value = "";
+        alert("✔️ Cajero agregado ✔️");
+      } catch (err) {
+        alert("Error al agregar cajero: " + err);
+      }
     });
-  }
+  });
+}
 
   function editarCajeroModal(nro) {
     (async () => {
