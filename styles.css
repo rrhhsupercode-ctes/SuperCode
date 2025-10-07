@@ -139,7 +139,7 @@ tbody tr:nth-child(even) { background: #f9f9f9; }
   color: #d63031;
 }
 
-/* === MODALES + OVERLAY GLOBAL === */
+/* === OVERLAY GLOBAL PARA MODALES === */
 #modal-overlay {
   position: fixed;
   inset: 0;
@@ -154,7 +154,12 @@ tbody tr:nth-child(even) { background: #f9f9f9; }
   display: flex;
 }
 
-.modal {
+/* === MODALES UNIFORMES === */
+#login-modal,
+#cobro-controles,
+#stock-modal,
+#cajero-modal,
+#config-modal {
   position: relative;
   background: #fff;
   padding: 25px 30px;
@@ -164,25 +169,42 @@ tbody tr:nth-child(even) { background: #f9f9f9; }
   width: 90%;
   max-width: 400px;
   text-align: center;
-  font-family: Arial, Helvetica, sans-serif;
   animation: fadeInScale 0.3s ease forwards;
 }
 
-.modal.hidden { display: none; }
+.hidden {
+  display: none;
+}
 
-.modal h3 {
+#login-modal h2,
+#cobro-controles h2,
+#stock-modal h2,
+#cajero-modal h2,
+#config-modal h2 {
   margin-bottom: 15px;
   font-size: 18px;
   color: #2d3436;
 }
 
-.modal p {
-  font-size: 14px;
-  color: #555;
-  margin-bottom: 20px;
+#login-modal input,
+#cobro-controles input,
+#stock-modal input,
+#cajero-modal input,
+#config-modal input,
+#login-modal select,
+#cobro-controles select,
+#stock-modal select,
+#cajero-modal select,
+#config-modal select {
+  width: 100%;
+  margin-bottom: 10px;
 }
 
-.modal button {
+#login-modal button,
+#cobro-controles button,
+#stock-modal button,
+#cajero-modal button,
+#config-modal button {
   padding: 8px 14px;
   border-radius: 6px;
   border: none;
@@ -192,17 +214,23 @@ tbody tr:nth-child(even) { background: #f9f9f9; }
   transition: all 0.2s ease;
 }
 
-.modal button:hover { transform: scale(1.05); }
+#login-modal button:hover,
+#cobro-controles button:hover,
+#stock-modal button:hover,
+#cajero-modal button:hover,
+#config-modal button:hover {
+  transform: scale(1.05);
+}
 
 /* Botones uniformes para todos los modales */
-.modal .btn-exito { background: #00b894; color: #fff; }
-.modal .btn-exito:hover { background: #55efc4; }
+.btn-exito { background: #00b894; color: #fff; }
+.btn-exito:hover { background: #55efc4; }
 
-.modal .btn-error { background: #d63031; color: #fff; }
-.modal .btn-error:hover { background: #ff7675; }
+.btn-error { background: #d63031; color: #fff; }
+.btn-error:hover { background: #ff7675; }
 
-.modal .btn-alerta { background: #e17055; color: #fff; }
-.modal .btn-alerta:hover { background: #fab1a0; }
+.btn-alerta { background: #e17055; color: #fff; }
+.btn-alerta:hover { background: #fab1a0; }
 
 @keyframes fadeInScale {
   0% { opacity: 0; transform: scale(0.9); }
@@ -225,13 +253,9 @@ tbody tr:nth-child(even) { background: #f9f9f9; }
 
 /* === HISTORIAL === */
 #historial-info { font-size: 14px; margin-bottom: 10px; color: #636e72; }
-
 #tabla-historial th { background: #ffeaa7; }
-
 #hr-ticket { width: 4.8cm; border: none; border-top: 1px solid #000; margin: 6px auto; }
-
 #texto-ticket { font-size: 9px; text-align: center; margin: 2px 0; }
-
 #texto-ticket-modal { font-size: 15px; text-align: center; margin: 8px 0; }
 
 /*=== BOTONES PAGINADOR HISTORIAL ===*/
