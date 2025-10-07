@@ -1265,31 +1265,17 @@ function imprimirCorteZ(mov) {
   document.body.removeChild(area);
 }
 
-/*****************************************************
- * Modal de pérdida de conexión (bloquea la app)
- *****************************************************/
-function mostrarModalOffline() {
-  const overlay = document.getElementById("modal-overlay");
-
-  overlay.innerHTML = `
-    <div class="modal-offline">
-      <h3>⛔ ¡Te quedaste sin internet! ⛔</h3>
-      <p>Para continuar, conectáte a internet o comunicate al 📲 <b>3794 576062</b></p>
-    </div>
-  `;
-
-  overlay.classList.remove("hidden"); // muestra el modal
+// ==== SE PIERDE INTERNET ====
+function recargarPagina() {
+  location.reload();
 }
 
-function cerrarModalOffline() {
-  const overlay = document.getElementById("modal-overlay");
-  overlay.classList.add("hidden");    // oculta el modal
-  overlay.innerHTML = "";             // limpia el contenido
-}
+// Detectar pérdida de conexión
+window.addEventListener("offline", recargarPagina);
 
-// Detectar cambios de conexión
-window.addEventListener("offline", mostrarModalOffline);
-window.addEventListener("online", cerrarModalOffline);
+// Detectar regreso de conexión
+window.addEventListener("online", recargarPagina);
+
 
   // -----------------------
   // Final
