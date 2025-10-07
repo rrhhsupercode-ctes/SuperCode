@@ -7,7 +7,7 @@
 }
 
 body {
-  background: #f0f2f5; /* gris muy claro */
+  background: #f0f2f5;
   color: #2d3436;
   line-height: 1.5;
 }
@@ -98,50 +98,38 @@ button:hover {
   background: #00b894;
   color: #fff;
 }
-.btn-ver:hover {
-  background: #55efc4;
-}
+.btn-ver:hover { background: #55efc4; }
 
 .btn-eliminar {
   background: #d63031;
   color: #fff;
 }
-.btn-eliminar:hover {
-  background: #ff7675;
-}
+.btn-eliminar:hover { background: #ff7675; }
 
 .btn-guardar {
   background: #0984e3;
   color: #fff;
 }
-.btn-guardar:hover {
-  background: #74b9ff;
-}
+.btn-guardar:hover { background: #74b9ff; }
 
 .btn-restaurar {
   background: #e17055;
   color: #fff;
 }
-.btn-restaurar:hover {
-  background: #fab1a0;
-}
+.btn-restaurar:hover { background: #fab1a0; }
 
 #btn-cobrar {
   margin-top: 15px;
   background: #00b894;
   color: #fff;
 }
-#btn-cobrar:hover {
-  background: #55efc4;
-}
+#btn-cobrar:hover { background: #55efc4; }
 
 #btn-tirar-z {
   background: #d63031;
   color: #fff;
 }
-#btn-tirar-z:hover {
-  background: #ff7675;
-}
+#btn-tirar-z:hover { background: #ff7675; }
 
 /* === TABLAS === */
 table {
@@ -175,74 +163,78 @@ tbody tr:nth-child(even) {
   color: #d63031;
 }
 
-/* === MODALES NORMALES === */
-.modal {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: #fff; /* blanco */
-  padding: 22px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
-  z-index: 1000;
-  min-width: 320px;
-}
-
-.modal.hidden {
-  display: none;
-}
-
-.modal h3 {
-  margin-bottom: 12px;
-}
-
-.modal button {
-  margin: 6px;
-}
-
-/* === MODAL OFFLINE === */
+/* === MODALES Y OVERLAY === */
 #modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.75);
-  display: none; /* oculto por defecto */
+  background: rgba(0,0,0,0.65);
+  display: none;
   align-items: center;
   justify-content: center;
-  z-index: 999999;
-  pointer-events: all;
+  z-index: 999;
 }
 
 #modal-overlay:not(.hidden) {
-  display: flex; /* solo visible cuando se quita "hidden" */
+  display: flex;
 }
 
-.modal-offline {
-  background: #fff;
+.modal, .modal-offline {
+  position: relative;
+  background: #ffffff;
   padding: 25px 30px;
   border-radius: 12px;
-  box-shadow: 0 4px 25px rgba(0,0,0,0.5);
-  text-align: center;
-  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  z-index: 1000;
   width: 90%;
-  font-family: Arial, sans-serif;
-  animation: fadeIn 0.3s ease;
+  max-width: 400px;
+  text-align: center;
+  animation: fadeInScale 0.3s ease forwards;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
-.modal-offline h3 {
-  color: #d63031;
-  margin-bottom: 12px;
+.modal.hidden, .modal-offline.hidden {
+  display: none;
 }
 
-.modal-offline p {
-  font-size: 15px;
-  line-height: 1.4;
+.modal h3, .modal-offline h3 {
+  margin-bottom: 15px;
+  font-size: 18px;
   color: #2d3436;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
+.modal p, .modal-offline p {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 20px;
+}
+
+.modal button, .modal-offline button {
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 5px;
+  transition: all 0.2s ease;
+}
+
+.modal button:hover, .modal-offline button:hover {
+  transform: scale(1.05);
+}
+
+/* BOTONES DE MODALES */
+.modal .btn-exito, .modal-offline .btn-exito { background: #00b894; color: #fff; }
+.modal .btn-exito:hover, .modal-offline .btn-exito:hover { background: #55efc4; }
+
+.modal .btn-error, .modal-offline .btn-error { background: #d63031; color: #fff; }
+.modal .btn-error:hover, .modal-offline .btn-error:hover { background: #ff7675; }
+
+.modal .btn-alerta, .modal-offline .btn-alerta { background: #e17055; color: #fff; }
+.modal .btn-alerta:hover, .modal-offline .btn-alerta:hover { background: #fab1a0; }
+
+@keyframes fadeInScale {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 }
 
 /* === MENSAJES === */
