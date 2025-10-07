@@ -1269,7 +1269,21 @@ function imprimirCorteZ(mov) {
  * Modal de pérdida de conexión (bloquea la app)
  *****************************************************/
 function mostrarModalOffline() {
-  const overlay = document.getElementById("modal-overlay");
+  let overlay = document.getElementById("modal-offline-overlay");
+
+  // Si no existe, lo creamos
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "modal-offline-overlay";
+    overlay.style.position = "fixed";
+    overlay.style.inset = "0";
+    overlay.style.background = "rgba(0,0,0,0.75)";
+    overlay.style.display = "flex";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    overlay.style.zIndex = "999999";
+    document.body.appendChild(overlay);
+  }
 
   overlay.innerHTML = `
     <div class="modal-offline">
@@ -1278,13 +1292,12 @@ function mostrarModalOffline() {
     </div>
   `;
 
-  overlay.classList.remove("hidden"); // muestra el modal
+  overlay.style.display = "flex"; // muestra el overlay
 }
 
 function cerrarModalOffline() {
-  const overlay = document.getElementById("modal-overlay");
-  overlay.classList.add("hidden");    // oculta el modal
-  overlay.innerHTML = "";             // limpia el contenido
+  const overlay = document.getElementById("modal-offline-overlay");
+  if (overlay) overlay.style.display = "none"; // oculta
 }
 
 // Detectar cambios de conexión
