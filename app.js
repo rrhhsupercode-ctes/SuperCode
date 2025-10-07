@@ -110,11 +110,11 @@
   }
 
   // Modal helpers (modalOverlay must exist)
-  function mostrarModal(html) {
+function mostrarModal(html) {
     if (!modalOverlay) return alert("Modal no disponible");
-    modalOverlay.innerHTML = html;
+    modalOverlay.innerHTML = `<div class="modal">${html}</div>`; // envuelto en div.modal
     modalOverlay.classList.remove("hidden");
-  }
+}
   function cerrarModal() {
     if (!modalOverlay) return;
     modalOverlay.innerHTML = "";
