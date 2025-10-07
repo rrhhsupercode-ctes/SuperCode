@@ -7,11 +7,6 @@
 (() => {
   "use strict";
 
-  // -----------------------
-  // Referencias DOM
-  // -----------------------
-  const modalOverlay = document.getElementById("modal-overlay");
-
   // Cobrar / Login
   const loginUsuario = document.getElementById("login-usuario");
   const loginPass = document.getElementById("login-pass");
