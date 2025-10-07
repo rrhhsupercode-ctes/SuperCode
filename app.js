@@ -118,7 +118,7 @@ function mostrarModal(html) {
 
   // crear contenido
   modalContent = document.createElement("div");
-  modalContent.className = "modal-content";
+  modalContent.className = "modal";
   modalContent.innerHTML = html;
 
   modalOverlay.appendChild(modalContent);
