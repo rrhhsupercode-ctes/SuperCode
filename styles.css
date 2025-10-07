@@ -7,7 +7,7 @@
 }
 
 body {
-  background: #f0f2f5;
+  background: #f0f2f5; /* gris muy claro, no quema la vista */
   color: #2d3436;
   line-height: 1.5;
 }
@@ -89,47 +89,60 @@ button {
   transition: all 0.25s ease;
 }
 
+/* === BOTONES GENERALES === */
 button:hover {
   transform: scale(1.05);
 }
 
-/* === BOTONES GENERALES === */
+/* Botones de acción principales */
 .btn-ver {
   background: #00b894;
   color: #fff;
 }
-.btn-ver:hover { background: #55efc4; }
+.btn-ver:hover {
+  background: #55efc4;
+}
 
 .btn-eliminar {
   background: #d63031;
   color: #fff;
 }
-.btn-eliminar:hover { background: #ff7675; }
+.btn-eliminar:hover {
+  background: #ff7675;
+}
 
 .btn-guardar {
   background: #0984e3;
   color: #fff;
 }
-.btn-guardar:hover { background: #74b9ff; }
+.btn-guardar:hover {
+  background: #74b9ff;
+}
 
 .btn-restaurar {
   background: #e17055;
   color: #fff;
 }
-.btn-restaurar:hover { background: #fab1a0; }
+.btn-restaurar:hover {
+  background: #fab1a0;
+}
 
 #btn-cobrar {
   margin-top: 15px;
   background: #00b894;
   color: #fff;
 }
-#btn-cobrar:hover { background: #55efc4; }
+#btn-cobrar:hover {
+  background: #55efc4;
+}
 
 #btn-tirar-z {
   background: #d63031;
   color: #fff;
 }
-#btn-tirar-z:hover { background: #ff7675; }
+#btn-tirar-z:hover {
+  background: #ff7675;
+}
 
 /* === TABLAS === */
 table {
@@ -163,81 +176,30 @@ tbody tr:nth-child(even) {
   color: #d63031;
 }
 
-/* === MODALES Y OVERLAY UNIFICADOS === */
-#modal-overlay {
+/* === MODALES === */
+.modal {
   position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.7); /* filtro negro */
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  pointer-events: all;
-}
-
-#modal-overlay.active {
-  display: flex;
-}
-
-.modal, .modal-offline {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   background: #fff;
-  padding: 25px 30px;
+  padding: 22px;
   border-radius: 12px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-  width: 90%;
-  max-width: 400px;
-  text-align: center;
-  font-family: Arial, Helvetica, sans-serif;
-  position: relative;
-  animation: modalFade 0.25s ease forwards;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+  z-index: 1000;
+  min-width: 320px;
 }
 
-.modal.hidden, .modal-offline.hidden {
+.modal.hidden {
   display: none;
 }
 
-.modal h3, .modal-offline h3 {
-  font-size: 18px;
-  margin-bottom: 15px;
-  color: #2d3436;
+.modal h3 {
+  margin-bottom: 12px;
 }
 
-.modal p, .modal-offline p {
-  font-size: 14px;
-  color: #555;
-  margin-bottom: 20px;
-  line-height: 1.4;
-}
-
-/* Botones uniformes de modales */
-.modal button, .modal-offline button {
-  padding: 8px 14px;
-  border-radius: 6px;
-  border: none;
-  font-weight: bold;
-  cursor: pointer;
-  margin: 5px;
-  transition: all 0.2s ease;
-}
-
-.modal button:hover, .modal-offline button:hover {
-  transform: scale(1.05);
-}
-
-/* Colores por tipo */
-.btn-exito { background: #00b894; color: #fff; }
-.btn-exito:hover { background: #55efc4; }
-
-.btn-error { background: #d63031; color: #fff; }
-.btn-error:hover { background: #ff7675; }
-
-.btn-alerta { background: #e17055; color: #fff; }
-.btn-alerta:hover { background: #fab1a0; }
-
-/* Animación de apertura de modal */
-@keyframes modalFade {
-  0% { opacity: 0; transform: scale(0.9); }
-  100% { opacity: 1; transform: scale(1); }
+.modal button {
+  margin: 6px;
 }
 
 /* === MENSAJES === */
@@ -247,15 +209,31 @@ tbody tr:nth-child(even) {
   font-weight: bold;
 }
 
-.msg-exito { color: #00b894; }
-.msg-error { color: #d63031; }
-.msg-alerta { color: #e17055; }
+/* Colores de feedback */
+.msg-exito {
+  color: #00b894; /* verde éxito */
+}
+.msg-error {
+  color: #d63031; /* rojo error */
+}
+.msg-alerta {
+  color: #e17055; /* naranja advertencia */
+}
 
 /* === IMPRESIÓN TICKET === */
 @media print {
-  body * { visibility: hidden; }
-  .print-area, .print-area * { visibility: visible; }
-  .print-area { position: absolute; left: 0; top: 0; width: 5cm; }
+  body * {
+    visibility: hidden;
+  }
+  .print-area, .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 5cm;
+  }
 }
 
 /* === HISTORIAL === */
@@ -265,36 +243,43 @@ tbody tr:nth-child(even) {
   color: #636e72;
 }
 
-#tabla-historial th { background: #ffeaa7; }
+#tabla-historial th {
+  background: #ffeaa7;
+}
 
+/* HR del ticket */
 #hr-ticket {
-  width: 4.8cm;
+  width: 4.8cm;   /* ancho fijo de 4.8 cm */
   border: none;
-  border-top: 1px solid #000;
-  margin: 6px auto;
+  border-top: 1px solid #000; /* línea simple */
+  margin: 6px auto; /* centrado horizontal */
 }
 
+/* Texto del ticket */
 #texto-ticket {
-  font-size: 9px;
-  text-align: center;
-  margin: 2px 0;
+  font-size: 9px;   /* tamaño pequeño */
+  text-align: center; /* centrado */
+  margin: 2px 0;    /* separación mínima */
 }
 
+/* Texto del ticket en modal */
 #texto-ticket-modal {
-  font-size: 15px;
+  font-size: 15px;  /* tamaño mayor */
   text-align: center;
   margin: 8px 0;
 }
 
-/*=== BOTONES PAGINADOR HISTORIAL ===*/
+/*  =====  Botones de paginado de HISTORIAL  =====  */
+/* Contenedor de los botones y label del historial */
 #historial-paginador {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin: 10px 0;
+  justify-content: center;   /* centra horizontalmente */
+  align-items: center;       /* alinea verticalmente */
+  gap: 10px;                 /* espacio entre botones y label */
+  margin: 10px 0;            /* separación arriba y abajo */
 }
 
+/* Botones prev / next */
 #historial-paginador button {
   background-color: #007bff;
   color: white;
@@ -305,35 +290,38 @@ tbody tr:nth-child(even) {
   font-size: 14px;
 }
 
-#historial-paginador button:hover { background-color: #0056b3; }
+#historial-paginador button:hover {
+  background-color: #0056b3;
+}
 
+/* Texto del día */
 #hist-dia-label {
   font-weight: bold;
   font-size: 14px;
-  min-width: 120px;
+  min-width: 120px;   /* evita que se muevan los botones si el texto cambia */
   text-align: center;
 }
 
-/*=== BANNER PRINCIPAL ===*/
+/*===  Texto BANNER PRINCIPAL  ===*/
 #app-title {
-  text-align: center;
-  font-size: 20px;
-  font-weight: bold;
-  letter-spacing: 1px;
-  color: #fff;
-  text-transform: uppercase;
-  margin: 2px 0;
+  text-align: center;        /* Centra el texto */
+  font-size: 20px;           /* Tamaño pequeño */
+  font-weight: bold;         /* Negrita */
+  letter-spacing: 1px;       /* Espaciado entre letras */
+  color: #fff;               /* Color de texto */
+  text-transform: uppercase; /* MAYÚSCULAS */
+  margin: 2px 0;            /* Separación arriba y abajo */
 }
 
-/*=== EMOJIS ===*/
+/*===  Tamaño de los Emojis  ===*/
 .emoji {
   display: inline-block;
   font-size: 24px;
-  margin: 0 0.5rem 0 0;
+  margin: 0 0.5rem 0 0; /* ajusta separación si hace falta */
   vertical-align: middle;
 }
 
-/*=== INFO TÉCNICA BANNER ===*/
+/*===  Info técnica "Ante problemas y fallos comunicáte por whatsapp al 3794 576062" tipo BANNER  ===*/
 blockquote {
   background: #f0f0f0;
   border-left: 5px solid #f4a261;
@@ -343,5 +331,5 @@ blockquote {
   font-style: italic;
   border-radius: 6px;
   color: #333;
-  font-size: 12px;
+  font-size:12px;
 }
