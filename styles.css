@@ -163,33 +163,33 @@ tbody tr:nth-child(even) {
   color: #d63031;
 }
 
-/* === MODALES Y OVERLAY === */
+/* === MODALES Y OVERLAY UNIFICADOS === */
 #modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.65);
+  background: rgba(0, 0, 0, 0.7); /* filtro negro */
   display: none;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  z-index: 9999;
+  pointer-events: all;
 }
 
-#modal-overlay:not(.hidden) {
+#modal-overlay.active {
   display: flex;
 }
 
 .modal, .modal-offline {
-  position: relative;
-  background: #ffffff;
+  background: #fff;
   padding: 25px 30px;
   border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-  z-index: 1000;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
   width: 90%;
   max-width: 400px;
   text-align: center;
-  animation: fadeInScale 0.3s ease forwards;
   font-family: Arial, Helvetica, sans-serif;
+  position: relative;
+  animation: modalFade 0.25s ease forwards;
 }
 
 .modal.hidden, .modal-offline.hidden {
@@ -197,8 +197,8 @@ tbody tr:nth-child(even) {
 }
 
 .modal h3, .modal-offline h3 {
-  margin-bottom: 15px;
   font-size: 18px;
+  margin-bottom: 15px;
   color: #2d3436;
 }
 
@@ -206,8 +206,10 @@ tbody tr:nth-child(even) {
   font-size: 14px;
   color: #555;
   margin-bottom: 20px;
+  line-height: 1.4;
 }
 
+/* Botones uniformes de modales */
 .modal button, .modal-offline button {
   padding: 8px 14px;
   border-radius: 6px;
@@ -222,19 +224,20 @@ tbody tr:nth-child(even) {
   transform: scale(1.05);
 }
 
-/* BOTONES DE MODALES */
-.modal .btn-exito, .modal-offline .btn-exito { background: #00b894; color: #fff; }
-.modal .btn-exito:hover, .modal-offline .btn-exito:hover { background: #55efc4; }
+/* Colores por tipo */
+.btn-exito { background: #00b894; color: #fff; }
+.btn-exito:hover { background: #55efc4; }
 
-.modal .btn-error, .modal-offline .btn-error { background: #d63031; color: #fff; }
-.modal .btn-error:hover, .modal-offline .btn-error:hover { background: #ff7675; }
+.btn-error { background: #d63031; color: #fff; }
+.btn-error:hover { background: #ff7675; }
 
-.modal .btn-alerta, .modal-offline .btn-alerta { background: #e17055; color: #fff; }
-.modal .btn-alerta:hover, .modal-offline .btn-alerta:hover { background: #fab1a0; }
+.btn-alerta { background: #e17055; color: #fff; }
+.btn-alerta:hover { background: #fab1a0; }
 
-@keyframes fadeInScale {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.9); }
-  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+/* Animación de apertura de modal */
+@keyframes modalFade {
+  0% { opacity: 0; transform: scale(0.9); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 /* === MENSAJES === */
