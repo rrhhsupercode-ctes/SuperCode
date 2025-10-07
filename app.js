@@ -109,21 +109,46 @@
     return Number.isFinite(n) ? n : 0;
   }
 
-// Mostrar modales
+// -----------------------
+// MODALES (adaptados a CSS V3.0)
+// -----------------------
+let modalOverlay, modalContent;
+
 function mostrarModal(html) {
-  if (!modalOverlay) return alert("Modal no disponible");
+  cerrarModal(); // cerrar cualquier modal abierto
 
-  // Poner contenido envuelto en .modal
-  modalOverlay.innerHTML = `<div class="modal">${html}</div>`;
+  // crear overlay
+  modalOverlay = document.createElement("div");
+  modalOverlay.className = "modal-overlay";
 
-  // Activar overlay
-  modalOverlay.classList.remove("hidden");
+  // crear contenido
+  modalContent = document.createElement("div");
+  modalContent.className = "modal-content";
+  modalContent.innerHTML = html;
+
+  modalOverlay.appendChild(modalContent);
+  document.body.appendChild(modalOverlay);
+
+  // cerrar al click en overlay (fuera del contenido)
+  modalOverlay.addEventListener("click", (e) => {
+    if (e.target === modalOverlay) cerrarModal();
+  });
+
+  // opción: cerrar con Escape
+  document.addEventListener("keydown", keyListener);
 }
 
 function cerrarModal() {
-  if (!modalOverlay) return;
-  modalOverlay.innerHTML = "";
-  modalOverlay.classList.add("hidden");
+  if (modalOverlay) {
+    document.body.removeChild(modalOverlay);
+    modalOverlay = null;
+    modalContent = null;
+    document.removeEventListener("keydown", keyListener);
+  }
+}
+
+function keyListener(e) {
+  if (e.key === "Escape") cerrarModal();
 }
 
   // verifica pass admin consultando config en DB
