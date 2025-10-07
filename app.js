@@ -1,12 +1,3 @@
-/*****************************************************
- * app.js (reemplazo completo)
- * Funcional: Cobrar, Stock, Cajeros, Movimientos, Config
- * Requiere en index.html: elementos con los IDs usados abajo
- * Requiere helpers de Firebase expuestos en window: ref,get,set,update,remove,onValue
- *****************************************************/
-(() => {
-  "use strict";
-
   // -----------------------
   // Referencias DOM
   // -----------------------
@@ -529,7 +520,7 @@ function editarStockModal(codigo) {
   })();
 }
 
-  // -----------------------
+// -----------------------
   // CAJEROS
   // -----------------------
   window.onValue(window.ref(window.db, "cajeros"), snap => {
@@ -1266,43 +1257,63 @@ function imprimirCorteZ(mov) {
 }
 
 /*****************************************************
- * Modal de pérdida de conexión (bloquea la app)
+ * Modal de pérdida de conexión
  *****************************************************/
 function mostrarModalOffline() {
-  let overlay = document.getElementById("modal-offline-overlay");
-
-  // Si no existe, lo creamos
-  if (!overlay) {
-    overlay = document.createElement("div");
-    overlay.id = "modal-offline-overlay";
-    overlay.style.position = "fixed";
-    overlay.style.inset = "0";
-    overlay.style.background = "rgba(0,0,0,0.75)";
-    overlay.style.display = "flex";
-    overlay.style.alignItems = "center";
-    overlay.style.justifyContent = "center";
-    overlay.style.zIndex = "999999";
-    document.body.appendChild(overlay);
-  }
+  const overlay = document.getElementById("modal-overlay");
 
   overlay.innerHTML = `
-    <div class="modal-offline">
-      <h3>⛔ ¡Te quedaste sin internet! ⛔</h3>
-      <p>Para continuar, conectáte a internet o comunicate al 📲 <b>3794 576062</b></p>
+    <div class="modal-container">
+      <div class="modal">
+        <h3>⛔​¡Te quedaste sin internet!⛔​</h3>
+        <p>Para continuar, conectáte a internet o comunicate al 📲 <b>3794 576062</b></p>
+      </div>
     </div>
   `;
 
-  overlay.style.display = "flex"; // muestra el overlay
+  overlay.classList.remove("hidden");
+
+  // Aseguramos estilos para centrar
+  Object.assign(overlay.style, {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100%",
+    height: "100%",
+    background: "rgba(0,0,0,0.6)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 9999
+  });
+
+  const modal = overlay.querySelector(".modal");
+  Object.assign(modal.style, {
+    background: "#fff",
+    padding: "20px",
+    borderRadius: "10px",
+    boxShadow: "0 4px 20px rgba(0,0,0,0.4)",
+    textAlign: "center",
+    maxWidth: "400px",
+    width: "90%"
+  });
 }
 
 function cerrarModalOffline() {
-  const overlay = document.getElementById("modal-offline-overlay");
-  if (overlay) overlay.style.display = "none"; // oculta
+  const overlay = document.getElementById("modal-overlay");
+  overlay.classList.add("hidden");
+  overlay.innerHTML = ""; // limpiar contenido
+  overlay.removeAttribute("style"); // limpiar estilos inline
 }
 
 // Detectar cambios de conexión
-window.addEventListener("offline", mostrarModalOffline);
-window.addEventListener("online", cerrarModalOffline);
+window.addEventListener("offline", () => {
+  mostrarModalOffline();
+});
+
+window.addEventListener("online", () => {
+  cerrarModalOffline();
+});
 
   // -----------------------
   // Final
