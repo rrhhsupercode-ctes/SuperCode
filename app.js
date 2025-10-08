@@ -896,9 +896,9 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
       html += `<p id="texto-ticket-modal">${formatFechaParaHeader(mov.fecha)}</p>`;
       html += `<p id="texto-ticket-modal">Cajero: ${escapeHtml(mov.cajero)}</p>`;
       (mov.items || []).forEach(it => {
-        html += `========== <p id="texto-ticket-modal">${escapeHtml(it.nombre)} </p><span class="linea"></span><p id="texto-ticket-modal">${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
+        html += `==================== <p id="texto-ticket-modal">${escapeHtml(it.nombre)} </p><span class="linea"></span><p id="texto-ticket-modal">${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
       });
-      html += `========== <p id="texto-ticket-modal"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket-modal">Pago en: ${escapeHtml(mov.tipo)}</p>`;
+      html += `==================== <p id="texto-ticket-modal"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket-modal">Pago en: ${escapeHtml(mov.tipo)}</p>`;
       html += `<div style="margin-top:10px"><button id="__print_copy">🧾​​Imprimir</button><button id="__close_mov">❌Cancelar</button></div>`;
       mostrarModal(html);
       document.getElementById("__close_mov").onclick = cerrarModal;
@@ -938,7 +938,7 @@ function imprimirTicketMov(mov) {
     let body = "";
     slice.forEach(it => {
       body += `
-        ========== 
+        ==================== 
         <p id="texto-ticket">
           ${escapeHtml(it.nombre)} <br>
           ${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}
@@ -947,9 +947,10 @@ function imprimirTicketMov(mov) {
     });
 
     const footer = `
-      ========== 
+      ==================== 
       <p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p>
       <p id="texto-ticket">(Pago en: ${escapeHtml(mov.tipo)})</p>
+      Gracias por su compra!
     `;
 
     const area = document.createElement("div");
@@ -1317,7 +1318,7 @@ function cargarHistorial() {
 
         let html = `<h3>Ticket ${mov.id}</h3>`;
         html += `<p>${formatFechaParaHeader(mov.fecha)}</p>`;
-        html += `<p>Cajero: ${escapeHtml(mov.cajero)}</p>========== `;
+        html += `<p>Cajero: ${escapeHtml(mov.cajero)}</p>==================== `;
 
         if (mov.tipo === "TIRAR Z") {
           // Mostrar datos del cierre Z
@@ -1335,7 +1336,7 @@ function cargarHistorial() {
           (mov.items || []).forEach(it => {
             html += `<p>${escapeHtml(it.nombre)} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
           });
-          html += `========== <p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
+          html += `==================== <p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
           html += `<div style="margin-top:10px"><button id="__print_copy_hist">Imprimir Copia</button><button id="__close_hist">Cerrar</button></div>`;
         }
 
