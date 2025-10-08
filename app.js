@@ -913,7 +913,7 @@ function imprimirTicketMov(mov) {
   const printAreas = [];
 
   // 🔥 Forzar lectura del nombre de la tienda en el momento de imprimir
-  let shopName = "WWW.ZONAPC.COM"; // valor por defecto
+  let shopName = "Polirubro Todito"; // valor por defecto
   try {
     if (window.configCache && window.configCache.shopName) {
       shopName = window.configCache.shopName.toUpperCase();
@@ -950,7 +950,7 @@ function imprimirTicketMov(mov) {
       ==================== 
       <p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p>
       <p id="texto-ticket">(Pago en: ${escapeHtml(mov.tipo)})</p>
-      <p id="texto-ticket">Gracias por su compra!</p><p></p>
+      <p id="texto-ticket">Gracias por su compra!</p><br>
     `;
 
     const area = document.createElement("div");
