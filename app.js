@@ -950,7 +950,7 @@ function imprimirTicketMov(mov) {
       ==================== 
       <p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p>
       <p id="texto-ticket">(Pago en: ${escapeHtml(mov.tipo)})</p>
-      Gracias por su compra!
+      <p id="texto-ticket">Gracias por su compra!</p><p></p>
     `;
 
     const area = document.createElement("div");
