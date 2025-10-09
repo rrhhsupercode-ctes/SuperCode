@@ -702,30 +702,37 @@ function editarStockModal(codigo) {
     }
     if (!snap.exists()) return;
     const data = snap.val();
-    Object.entries(data).forEach(([nro, caj]) => {
-      cajerosCache[nro] = caj;
-      // tabla cajeros
-      if (tablaCajerosBody) {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${escapeHtml(nro)}</td>
-          <td>${escapeHtml(caj.nombre || "")}</td>
-          <td>${escapeHtml(caj.dni || "")}</td>
-          <td>
-            <button class="btn-edit-caj" data-id="${nro}">✏️</button>
-            <button class="btn-del-caj" data-id="${nro}">❌</button>
-          </td>
-        `;
-        tablaCajerosBody.appendChild(tr);
-      }
-      // filtroCajero option
-      if (filtroCajero) {
-        const opt = document.createElement("option");
-        opt.value = nro;
-        opt.textContent = `${nro} - ${caj.nombre || ""}`;
-        filtroCajero.appendChild(opt);
-      }
-    });
+    // convertir data a array y ordenar por número
+const cajerosOrdenados = Object.entries(data).sort(([a], [b]) => {
+  return parseInt(a, 10) - parseInt(b, 10);
+});
+
+cajerosOrdenados.forEach(([nro, caj]) => {
+  cajerosCache[nro] = caj;
+
+  // tabla cajeros
+  if (tablaCajerosBody) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(nro)}</td>
+      <td>${escapeHtml(caj.nombre || "")}</td>
+      <td>${escapeHtml(caj.dni || "")}</td>
+      <td>
+        <button class="btn-edit-caj" data-id="${nro}">✏️</button>
+        <button class="btn-del-caj" data-id="${nro}">❌</button>
+      </td>
+    `;
+    tablaCajerosBody.appendChild(tr);
+  }
+
+  // filtroCajero option
+  if (filtroCajero) {
+    const opt = document.createElement("option");
+    opt.value = nro;
+    opt.textContent = `${nro} - ${caj.nombre || ""}`;
+    filtroCajero.appendChild(opt);
+  }
+});
 
     // attach events to cajeros table actions
     document.querySelectorAll(".btn-del-caj").forEach(btn => {
@@ -760,7 +767,6 @@ function editarStockModal(codigo) {
       try {
         await window.set(window.ref(window.db, `cajeros/${nro}`), { nro, nombre, dni, pass });
         cajerosCache[nro] = { nro, nombre, dni, pass }; // actualizar cache
-        renderCajeros(); // actualizar tabla
         inputCajeroNombre.value = "";
         inputCajeroDni.value = "";
         inputCajeroPass.value = "";
