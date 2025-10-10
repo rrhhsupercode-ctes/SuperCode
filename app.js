@@ -1389,7 +1389,7 @@ function cargarHistorial() {
 cargarHistorial();
 
 /*****************************************************
- * Imprimir Corte Z (desde historial) — versión final idéntica al original
+ * Imprimir Corte Z (desde historial) — versión final mejorada con detalles de TIRAR Z
  *****************************************************/
 function imprimirCorteZ(mov) {
   if (!mov || mov.tipo !== "TIRAR Z") {
@@ -1403,20 +1403,50 @@ function imprimirCorteZ(mov) {
 
   let html = `
     <h2 style="text-align:center">${mov.shopName || "ZONAPC"}</h2>
-    <h3 style="text-align:center">REIMPRESIÓN Z</h3>
+    <h3 style="text-align:center">REIMPRESIÓN DE CORTE Z</h3>
     <p style="text-align:center">${fecha}</p>
     <hr>
   `;
 
   resumenZItems.forEach(item => {
     html += `<h3>Cajero: ${item.cajero}</h3><hr>`;
+
+    // ===== Efectivo =====
     html += `<h4>Efectivo</h4>`;
-    html += `<p><b>Total Efectivo Cajero:</b> ${formatoPrecioParaPantalla(item.totalEfectivo)}</p>`;
+    if (item.ventasEfectivo && item.ventasEfectivo.length > 0) {
+      item.ventasEfectivo.forEach(v => {
+        html += `<p>ID ${v.id} — ${formatoPrecioParaPantalla(v.total)}</p>`;
+      });
+    } else if (item.detallesEfectivo && item.detallesEfectivo.length > 0) {
+      // Compatibilidad con versiones anteriores
+      item.detallesEfectivo.forEach(v => {
+        html += `<p>ID ${v.id} — ${formatoPrecioParaPantalla(v.total)}</p>`;
+      });
+    } else {
+      html += `<p>(Sin ventas registradas en efectivo)</p>`;
+    }
+    html += `<p><b>Total Efectivo Cajero:</b> ${formatoPrecioParaPantalla(item.totalEfectivo || 0)}</p>`;
+
+    // ===== Tarjeta =====
     html += `<hr><h4>Tarjeta</h4>`;
-    html += `<p><b>Total Tarjeta Cajero:</b> ${formatoPrecioParaPantalla(item.totalTarjeta)}</p><hr>`;
-    html += `<p><b>Subtotal Cajero:</b> ${formatoPrecioParaPantalla(item.subtotal)}</p><hr>`;
+    if (item.ventasTarjeta && item.ventasTarjeta.length > 0) {
+      item.ventasTarjeta.forEach(v => {
+        html += `<p>ID ${v.id} — ${formatoPrecioParaPantalla(v.total)}</p>`;
+      });
+    } else if (item.detallesTarjeta && item.detallesTarjeta.length > 0) {
+      item.detallesTarjeta.forEach(v => {
+        html += `<p>ID ${v.id} — ${formatoPrecioParaPantalla(v.total)}</p>`;
+      });
+    } else {
+      html += `<p>(Sin ventas registradas con tarjeta)</p>`;
+    }
+    html += `<p><b>Total Tarjeta Cajero:</b> ${formatoPrecioParaPantalla(item.totalTarjeta || 0)}</p><hr>`;
+
+    // ===== Subtotal =====
+    html += `<p><b>Subtotal Cajero:</b> ${formatoPrecioParaPantalla(item.subtotal || 0)}</p><hr>`;
   });
 
+  // ===== Total General =====
   html += `
     <h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>
     <br>
@@ -1429,11 +1459,11 @@ function imprimirCorteZ(mov) {
       <tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr>
       <tr><td></td><td></td><td></td></tr>
     </table>
-    <p style="text-align:center; margin-top:20px">Reimpresión de Z</p>
+    <p style="text-align:center; margin-top:20px">Reimpresión de Corte Z</p>
     <p style="text-align:center">Gracias por usar ZONAPC</p>
   `;
 
-  // Crear e imprimir el área de contenido
+  // ===== Crear e imprimir el área =====
   const area = document.createElement("div");
   area.className = "print-area";
   area.style.width = "21cm";
