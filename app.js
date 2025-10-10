@@ -1029,6 +1029,7 @@ if (btnTirarZ) {
       Object.keys(grouped).forEach(caj => {
         html += `<h3>Cajero: ${caj}</h3><hr>`;
         let totalEf = 0, totalTar = 0;
+
         html += `<h4>Efectivo</h4>`;
         grouped[caj].Efectivo.forEach(m => { 
           html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
@@ -1048,7 +1049,10 @@ if (btnTirarZ) {
           cajero: caj,
           totalEfectivo: totalEf,
           totalTarjeta: totalTar,
-          subtotal: totalEf + totalTar
+          subtotal: totalEf + totalTar,
+          // 🔹 Guardamos también las ventas para la reimpresión detallada
+          ventasEfectivo: grouped[caj].Efectivo.map(m => ({ id: m.id, total: m.total })),
+          ventasTarjeta: grouped[caj].Tarjeta.map(m => ({ id: m.id, total: m.total }))
         });
       });
 
@@ -1065,7 +1069,7 @@ if (btnTirarZ) {
       window.print();
       document.body.removeChild(area);
 
-      // === NUEVO: Guardar copia de Z en HISTORIAL ===
+      // === Guardar copia de Z en HISTORIAL (con detalles) ===
       try {
         const ahora = new Date();
         const año = ahora.getFullYear();
