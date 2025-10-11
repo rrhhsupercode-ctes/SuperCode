@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Zona PC V2.8</title>
+  <title>Zona PC V2.9</title>
   <link rel="stylesheet" href="styles.css">
 
   <!-- Firebase SDK -->
@@ -12,9 +12,9 @@
 <body>
   <header><img src="https://iili.io/KXkB2Ax.png" alt="ZONAPC" class="banner-img">
     <br>
-    <blockquote>※Ante problemas y fallos comunicate por whatsapp al 3794 576062§</blockquote>
+    <blockquote>“Ante problemas y fallos comunicate por whatsapp al 3794 576062”</blockquote>
     <br>
-    <h1 id="app-title">ZONAPC - Gesti車n Comercial V2.8</h1>
+    <h1 id="app-title">ZONAPC - Gestión Comercial V2.8</h1>
     <nav>
       <button class="nav-btn" data-section="cobro">Cobrar</button>
       <button class="nav-btn" data-section="movimientos">Movimientos</button>
@@ -29,20 +29,20 @@
     <!-- COBRAR -->
 <section id="cobro">
   <div id="login-modal">
-    <h2>??Cajero(a)??</h2>
+    <h2>👥Cajero(a)👥</h2>
     <select id="login-usuario"></select>
-    <input id="login-pass" type="password" placeholder="Contrase?a">
-    <button id="btn-login">??Ingresar??</button>
+    <input id="login-pass" type="password" placeholder="Contraseña">
+    <button id="btn-login">🔑Ingresar🔑</button>
     <p id="login-msg" class="msg-error"></p>
   </div>
 
   <div id="cobro-controles" class="hidden">
    
     
-    <!-- Nuevo select de productos y bot車n OK -->
+    <!-- Nuevo select de productos y botón OK -->
     <div style="display:flex; gap:5px; align-items:center; margin-bottom:5px;">
        <select id="cobro-cantidad"></select>
-      <input id="cobro-codigo" placeholder="C車digo producto" style="flex:1;">
+      <input id="cobro-codigo" placeholder="Código producto" style="flex:1;">
       <select id="cobro-productos" style="flex:2;">
         <option value="">Elija un Item</option>
       </select>
@@ -52,7 +52,7 @@
     <table id="tabla-cobro">
       <thead>
         <tr>
-          <th>Cant</th><th>Producto</th><th>Precio Unidad</th><th>Total</th><th>Acci車n</th>
+          <th>Cant</th><th>Producto</th><th>Precio Unidad</th><th>Total</th><th>Acción</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -71,11 +71,11 @@
         <option value="TODOS">TODOS</option>
       </select>
       
-      <button id="btn-tirar-z">Tirar Z</button><p class="emoji">??</p>ADVERTENCIA: Tirar Z no puede revertirse<p class="emoji">??</p>
+      <button id="btn-tirar-z">Tirar Z</button><p class="emoji">⚠️</p>ADVERTENCIA: Tirar Z no puede revertirse<p class="emoji">⚠️</p>
       <table id="tabla-movimientos">
         <thead>
           <tr>
-            <th>ID</th><th>Total</th><th>Tipo</th><th>Acci車n</th>
+            <th>ID</th><th>Total</th><th>Tipo</th><th>Acción</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -85,11 +85,11 @@
     <!-- HISTORIAL -->
     <section id="historial" class="hidden">
       <h2>Historial</h2>
-      <p id="historial-info">Aqu赤 se mostrar芍n los movimientos mensuales. Se eliminan el d赤a 15 de cada mes.</p>
+      <p id="historial-info">Aquí se mostrarán los movimientos mensuales. Se eliminan el día 15 de cada mes.</p>
       <table id="tabla-historial">
         <thead>
           <tr>
-            <th>ID</th><th>Total</th><th>Tipo</th><th>Cajero</th><th>Fecha</th><th>Acci車n</th>
+            <th>ID</th><th>Total</th><th>Tipo</th><th>Cajero</th><th>Fecha</th><th>Acción</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -99,14 +99,14 @@
     <!-- STOCK -->
     <section id="stock" class="hidden">
       <h2>Stock</h2>
-      <input id="stock-codigo" placeholder="C車digo producto">
+      <input id="stock-codigo" placeholder="Código producto">
       <select id="stock-cantidad"></select>
-      <button id="agregar-stock">?Agregar Stock?</button>
-      <button id="buscar-stock">??Buscar</button>
+      <button id="agregar-stock">➕Agregar Stock➕</button>
+      <button id="buscar-stock">🔍Buscar</button>
       <table id="tabla-stock">
         <thead>
           <tr>
-            <th>C車digo</th><th>Nombre</th><th>Cant</th><th>Fecha</th><th>Precio</th><th>Acci車n</th>
+            <th>Código</th><th>Nombre</th><th>Cant</th><th>Fecha</th><th>Precio</th><th>Acción</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -116,15 +116,15 @@
     <!-- CAJEROS -->
     <section id="cajeros" class="hidden">
       <h2>Cajeros</h2>
-      <p class="emoji">??</p><select id="cajero-nro"></select>
-      <p class="emoji">??</p><input id="cajero-nombre" placeholder="Nombre">
-      <p class="emoji">??</p><input id="cajero-dni" placeholder="DNI">
-      <p class="emoji">??</p><input id="cajero-pass" type="password" placeholder="Contrase?a">
-      <button id="agregar-cajero">?Agregar Cajero(a)?</button>
+      <p class="emoji">👥</p><select id="cajero-nro"></select>
+      <p class="emoji">🔠</p><input id="cajero-nombre" placeholder="Nombre">
+      <p class="emoji">🔢</p><input id="cajero-dni" placeholder="DNI">
+      <p class="emoji">🔣</p><input id="cajero-pass" type="password" placeholder="Contraseña">
+      <button id="agregar-cajero">➕Agregar Cajero(a)➕</button>
       <table id="tabla-cajeros">
         <thead>
           <tr>
-            <th>Nro</th><th>Nombre</th><th>DNI</th><th>Acci車n</th>
+            <th>Nro</th><th>Nombre</th><th>DNI</th><th>Acción</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -133,33 +133,33 @@
 
     <!-- CONFIG -->
     <section id="config" class="hidden">
-      <h2>Configuraci車n</h2>
+      <h2>Configuración</h2>
       
-      <p class="emoji">?? Nombre y Ubicaci車n, Ejemplo: 24/7 Reconquista 1234, Ctes</p><br><input id="config-nombre" placeholder="Nombre de Tienda">
+      <p class="emoji">🏪 Nombre y Ubicación, Ejemplo: 24/7 Reconquista 1234, Ctes</p><br><input id="config-nombre" placeholder="Nombre de Tienda">
       
       <div id="admin-pass-config">
-        <input id="config-pass-actual" type="password" placeholder="Contrase?a actual">
-        <input id="config-pass-nueva" type="password" placeholder="Nueva contrase?a">
+        <input id="config-pass-actual" type="password" placeholder="Contraseña actual">
+        <input id="config-pass-nueva" type="password" placeholder="Nueva contraseña">
 
         <button id="guardar-config" class="btn-guardar">Guardar</button>
         <p id="config-msg" class="msg-error"></p>
       </div>
 
-      <input id="master-pass" placeholder="Contrase?a Maestra">
-      <button id="btn-restaurar" class="btn-restaurar">??Restaurar Contrase?a??</button>
+      <input id="master-pass" placeholder="Contraseña Maestra">
+      <button id="btn-restaurar" class="btn-restaurar">🔑Restaurar Contraseña🔑</button>
     </section>
   </main>
 
   <!-- Scripts -->
   <script>
     const firebaseConfig = {
-      apiKey: "YOUR-API-KEY",
-      authDomain: "supercode-ctes.firebaseapp.com",
-      databaseURL: "https://supercode-ctes-default-rtdb.firebaseio.com",
-      projectId: "supercode-ctes",
-      storageBucket: "supercode-ctes.appspot.com",
-      messagingSenderId: "000000000",
-      appId: "1:000000000:web:xxxx"
+  apiKey: "AIzaSyAm7IUHztO3Z1UGJiT5PfZYJkmGsfP9KYQ",
+  authDomain: "cliente-002.firebaseapp.com",
+  databaseURL: "https://cliente-002-default-rtdb.firebaseio.com",
+  projectId: "cliente-002",
+  storageBucket: "cliente-002.firebasestorage.app",
+  messagingSenderId: "145238974713",
+  appId: "1:145238974713:web:d8df479024d6d82b278228"
     };
     const app = firebase.initializeApp(firebaseConfig);
     window.db = firebase.database();
@@ -172,5 +172,6 @@
     window.onValue = (ref, cb) => ref.on("value", cb);
   </script>
   <script src="app.js"></script>
+  <script src="init.js"></script>
 </body>
 </html>
