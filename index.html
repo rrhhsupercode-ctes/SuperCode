@@ -26,7 +26,7 @@
   </header>
 
   <main>
-    <!-- COBRAR -->
+<!-- COBRAR -->
 <section id="cobro">
   <div id="login-modal">
     <h2>👥Cajero(a)👥</h2>
@@ -37,15 +37,21 @@
   </div>
 
   <div id="cobro-controles" class="hidden">
-   
-    
-    <!-- Nuevo select de productos y botón OK -->
+    <!-- select de productos -->
     <div style="display:flex; gap:5px; align-items:center; margin-bottom:5px;">
-       <select id="cobro-cantidad"></select>
+      <select id="cobro-cantidad"></select>
       <input id="cobro-codigo" placeholder="Código producto" style="flex:1;">
       <select id="cobro-productos" style="flex:2;">
         <option value="">Elija un Item</option>
       </select>
+
+      <!-- SELECTOR DE PESO y botón OK-->
+      <div id="peso-selector" style="display:none; align-items:center; gap:3px;">
+        <button id="peso-menos" type="button">−</button>
+        <input id="peso-valor" type="text" value="00,000" style="width:70px; text-align:center;">
+        <button id="peso-mas" type="button">+</button>
+      </div>
+
       <button id="btn-add-product">OK</button>
     </div>
 
@@ -55,7 +61,7 @@
           <th>Cant</th><th>Producto</th><th>Precio Unidad</th><th>Total</th><th>Acción</th>
         </tr>
       </thead>
-      <tbody></tbody>
+      <tbody id="tabla-cobro-body"></tbody>
     </table>
     <div id="total-div">TOTAL: $0</div>
     <button id="btn-cobrar" class="hidden">Cobrar</button>
