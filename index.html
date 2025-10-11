@@ -29,19 +29,22 @@
     <!-- COBRAR -->
 <section id="cobro">
   <div id="login-modal">
-    <h2>👥Cajero(a)👥</h2>
+    <h2>Cajero(a)</h2>
     <select id="login-usuario"></select>
     <input id="login-pass" type="password" placeholder="Contraseña">
-    <button id="btn-login">🔑Ingresar🔑</button>
+    <button id="btn-login">Ingresar</button>
     <p id="login-msg" class="msg-error"></p>
   </div>
 
   <div id="cobro-controles" class="hidden">
-   
-    
-    <!-- Nuevo select de productos y botón OK -->
+    <!-- Selección de cantidad o gramos -->
     <div style="display:flex; gap:5px; align-items:center; margin-bottom:5px;">
-       <select id="cobro-cantidad"></select>
+      <select id="cobro-cantidad"></select>
+      <div style="display:flex; align-items:center; gap:2px;">
+        <button id="btn-gramos-minus">-</button>
+        <input id="cobro-gramos" type="text" value="0" style="width:70px; text-align:right;">
+        <button id="btn-gramos-plus">+</button>
+      </div>
       <input id="cobro-codigo" placeholder="Código producto" style="flex:1;">
       <select id="cobro-productos" style="flex:2;">
         <option value="">Elija un Item</option>
