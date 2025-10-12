@@ -1179,48 +1179,58 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
 
     const mov = snap.val();
 
-    // 🔥 Restaurar stock / sueltos antes de eliminar
-    if (mov.items && Array.isArray(mov.items)) {
-      for (const item of mov.items) {
+// 🔥 Restaurar stock / sueltos antes de eliminar
+if (mov.items && Array.isArray(mov.items)) {
+  for (const item of mov.items) {
+    const tipo = (item.tipo || "").toLowerCase().trim();
 
-        if (item.tipo === "suelto") {
-          // Restaurar suelto
-          const refSuelto = window.ref(window.db, `sueltos/${item.codigo}`);
-          const snapSuelto = await window.get(refSuelto);
+    if (tipo === "suelto") {
+      // ✅ Restaurar suelto
+      const refSuelto = window.ref(window.db, `sueltos/${item.codigo}`);
+      const snapSuelto = await window.get(refSuelto);
 
-          if (snapSuelto.exists()) {
-            const prod = snapSuelto.val();
-            const nuevaCantidad = (prod.kg || 0) + (item.cantidad || 0);
-            await window.update(refSuelto, { kg: nuevaCantidad });
-          } else {
-            // Si no existe, crearlo
-            await window.set(refSuelto, {
-              nombre: item.nombre || "PRODUCTO NUEVO",
-              precio: item.precio || 0,
-              kg: item.cantidad,
-              fecha: new Date().toISOString()
-            });
-          }
+      if (snapSuelto.exists()) {
+        const prod = snapSuelto.val();
+        const nuevaCantidad = (prod.kg || 0) + (item.cantidad || 0);
+        await window.update(refSuelto, { kg: Number(nuevaCantidad.toFixed(3)) });
+        console.log(`✅ Suelto ${item.nombre} restaurado: +${item.cantidad} kg`);
+      } else {
+        // Si no existe, crearlo directamente en sueltos
+        await window.set(refSuelto, {
+          nombre: item.nombre || "PRODUCTO NUEVO",
+          precio: item.precio || 0,
+          kg: item.cantidad,
+          fecha: new Date().toISOString()
+        });
+        console.log(`🆕 Suelto ${item.nombre} creado en sueltos con ${item.cantidad} kg`);
+      }
 
-        } else {
-          // Restaurar stock normal
-          const stockRef = window.ref(window.db, `stock/${item.codigo}`);
-          const stockSnap = await window.get(stockRef);
+    } else if (tipo === "stock" || tipo === "" || tipo === "normal" || !tipo) {
+      // ✅ Restaurar stock normal
+      const stockRef = window.ref(window.db, `stock/${item.codigo}`);
+      const stockSnap = await window.get(stockRef);
 
-          if (stockSnap.exists()) {
-            const prod = stockSnap.val();
-            const nuevaCantidad = (prod.cantidad || 0) + (item.cantidad || 0);
-            await window.update(stockRef, { cantidad: nuevaCantidad });
-          } else {
-            await window.set(stockRef, {
-              codigo: item.codigo,
-              nombre: item.nombre || "PRODUCTO NUEVO",
-              cantidad: item.cantidad,
-              precio: item.precio || 0,
-              fecha: new Date().toLocaleString()
-            });
-          }
-        }
+      if (stockSnap.exists()) {
+        const prod = stockSnap.val();
+        const nuevaCantidad = (prod.cantidad || 0) + (item.cantidad || 0);
+        await window.update(stockRef, { cantidad: nuevaCantidad });
+        console.log(`✅ Stock ${item.nombre} restaurado: +${item.cantidad}`);
+      } else {
+        await window.set(stockRef, {
+          codigo: item.codigo,
+          nombre: item.nombre || "PRODUCTO NUEVO",
+          cantidad: item.cantidad,
+          precio: item.precio || 0,
+          fecha: new Date().toISOString()
+        });
+        console.log(`🆕 Producto ${item.nombre} creado en stock`);
+      }
+    }
+
+    // Los tipos no reconocidos (como “servicio”) se ignoran
+  }
+}
+
 
       } // fin for items
     }
