@@ -1,5 +1,5 @@
 /*****************************************************
- * app.js (V2.9)
+ * app.js (V2.12.2)
  * Funcional: Cobrar, Stock, Cajeros, Movimientos, Config
  * Requiere en index.html: elementos con los IDs usados abajo
  * Requiere helpers de Firebase expuestos en window: ref,get,set,update,remove,onValue
