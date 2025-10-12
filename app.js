@@ -845,13 +845,12 @@ const btnBuscarSuelto = document.getElementById("btn-buscar-suelto");
 const btnIncrKg = document.getElementById("sueltos-btn-incr");
 const btnDecrKg = document.getElementById("sueltos-btn-decr");
 
-// Escuchar cambios en sueltos y renderizar tabla
-window.onValue(window.ref(window.db, "sueltos"), snap => {
+// Función para renderizar tabla de sueltos
+async function renderTablaSueltos(data) {
   if (!tablaSueltosBody) return;
   tablaSueltosBody.innerHTML = "";
-  if (!snap.exists()) return;
+  if (!data) return;
 
-  const data = snap.val();
   const ordenados = Object.entries(data).sort(([, a], [, b]) => {
     const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
     const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
@@ -859,16 +858,18 @@ window.onValue(window.ref(window.db, "sueltos"), snap => {
   });
 
   ordenados.forEach(([codigo, prod]) => {
-    const kgDisplay = Number(prod.kg || 0).toFixed(3);
+    const kgDisplay = Number(prod.kg || 0).toFixed(3); // ✅ siempre número real
+    const precioDisplay = typeof prod.precio === "number" 
+      ? formatoPrecioParaPantalla(prod.precio)
+      : ('$' + String(prod.precio || "").replace('.', ','));
+
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(codigo)}</td>
       <td>${escapeHtml(prod.nombre || "")}</td>
-      <td>
-        <input type="text" class="input-kg" data-id="${codigo}" value="${kgDisplay}" readonly>
-      </td>
+      <td><input type="text" class="input-kg" data-id="${codigo}" value="${kgDisplay}" readonly></td>
       <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
-      <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
+      <td>${precioDisplay}</td>
       <td>
         <button class="btn-edit-suelto" data-id="${codigo}">✏️</button>
         <button class="btn-del-suelto" data-id="${codigo}">❌</button>
@@ -888,6 +889,11 @@ window.onValue(window.ref(window.db, "sueltos"), snap => {
   document.querySelectorAll(".btn-edit-suelto").forEach(btn => {
     btn.onclick = () => requireAdminConfirm(() => editarSueltoModal(btn.dataset.id));
   });
+}
+
+// Escuchar cambios en sueltos
+window.onValue(window.ref(window.db, "sueltos"), snap => {
+  renderTablaSueltos(snap.exists() ? snap.val() : null);
 });
 
 // === Botón agregar o sumar suelto ===
@@ -899,16 +905,13 @@ btnAgregarSuelto.onclick = async () => {
   const snap = await window.get(refProd);
 
   let kgVal = Number(inputKgSuelto.value);
-  if (kgVal < 0) kgVal = 0;
-  if (kgVal > 99.9) kgVal = 99.9;
+  kgVal = Math.max(0, Math.min(99.9, kgVal)); // ✅ normalizar valor
 
   if (snap.exists()) {
-    // Sumar KG al producto existente
     const prod = snap.val();
     const nuevoKg = Math.min(99.9, Number(prod.kg || 0) + kgVal);
     await window.update(refProd, { kg: Number(nuevoKg.toFixed(3)), fecha: ahoraISO() });
   } else {
-    // Crear producto nuevo
     await window.set(refProd, {
       nombre: "PRODUCTO NUEVO",
       precio: "00000,00",
@@ -921,12 +924,11 @@ btnAgregarSuelto.onclick = async () => {
   inputKgSuelto.value = "0.000";
 };
 
-// === Botones fila de + / - KG (para el input de nuevo suelto) ===
+// === Botones + / - KG para input nuevo suelto ===
 btnIncrKg.onclick = () => {
   let val = Number(inputKgSuelto.value);
   inputKgSuelto.value = Math.min(99.9, val + 0.1).toFixed(3);
 };
-
 btnDecrKg.onclick = () => {
   let val = Number(inputKgSuelto.value);
   inputKgSuelto.value = Math.max(0, val - 0.1).toFixed(3);
@@ -947,25 +949,7 @@ btnBuscarSuelto.onclick = async () => {
 
   if (resultados.length === 0) return alert("No se encontraron productos");
 
-  tablaSueltosBody.innerHTML = "";
-  resultados.forEach(([codigo, prod]) => {
-    const kgDisplay = Number(prod.kg || 0).toFixed(3);
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${escapeHtml(codigo)}</td>
-      <td>${escapeHtml(prod.nombre || "")}</td>
-      <td>
-        <input type="text" class="input-kg" data-id="${codigo}" value="${kgDisplay}" readonly>
-      </td>
-      <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
-      <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
-      <td>
-        <button class="btn-edit-suelto" data-id="${codigo}">✏️</button>
-        <button class="btn-del-suelto" data-id="${codigo}">❌</button>
-      </td>
-    `;
-    tablaSueltosBody.appendChild(tr);
-  });
+  renderTablaSueltos(Object.fromEntries(resultados));
 };
 
 // === Función para editar SUELTO ===
@@ -991,8 +975,7 @@ function editarSueltoModal(codigo) {
       const nombre = (document.getElementById("__edit_suelto_nombre").value || "").trim();
       const precio = (document.getElementById("__edit_suelto_precio").value || "").trim();
       let kgVal = safeNumber(document.getElementById("__edit_suelto_kg").value.replace(",", "."));
-      if (kgVal < 0) kgVal = 0;
-      if (kgVal > 99.9) kgVal = 99.9;
+      kgVal = Math.max(0, Math.min(99.9, kgVal));
 
       if (!/^\d{1,5},\d{2}$/.test(precio)) {
         alert("Precio inválido. Formato: 00000,00");
