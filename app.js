@@ -1128,9 +1128,10 @@ cajerosOrdenados.forEach(([nro, caj]) => {
     })();
   }
 
-  // -----------------------
+// -----------------------
 // MOVIMIENTOS (render + filtro)
 // -----------------------
+
 // listen movimientos (cache)
 window.onValue(window.ref(window.db, "movimientos"), snap => {
   movimientosCache = snap.exists() ? snap.val() : {};
@@ -1232,11 +1233,13 @@ function renderMovimientos() {
     });
   });
 
+  // attach ver movimientos
   document.querySelectorAll(".btn-ver-mov").forEach(btn => {
     btn.onclick = () => verMovimientoModal(btn.dataset.id);
   });
 }
 
+// Modal de movimiento
 function verMovimientoModal(id) {
   (async () => {
     const snap = await window.get(window.ref(window.db, `movimientos/${id}`));
@@ -1255,6 +1258,63 @@ function verMovimientoModal(id) {
     document.getElementById("__print_copy").onclick = () => imprimirTicketMov(mov);
   })();
 }
+
+// Imprimir ticket
+function imprimirTicketMov(mov) {
+  const itemsPerPage = 9999;
+  const items = mov.items || [];
+  const totalParts = Math.max(1, Math.ceil(items.length / itemsPerPage));
+  const printAreas = [];
+
+  let shopName = "Polirubro Todito";
+  try {
+    if (window.configCache && window.configCache.shopName) {
+      shopName = window.configCache.shopName.toUpperCase();
+    }
+  } catch (err) {
+    console.warn("No se pudo leer configCache, usando ZONAPC", err);
+  }
+
+  for (let p = 0; p < totalParts; p++) {
+    const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
+    const header = `
+      <div style="text-align:center">
+        <p id="texto-ticket">
+          ${escapeHtml(shopName)} <br>
+          ${mov.id} <br>
+          Nro - Cajero: ${escapeHtml(mov.cajero)} <br>
+          ${formatFechaParaHeader(mov.fecha)}
+        </p>
+      </div>
+    `;
+    let body = "";
+    slice.forEach(it => {
+      body += `
+        ==================== 
+        <p id="texto-ticket">
+          ${escapeHtml(it.nombre)} <br>
+          ${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}
+        </p>
+      `;
+    });
+    const footer = `
+      ==================== 
+      <p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p>
+      <p id="texto-ticket">(Pago en: ${escapeHtml(mov.tipo)})</p>
+      <p id="texto-ticket">Ticket: </p><br>
+    `;
+    const area = document.createElement("div");
+    area.className = "print-area";
+    area.style.width = "5cm";
+    area.innerHTML = header + body + footer;
+    printAreas.push(area);
+  }
+
+  printAreas.forEach(a => document.body.appendChild(a));
+  window.print();
+  printAreas.forEach(a => document.body.removeChild(a));
+}
+
 
  // -----------------------
 // TIRAR Z (por cajero o TODOS)
