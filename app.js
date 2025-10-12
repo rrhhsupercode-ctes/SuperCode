@@ -293,11 +293,11 @@ async function verificarPassAdmin(pass) {
     // filtroCajero will be filled by DB listener (includes TODOS)
   })();
 
- // -----------------------
+// -----------------------
 // COBRAR (login + cart)
 // -----------------------
 
-// Referencias nuevas
+// Referencias
 const cobroProductosSelect = document.getElementById("cobro-productos");
 const btnAddProduct = document.getElementById("btn-add-product");
 
@@ -307,22 +307,13 @@ if (btnLogin) {
     const nro = (loginUsuario.value || "").trim();
     const pass = (loginPass.value || "").trim();
     loginMsg.textContent = "";
-    if (!nro || !pass) {
-      loginMsg.textContent = "Complete usuario y contraseña";
-      return;
-    }
+    if (!nro || !pass) return loginMsg.textContent = "Complete usuario y contraseña";
 
     const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
-    if (!snap.exists()) {
-      loginMsg.textContent = "Cajero no encontrado";
-      return;
-    }
+    if (!snap.exists()) return loginMsg.textContent = "Cajero no encontrado";
 
     const caj = snap.val();
-    if (caj.pass !== pass) {
-      loginMsg.textContent = "Contraseña incorrecta";
-      return;
-    }
+    if (caj.pass !== pass) return loginMsg.textContent = "Contraseña incorrecta";
 
     cajeroActivo = caj;
     loginModal.classList.add("hidden");
@@ -339,51 +330,26 @@ if (btnLogin) {
 // -----------------------
 // FUNCIONES DE COBRO
 // -----------------------
-
-// Agregar producto al carrito
 async function agregarProductoCarrito(codigo) {
   codigo = (codigo || "").trim();
   const cantidad = safeNumber(cobroCantidadSelect.value);
   if (!codigo) return;
 
   const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
-  if (!snap.exists()) {
-    alert("Producto no encontrado en stock");
-    return;
-  }
+  if (!snap.exists()) return alert("Producto no encontrado en stock");
 
   const prod = snap.val();
-  const precioNumber = (typeof prod.precio === "number")
-    ? prod.precio
-    : Number(String(prod.precio).replace(",", "."));
+  const precioNumber = typeof prod.precio === "number" ? prod.precio : Number(String(prod.precio).replace(",", "."));
+  if (Number(prod.cantidad) < cantidad) return alert("Stock insuficiente");
 
-  if (Number(prod.cantidad) < cantidad) {
-    alert("Stock insuficiente");
-    return;
-  }
-
-  // Si ya está en carrito, sumar cantidades
   const idx = carrito.findIndex(it => it.codigo === codigo);
-  if (idx >= 0) {
-    carrito[idx].cantidad += cantidad;
-  } else {
-    carrito.push({
-      codigo,
-      nombre: prod.nombre || "SIN NOMBRE",
-      precio: Number(precioNumber) || 0,
-      cantidad
-    });
-  }
+  if (idx >= 0) carrito[idx].cantidad += cantidad;
+  else carrito.push({ codigo, nombre: prod.nombre || "SIN NOMBRE", precio: Number(precioNumber) || 0, cantidad });
 
-  // Actualizar stock en DB
-  await window.update(window.ref(window.db, `stock/${codigo}`), {
-    cantidad: Math.max(0, Number(prod.cantidad) - cantidad)
-  });
-
+  await window.update(window.ref(window.db, `stock/${codigo}`), { cantidad: Math.max(0, Number(prod.cantidad) - cantidad) });
   renderCarrito();
 }
 
-// Enter en input de código
 if (cobroCodigo) {
   cobroCodigo.addEventListener("keydown", async (e) => {
     if (e.key !== "Enter") return;
@@ -392,11 +358,9 @@ if (cobroCodigo) {
   });
 }
 
-// Click en botón OK (usa select o input)
 if (btnAddProduct) {
   btnAddProduct.addEventListener("click", async () => {
-    let codigo = cobroProductosSelect.value;
-    if (!codigo) codigo = cobroCodigo.value;
+    let codigo = cobroProductosSelect.value || cobroCodigo.value;
     if (!codigo) return alert("Seleccione un producto o ingrese un código");
     await agregarProductoCarrito(codigo);
     cobroCodigo.value = "";
@@ -404,7 +368,6 @@ if (btnAddProduct) {
   });
 }
 
-// Render del carrito
 function renderCarrito() {
   if (!tablaCobroBody) return;
   tablaCobroBody.innerHTML = "";
@@ -427,19 +390,13 @@ function renderCarrito() {
   if (totalDiv) totalDiv.textContent = `TOTAL: ${formatoPrecioParaPantalla(total)}`;
   if (btnCobrar) btnCobrar.classList.toggle("hidden", carrito.length === 0);
 
-  // Botones eliminar con confirmación admin
   document.querySelectorAll(".btn-delete-cart").forEach(btn => {
     btn.onclick = () => {
       const i = Number(btn.dataset.i);
       const it = carrito[i];
       requireAdminConfirm(async () => {
         const snap = await window.get(window.ref(window.db, `stock/${it.codigo}`));
-        if (snap.exists()) {
-          const prod = snap.val();
-          await window.update(window.ref(window.db, `stock/${it.codigo}`), {
-            cantidad: Number(prod.cantidad) + Number(it.cantidad)
-          });
-        }
+        if (snap.exists()) await window.update(window.ref(window.db, `stock/${it.codigo}`), { cantidad: Number(snap.val().cantidad) + Number(it.cantidad) });
         carrito.splice(i, 1);
         renderCarrito();
       });
@@ -447,7 +404,6 @@ function renderCarrito() {
   });
 }
 
-// Actualizar select de productos en tiempo real
 if (cobroProductosSelect) {
   window.onValue(window.ref(window.db, "stock"), snap => {
     if (!snap.exists()) return;
@@ -469,39 +425,28 @@ const btnAddSuelto = document.getElementById("btn-add-suelto");
 const btnIncrKgCobro = document.getElementById("btn-incr-kg");
 const btnDecrKgCobro = document.getElementById("btn-decr-kg");
 
-// Actualizar select de sueltos en tiempo real
 if (cobroSueltosSelect) {
   window.onValue(window.ref(window.db, "sueltos"), snap => {
     if (!snap.exists()) return;
     const data = snap.val();
     cobroSueltosSelect.innerHTML = '<option value="">Elija un Item (Sueltos)</option>';
     Object.entries(data).forEach(([codigo, prod]) => {
-      if (Number(prod.kg) > 0) {
-        cobroSueltosSelect.innerHTML += `<option value="${codigo}">${escapeHtml(prod.nombre || codigo)}</option>`;
-      }
+      if (Number(prod.kg) > 0) cobroSueltosSelect.innerHTML += `<option value="${codigo}">${escapeHtml(prod.nombre || codigo)}</option>`;
     });
   });
 }
 
-// Ajustar valor del input sin superar stock
 async function ajustarKgInput(codigo, incremento) {
   if (!codigo) return;
   const snap = await window.get(window.ref(window.db, `sueltos/${codigo}`));
   if (!snap.exists()) return alert("Producto suelto no encontrado");
-
   const prod = snap.val();
   let val = Number(inputKgSueltoCobro.value) + incremento;
-
-  if (val > Number(prod.kg)) {
-    val = Number(prod.kg);
-    if (incremento > 0) alert(`Stock insuficiente: solo hay ${prod.kg.toFixed(3)} kg de ${prod.nombre}`);
-  }
+  if (val > Number(prod.kg)) { val = Number(prod.kg); if (incremento > 0) alert(`Stock insuficiente: solo hay ${prod.kg.toFixed(3)} kg de ${prod.nombre}`); }
   if (val < 0) val = 0;
-
   inputKgSueltoCobro.value = val.toFixed(3);
 }
 
-// Incrementar / decrementar KG
 btnIncrKgCobro.onclick = async () => {
   const codigo = cobroSueltosSelect.value || inputCodigoSueltoCobro.value;
   await ajustarKgInput(codigo, 0.1);
@@ -512,51 +457,22 @@ btnDecrKgCobro.onclick = async () => {
   await ajustarKgInput(codigo, -0.1);
 };
 
-// Agregar suelto al carrito con validación estricta de stock
 async function agregarSueltoCarrito(codigo) {
   codigo = (codigo || "").trim();
   if (!codigo) return;
-
   const snap = await window.get(window.ref(window.db, `sueltos/${codigo}`));
   if (!snap.exists()) return alert("Producto suelto no encontrado");
-
   const prod = snap.val();
   let kg = safeNumber(inputKgSueltoCobro.value);
-
   if (kg <= 0) return alert(`Ingrese cantidad válida de ${prod.nombre}`);
-  if (kg > Number(prod.kg)) {
-    alert(`Stock insuficiente: solo hay ${Number(prod.kg).toFixed(3)} kg de ${prod.nombre}`);
-    inputKgSueltoCobro.value = Number(prod.kg).toFixed(3);
-    return;
-  }
-
-  const precioNumber = (typeof prod.precio === "number")
-    ? prod.precio
-    : Number(String(prod.precio).replace(",", "."));
-
+  if (kg > Number(prod.kg)) { alert(`Stock insuficiente: solo hay ${Number(prod.kg).toFixed(3)} kg de ${prod.nombre}`); inputKgSueltoCobro.value = Number(prod.kg).toFixed(3); return; }
+  const precioNumber = typeof prod.precio === "number" ? prod.precio : Number(String(prod.precio).replace(",", "."));
   const idx = carrito.findIndex(it => it.codigo === codigo && it.tipo === "suelto");
-  if (idx >= 0) {
-    let suma = carrito[idx].cantidad + kg;
-    if (suma > Number(prod.kg)) {
-      alert(`Stock insuficiente: solo hay ${Number(prod.kg).toFixed(3)} kg de ${prod.nombre}`);
-      carrito[idx].cantidad = Number(prod.kg);
-    } else {
-      carrito[idx].cantidad += kg;
-    }
-  } else {
-    carrito.push({
-      codigo,
-      nombre: prod.nombre || "SIN NOMBRE",
-      precio: Number(precioNumber) || 0,
-      cantidad: kg,
-      tipo: "suelto"
-    });
-  }
-
+  if (idx >= 0) { let suma = carrito[idx].cantidad + kg; carrito[idx].cantidad = suma > Number(prod.kg) ? Number(prod.kg) : suma; } 
+  else carrito.push({ codigo, nombre: prod.nombre || "SIN NOMBRE", precio: Number(precioNumber) || 0, cantidad: kg, tipo: "suelto" });
   renderCarrito();
 }
 
-// Enter en input código suelto
 inputCodigoSueltoCobro.addEventListener("keydown", async (e) => {
   if (e.key !== "Enter") return;
   await agregarSueltoCarrito(inputCodigoSueltoCobro.value);
@@ -564,7 +480,6 @@ inputCodigoSueltoCobro.addEventListener("keydown", async (e) => {
   inputKgSueltoCobro.value = "0.000";
 });
 
-// Click en botón OK suelto
 btnAddSuelto.addEventListener("click", async () => {
   let codigo = cobroSueltosSelect.value || inputCodigoSueltoCobro.value;
   if (!codigo) return alert("Seleccione un suelto o ingrese un código");
@@ -573,16 +488,14 @@ btnAddSuelto.addEventListener("click", async () => {
   cobroSueltosSelect.value = "";
   inputKgSueltoCobro.value = "0.000";
 });
-  
+
 // -----------------------
 // COBRAR Y FINALIZAR
 // -----------------------
-
 if (btnCobrar) {
   btnCobrar.addEventListener("click", () => {
     if (!cajeroActivo) return alert("Ingrese con un cajero primero");
     if (carrito.length === 0) return;
-
     mostrarModal(`
       <h3>¿Efectivo o Tarjeta?</h3>
       <div style="margin-top:10px">
@@ -591,62 +504,41 @@ if (btnCobrar) {
         <button id="__pay_cancel">❌ Cancelar</button>
       </div>
     `);
-
     document.getElementById("__pay_cancel").onclick = cerrarModal;
     document.getElementById("__pay_cash").onclick = () => finalizarCobro("Efectivo");
     document.getElementById("__pay_card").onclick = () => finalizarCobro("Tarjeta");
   });
 }
 
-// Generador de número de ticket secuencial diario
 function generarNumeroTicket() {
-  const hoy = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+  const hoy = new Date().toISOString().slice(0, 10);
   const ultimaFecha = localStorage.getItem("ticket_fecha");
   let contador = parseInt(localStorage.getItem("ticket_contador") || "0", 10);
-  if (ultimaFecha !== hoy) {
-    contador = 0;
-    localStorage.setItem("ticket_fecha", hoy);
-  }
+  if (ultimaFecha !== hoy) { contador = 0; localStorage.setItem("ticket_fecha", hoy); }
   contador++;
   localStorage.setItem("ticket_contador", contador);
   return "ID_" + String(contador).padStart(6, "0");
 }
 
-// Finalizar cobro y guardar en historial
 async function finalizarCobro(tipoPago) {
   cerrarModal();
   const movId = generarNumeroTicket();
-  const mov = {
-    id: movId,
-    cajero: cajeroActivo ? (cajeroActivo.nro || cajeroActivo.nombre) : "N/A",
-    total,
-    tipo: tipoPago,
-    fecha: ahoraISO(),
-    items: carrito.map(it => ({
-      codigo: it.codigo,
-      nombre: it.nombre,
-      precio: it.precio,
-      cantidad: it.cantidad
-    }))
-  };
+  const mov = { id: movId, cajero: cajeroActivo ? (cajeroActivo.nro || cajeroActivo.nombre) : "N/A", total, tipo: tipoPago, fecha: ahoraISO(), items: carrito.map(it => ({ codigo: it.codigo, nombre: it.nombre, precio: it.precio, cantidad: it.cantidad })) };
 
-  // Actualizar stock de sueltos
-for (let it of carrito) {
-  if (it.tipo === "suelto") {
-    const refSuelto = window.ref(window.db, `sueltos/${it.codigo}`);
-    const snap = await window.get(refSuelto);
-    if (snap.exists()) {
-      const prod = snap.val();
-      let nuevoKg = Math.max(0, Number(prod.kg) - Number(it.cantidad)); // no bajar de 0.1 ha sido desactivado
-      await window.update(refSuelto, { kg: Number(nuevoKg.toFixed(3)), fecha: ahoraISO() });
+  for (let it of carrito) {
+    if (it.tipo === "suelto") {
+      const refSuelto = window.ref(window.db, `sueltos/${it.codigo}`);
+      const snap = await window.get(refSuelto);
+      if (snap.exists()) {
+        const prod = snap.val();
+        let nuevoKg = Math.max(0, Number(prod.kg) - Number(it.cantidad));
+        await window.update(refSuelto, { kg: Number(nuevoKg.toFixed(3)), fecha: ahoraISO() });
+      }
     }
   }
-}
 
-  // Guardar en movimientos
   await window.set(window.ref(window.db, `movimientos/${movId}`), mov);
 
-  // Guardar copia en historial por año-mes
   try {
     const fechaMov = mov.fecha ? new Date(mov.fecha) : new Date();
     const año = fechaMov.getFullYear();
@@ -993,124 +885,6 @@ function editarSueltoModal(codigo) {
 }
 
   // -----------------------
-  // CAJEROS
-  // -----------------------
-  window.onValue(window.ref(window.db, "cajeros"), snap => {
-    cajerosCache = {};
-    if (tablaCajerosBody) tablaCajerosBody.innerHTML = "";
-    // limpiar y añadir TODOS + cargar filtroCajero
-    if (filtroCajero) {
-      filtroCajero.innerHTML = `<option value="TODOS">TODOS</option>`;
-    }
-    if (!snap.exists()) return;
-    const data = snap.val();
-    // convertir data a array y ordenar por número
-const cajerosOrdenados = Object.entries(data).sort(([a], [b]) => {
-  return parseInt(a, 10) - parseInt(b, 10);
-});
-
-cajerosOrdenados.forEach(([nro, caj]) => {
-  cajerosCache[nro] = caj;
-
-  // tabla cajeros
-  if (tablaCajerosBody) {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${escapeHtml(nro)}</td>
-      <td>${escapeHtml(caj.nombre || "")}</td>
-      <td>${escapeHtml(caj.dni || "")}</td>
-      <td>
-        <button class="btn-edit-caj" data-id="${nro}">✏️</button>
-        <button class="btn-del-caj" data-id="${nro}">❌</button>
-      </td>
-    `;
-    tablaCajerosBody.appendChild(tr);
-  }
-
-  // filtroCajero option
-  if (filtroCajero) {
-    const opt = document.createElement("option");
-    opt.value = nro;
-    opt.textContent = `${nro} - ${caj.nombre || ""}`;
-    filtroCajero.appendChild(opt);
-  }
-});
-
-    // attach events to cajeros table actions
-    document.querySelectorAll(".btn-del-caj").forEach(btn => {
-      btn.onclick = () => {
-        requireAdminConfirm(async () => {
-          await window.remove(window.ref(window.db, `cajeros/${btn.dataset.id}`));
-        });
-      };
-    });
-    document.querySelectorAll(".btn-edit-caj").forEach(btn => {
-      btn.onclick = () => requireAdminConfirm(() => editarCajeroModal(btn.dataset.id));
-    });
-  });
-
- if (btnAgregarCajero) {
-  btnAgregarCajero.addEventListener("click", () => {
-    requireAdminConfirm(async () => {
-      const nro = (cajeroNroSelect.value || "").trim();
-      const nombre = (inputCajeroNombre.value || "").trim();
-      const dni = (inputCajeroDni.value || "").trim();
-      const pass = (inputCajeroPass.value || "").trim();
-
-      if (!nombre || !dni || !pass) {
-        alert("Complete todos los campos");
-        return;
-      }
-      if (!/^\d{8}$/.test(dni)) {
-        alert("DNI inválido (debe tener 8 dígitos numéricos)");
-        return;
-      }
-
-      try {
-        await window.set(window.ref(window.db, `cajeros/${nro}`), { nro, nombre, dni, pass });
-        cajerosCache[nro] = { nro, nombre, dni, pass }; // actualizar cache
-        inputCajeroNombre.value = "";
-        inputCajeroDni.value = "";
-        inputCajeroPass.value = "";
-        alert("✔️ Cajero agregado ✔️");
-      } catch (err) {
-        alert("Error al agregar cajero: " + err);
-      }
-    });
-  });
-}
-
-  function editarCajeroModal(nro) {
-    (async () => {
-      const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
-      if (!snap.exists()) return;
-      const caj = snap.val();
-      mostrarModal(`
-        <h3>Editar Cajero</h3>
-        <label>Nombre</label><input id="__edit_caj_nombre" value="${escapeHtml(caj.nombre || "")}">
-        <label>DNI</label><input id="__edit_caj_dni" value="${escapeHtml(caj.dni || "")}">
-        <label>Pass</label><input id="__edit_caj_pass" value="${escapeHtml(caj.pass || "")}">
-        <div style="margin-top:10px">
-          <button id="__save_caj">✅Guardar</button>
-          <button id="__cancel_caj">❌Cancelar</button>
-        </div>
-      `);
-      document.getElementById("__cancel_caj").onclick = cerrarModal;
-      document.getElementById("__save_caj").onclick = async () => {
-        const nombre = (document.getElementById("__edit_caj_nombre").value || "").trim();
-        const dni = (document.getElementById("__edit_caj_dni").value || "").trim();
-        const pass = (document.getElementById("__edit_caj_pass").value || "").trim();
-        if (!/^\d{8}$/.test(dni)) {
-          alert("DNI inválido (8 dígitos)");
-          return;
-        }
-        await window.update(window.ref(window.db, `cajeros/${nro}`), { nombre, dni, pass });
-        cerrarModal();
-      };
-    })();
-  }
-
-  // -----------------------
   // MOVIMIENTOS (render + filtro)
   // -----------------------
   // listen movimientos (cache)
@@ -1297,6 +1071,124 @@ function imprimirTicketMov(mov) {
   printAreas.forEach(a => document.body.removeChild(a));
 }
 
+// -----------------------
+  // CAJEROS
+  // -----------------------
+  window.onValue(window.ref(window.db, "cajeros"), snap => {
+    cajerosCache = {};
+    if (tablaCajerosBody) tablaCajerosBody.innerHTML = "";
+    // limpiar y añadir TODOS + cargar filtroCajero
+    if (filtroCajero) {
+      filtroCajero.innerHTML = `<option value="TODOS">TODOS</option>`;
+    }
+    if (!snap.exists()) return;
+    const data = snap.val();
+    // convertir data a array y ordenar por número
+const cajerosOrdenados = Object.entries(data).sort(([a], [b]) => {
+  return parseInt(a, 10) - parseInt(b, 10);
+});
+
+cajerosOrdenados.forEach(([nro, caj]) => {
+  cajerosCache[nro] = caj;
+
+  // tabla cajeros
+  if (tablaCajerosBody) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(nro)}</td>
+      <td>${escapeHtml(caj.nombre || "")}</td>
+      <td>${escapeHtml(caj.dni || "")}</td>
+      <td>
+        <button class="btn-edit-caj" data-id="${nro}">✏️</button>
+        <button class="btn-del-caj" data-id="${nro}">❌</button>
+      </td>
+    `;
+    tablaCajerosBody.appendChild(tr);
+  }
+
+  // filtroCajero option
+  if (filtroCajero) {
+    const opt = document.createElement("option");
+    opt.value = nro;
+    opt.textContent = `${nro} - ${caj.nombre || ""}`;
+    filtroCajero.appendChild(opt);
+  }
+});
+
+    // attach events to cajeros table actions
+    document.querySelectorAll(".btn-del-caj").forEach(btn => {
+      btn.onclick = () => {
+        requireAdminConfirm(async () => {
+          await window.remove(window.ref(window.db, `cajeros/${btn.dataset.id}`));
+        });
+      };
+    });
+    document.querySelectorAll(".btn-edit-caj").forEach(btn => {
+      btn.onclick = () => requireAdminConfirm(() => editarCajeroModal(btn.dataset.id));
+    });
+  });
+
+ if (btnAgregarCajero) {
+  btnAgregarCajero.addEventListener("click", () => {
+    requireAdminConfirm(async () => {
+      const nro = (cajeroNroSelect.value || "").trim();
+      const nombre = (inputCajeroNombre.value || "").trim();
+      const dni = (inputCajeroDni.value || "").trim();
+      const pass = (inputCajeroPass.value || "").trim();
+
+      if (!nombre || !dni || !pass) {
+        alert("Complete todos los campos");
+        return;
+      }
+      if (!/^\d{8}$/.test(dni)) {
+        alert("DNI inválido (debe tener 8 dígitos numéricos)");
+        return;
+      }
+
+      try {
+        await window.set(window.ref(window.db, `cajeros/${nro}`), { nro, nombre, dni, pass });
+        cajerosCache[nro] = { nro, nombre, dni, pass }; // actualizar cache
+        inputCajeroNombre.value = "";
+        inputCajeroDni.value = "";
+        inputCajeroPass.value = "";
+        alert("✔️ Cajero agregado ✔️");
+      } catch (err) {
+        alert("Error al agregar cajero: " + err);
+      }
+    });
+  });
+}
+
+  function editarCajeroModal(nro) {
+    (async () => {
+      const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
+      if (!snap.exists()) return;
+      const caj = snap.val();
+      mostrarModal(`
+        <h3>Editar Cajero</h3>
+        <label>Nombre</label><input id="__edit_caj_nombre" value="${escapeHtml(caj.nombre || "")}">
+        <label>DNI</label><input id="__edit_caj_dni" value="${escapeHtml(caj.dni || "")}">
+        <label>Pass</label><input id="__edit_caj_pass" value="${escapeHtml(caj.pass || "")}">
+        <div style="margin-top:10px">
+          <button id="__save_caj">✅Guardar</button>
+          <button id="__cancel_caj">❌Cancelar</button>
+        </div>
+      `);
+      document.getElementById("__cancel_caj").onclick = cerrarModal;
+      document.getElementById("__save_caj").onclick = async () => {
+        const nombre = (document.getElementById("__edit_caj_nombre").value || "").trim();
+        const dni = (document.getElementById("__edit_caj_dni").value || "").trim();
+        const pass = (document.getElementById("__edit_caj_pass").value || "").trim();
+        if (!/^\d{8}$/.test(dni)) {
+          alert("DNI inválido (8 dígitos)");
+          return;
+        }
+        await window.update(window.ref(window.db, `cajeros/${nro}`), { nombre, dni, pass });
+        cerrarModal();
+      };
+    })();
+  }
+  
  // -----------------------
 // TIRAR Z (por cajero o TODOS)
 // -----------------------
