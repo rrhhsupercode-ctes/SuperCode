@@ -690,9 +690,17 @@ function editarStockModal(codigo) {
   })();
 }
 
-  // -----------------------
+// -----------------------
 // SUELTOS
 // -----------------------
+const tablaSueltosBody = document.querySelector("#tabla-sueltos tbody");
+const inputSueltoCodigo = document.getElementById("sueltos-codigo");
+const inputKgSuelto = document.getElementById("sueltos-kg");
+const btnAgregarSuelto = document.getElementById("btn-agregar-suelto");
+const btnBuscarSuelto = document.getElementById("btn-buscar-suelto");
+const btnIncrKg = document.getElementById("sueltos-btn-incr");
+const btnDecrKg = document.getElementById("sueltos-btn-decr");
+
 window.onValue(window.ref(window.db, "sueltos"), snap => {
   if (!tablaSueltosBody) return;
   tablaSueltosBody.innerHTML = "";
@@ -702,12 +710,11 @@ window.onValue(window.ref(window.db, "sueltos"), snap => {
   const ordenados = Object.entries(data).sort(([, a], [, b]) => {
     const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
     const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
-    return tb - ta; // más nuevo primero
+    return tb - ta;
   });
 
   ordenados.forEach(([codigo, prod]) => {
     const kgDisplay = Number(prod.kg || 0).toFixed(3);
-
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${escapeHtml(codigo)}</td>
@@ -763,32 +770,86 @@ window.onValue(window.ref(window.db, "sueltos"), snap => {
   });
 });
 
-// === Botón AGREGAR NUEVO PRODUCTO SUELTO ===
-if (btnAgregarSuelto) {
-  btnAgregarSuelto.addEventListener("click", async () => {
-    const codigo = (inputSueltoCodigo.value || "").trim();
-    if (!codigo) return alert("Ingrese código");
+// === Botones fila de agregar nuevo SUELTO ===
+btnAgregarSuelto.onclick = async () => {
+  const codigo = (inputSueltoCodigo.value || "").trim();
+  if (!codigo) return alert("Ingrese código");
 
-    const refProd = window.ref(window.db, `sueltos/${codigo}`);
-    const snap = await window.get(refProd);
+  const refProd = window.ref(window.db, `sueltos/${codigo}`);
+  const snap = await window.get(refProd);
 
-    if (snap.exists()) {
-      alert("El producto ya existe");
-      return;
-    }
+  if (snap.exists()) {
+    alert("El producto ya existe");
+    return;
+  }
 
-    await window.set(refProd, {
-      nombre: "PRODUCTO NUEVO",
-      precio: "00000,00",
-      kg: 0.100, // valor inicial
-      fecha: ahoraISO()
-    });
+  let kgVal = Number(inputKgSuelto.value);
+  if (kgVal < 0.1) kgVal = 0.1;
+  if (kgVal > 99.9) kgVal = 99.9;
 
-    inputSueltoCodigo.value = "";
+  await window.set(refProd, {
+    nombre: "PRODUCTO NUEVO",
+    precio: "00000,00",
+    kg: Number(kgVal.toFixed(3)),
+    fecha: ahoraISO()
   });
-}
 
-// === Función para editar producto SUELTO ===
+  inputSueltoCodigo.value = "";
+  inputKgSuelto.value = "0.100";
+};
+
+// === Botones fila de + / - KG ===
+btnIncrKg.onclick = () => {
+  let val = Number(inputKgSuelto.value);
+  val = Math.min(99.9, val + 0.1);
+  inputKgSuelto.value = val.toFixed(3);
+};
+
+btnDecrKg.onclick = () => {
+  let val = Number(inputKgSuelto.value);
+  val = Math.max(0.1, val - 0.1);
+  inputKgSuelto.value = val.toFixed(3);
+};
+
+// === Botón BUSCAR SUELTOS ===
+btnBuscarSuelto.onclick = async () => {
+  const termino = (inputSueltoCodigo.value || "").trim().toLowerCase();
+  if (!termino) return alert("Ingrese código o nombre a buscar");
+
+  const snap = await window.get(window.ref(window.db, "sueltos"));
+  if (!snap.exists()) return alert("No hay productos cargados");
+
+  const data = snap.val();
+  const resultados = Object.entries(data).filter(([codigo, prod]) => {
+    return codigo.toLowerCase().includes(termino) || (prod.nombre || "").toLowerCase().includes(termino);
+  });
+
+  if (resultados.length === 0) return alert("No se encontraron productos");
+
+  tablaSueltosBody.innerHTML = "";
+  resultados.forEach(([codigo, prod]) => {
+    const kgDisplay = Number(prod.kg || 0).toFixed(3);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(codigo)}</td>
+      <td>${escapeHtml(prod.nombre || "")}</td>
+      <td>
+        <button class="btn-decr-kg" data-id="${codigo}">-</button>
+        <input type="text" class="input-kg" data-id="${codigo}" value="${kgDisplay}" readonly>
+        <button class="btn-incr-kg" data-id="${codigo}">+</button>
+      </td>
+      <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
+      <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
+      <td>
+        <button class="btn-edit-suelto" data-id="${codigo}">✏️</button>
+        <button class="btn-del-suelto" data-id="${codigo}">❌</button>
+      </td>
+    `;
+    tablaSueltosBody.appendChild(tr);
+  });
+};
+
+// === Función para editar SUELTO ===
 function editarSueltoModal(codigo) {
   (async () => {
     const snap = await window.get(window.ref(window.db, `sueltos/${codigo}`));
