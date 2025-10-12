@@ -1110,127 +1110,133 @@ cajerosOrdenados.forEach(([nro, caj]) => {
     })();
   }
 
-// -----------------------
-// MOVIMIENTOS (render + filtro)
-// -----------------------
-window.onValue(window.ref(window.db, "movimientos"), snap => {
-  movimientosCache = snap.exists() ? snap.val() : {};
-  renderMovimientos();
+  // -----------------------
+  // MOVIMIENTOS (render + filtro)
+  // -----------------------
+  // listen movimientos (cache)
+  window.onValue(window.ref(window.db, "movimientos"), snap => {
+    movimientosCache = snap.exists() ? snap.val() : {};
+    renderMovimientos();
+  });
+
+  // filtro change
+  if (filtroCajero) {
+    filtroCajero.addEventListener("change", () => renderMovimientos());
+  }
+
+  function renderMovimientos() {
+    if (!tablaMovimientosBody) return;
+    tablaMovimientosBody.innerHTML = "";
+    const dataArr = Object.values(movimientosCache || {});
+    const filtro = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
+    const filtrados = filtro === "TODOS" ? dataArr : dataArr.filter(m => (m.cajero || "") === filtro);
+
+    // sort by fecha desc (newer first) if fecha exists
+    filtrados.sort((a, b) => {
+      const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
+      const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
+      return tb - ta;
+    });
+
+    filtrados.forEach(mov => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(mov.id)}</td>
+        <td>${formatoPrecioParaPantalla(mov.total)}</td>
+        <td>${escapeHtml(mov.tipo)}</td>
+        <td>
+          <button class="btn-ver-mov" data-id="${mov.id}">🧾</button>
+          <button class="btn-del-mov" data-id="${mov.id}">❌</button>
+        </td>
+      `;
+      tablaMovimientosBody.appendChild(tr);
+    });
+
+    // attach actions
+document.querySelectorAll(".btn-del-mov").forEach(btn => {
+  btn.onclick = () => requireAdminConfirm(async () => {
+    const movRef = window.ref(window.db, `movimientos/${btn.dataset.id}`);
+    const snap = await window.get(movRef);
+    if (!snap.exists()) return;
+
+    const mov = snap.val();
+
+    // 🔥 Restaurar stock / sueltos antes de eliminar
+    if (mov.items && Array.isArray(mov.items)) {
+      for (const item of mov.items) {
+
+        if (item.tipo === "suelto") {
+          // Restaurar suelto
+          const refSuelto = window.ref(window.db, `sueltos/${item.codigo}`);
+          const snapSuelto = await window.get(refSuelto);
+
+          if (snapSuelto.exists()) {
+            const prod = snapSuelto.val();
+            const nuevaCantidad = (prod.kg || 0) + (item.cantidad || 0);
+            await window.update(refSuelto, { kg: nuevaCantidad });
+          } else {
+            // Si no existe, crearlo
+            await window.set(refSuelto, {
+              nombre: item.nombre || "PRODUCTO NUEVO",
+              precio: item.precio || 0,
+              kg: item.cantidad,
+              fecha: new Date().toISOString()
+            });
+          }
+
+        } else {
+          // Restaurar stock normal
+          const stockRef = window.ref(window.db, `stock/${item.codigo}`);
+          const stockSnap = await window.get(stockRef);
+
+          if (stockSnap.exists()) {
+            const prod = stockSnap.val();
+            const nuevaCantidad = (prod.cantidad || 0) + (item.cantidad || 0);
+            await window.update(stockRef, { cantidad: nuevaCantidad });
+          } else {
+            await window.set(stockRef, {
+              codigo: item.codigo,
+              nombre: item.nombre || "PRODUCTO NUEVO",
+              cantidad: item.cantidad,
+              precio: item.precio || 0,
+              fecha: new Date().toLocaleString()
+            });
+          }
+        }
+
+      } // fin for items
+    }
+
+    // Ahora sí, eliminar el movimiento
+    await window.remove(movRef);
+    console.log(`Movimiento ${btn.dataset.id} eliminado y stock/sueltos restaurados`);
+  });
 });
 
-if (filtroCajero) {
-  filtroCajero.addEventListener("change", () => renderMovimientos());
-}
 
-function renderMovimientos() {
-  if (!tablaMovimientosBody) return;
-  tablaMovimientosBody.innerHTML = "";
-  const dataArr = Object.values(movimientosCache || {});
-  const filtro = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
-  const filtrados = filtro === "TODOS" ? dataArr : dataArr.filter(m => (m.cajero || "") === filtro);
-
-  filtrados.sort((a, b) => {
-    const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
-    const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
-    return tb - ta;
-  });
-
-  filtrados.forEach(mov => {
-    const tr = document.createElement("tr");
-    tr.innerHTML = `
-      <td>${escapeHtml(mov.id)}</td>
-      <td>${formatoPrecioParaPantalla(mov.total)}</td>
-      <td>${escapeHtml(mov.tipo)}</td>
-      <td>
-        <button class="btn-ver-mov" data-id="${mov.id}">🧾</button>
-        <button class="btn-del-mov" data-id="${mov.id}">❌</button>
-      </td>
-    `;
-    tablaMovimientosBody.appendChild(tr);
-  });
-
-  document.querySelectorAll(".btn-del-mov").forEach(btn => {
-    btn.onclick = () => requireAdminConfirm(async () => {
-      const movRef = window.ref(window.db, `movimientos/${btn.dataset.id}`);
-      const snap = await window.get(movRef);
-      if (!snap.exists()) return;
-
-      const mov = snap.val();
-
-      // 🔥 Restaurar stock / sueltos antes de eliminar
-      if (mov.items && Array.isArray(mov.items)) {
-for (const item of mov.items) {
-  const tipo = (item.tipo || "").toLowerCase();
-  const codigo = String(item.codigo || "");
-
-  if (tipo === "suelto") {
-    // ✅ Restaurar en "sueltos"
-    const refSuelto = window.ref(window.db, `sueltos/${codigo}`);
-    const snapSuelto = await window.get(refSuelto);
-
-    if (snapSuelto.exists()) {
-      const prod = snapSuelto.val();
-      const nuevaCantidad = (Number(prod.kg) || 0) + (Number(item.cantidad) || 0);
-      await window.update(refSuelto, { kg: Number(nuevaCantidad.toFixed(3)) });
-    } else {
-      await window.set(refSuelto, {
-        nombre: item.nombre || "PRODUCTO NUEVO",
-        precio: item.precio || 0,
-        kg: Number(item.cantidad) || 0,
-        fecha: new Date().toISOString()
-      });
-    }
-  } else {
-    // ✅ Restaurar en "stock"
-    const stockRef = window.ref(window.db, `stock/${codigo}`);
-    const stockSnap = await window.get(stockRef);
-
-    if (stockSnap.exists()) {
-      const prod = stockSnap.val();
-      const nuevaCantidad = (Number(prod.cantidad) || 0) + (Number(item.cantidad) || 0);
-      await window.update(stockRef, { cantidad: Number(nuevaCantidad) });
-    } else {
-      await window.set(stockRef, {
-        codigo,
-        nombre: item.nombre || "PRODUCTO NUEVO",
-        cantidad: Number(item.cantidad) || 0,
-        precio: item.precio || 0,
-        fecha: new Date().toLocaleString()
-      });
-    }
+    document.querySelectorAll(".btn-ver-mov").forEach(btn => {
+      btn.onclick = () => verMovimientoModal(btn.dataset.id);
+    });
   }
-}
 
-
-      // 🔥 Eliminar movimiento
-      await window.remove(movRef);
-      console.log(`✅ Movimiento ${btn.dataset.id} eliminado y stock/sueltos restaurados correctamente`);
-    });
-  });
-
-  document.querySelectorAll(".btn-ver-mov").forEach(btn => {
-    btn.onclick = () => verMovimientoModal(btn.dataset.id);
-  });
-}
-
-function verMovimientoModal(id) {
-  (async () => {
-    const snap = await window.get(window.ref(window.db, `movimientos/${id}`));
-    if (!snap.exists()) return alert("⛔Movimiento no encontrado⛔");
-    const mov = snap.val();
-    let html = `<p id="texto-ticket-modal">Ticket ${mov.id}</p>`;
-    html += `<p id="texto-ticket-modal">${formatFechaParaHeader(mov.fecha)}</p>`;
-    html += `<p id="texto-ticket-modal">Cajero: ${escapeHtml(mov.cajero)}</p>`;
-    (mov.items || []).forEach(it => {
-      html += `==================== <p id="texto-ticket-modal">${escapeHtml(it.nombre)} </p><span class="linea"></span><p id="texto-ticket-modal">${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
-    });
-    html += `==================== <p id="texto-ticket-modal"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket-modal">Pago en: ${escapeHtml(mov.tipo)}</p>`;
-    html += `<div style="margin-top:10px"><button id="__print_copy">🧾​​Imprimir</button><button id="__close_mov">❌Cancelar</button></div>`;
-    mostrarModal(html);
-    document.getElementById("__close_mov").onclick = cerrarModal;
-    document.getElementById("__print_copy").onclick = () => imprimirTicketMov(mov);
-  })();
-}
+  function verMovimientoModal(id) {
+    (async () => {
+      const snap = await window.get(window.ref(window.db, `movimientos/${id}`));
+      if (!snap.exists()) return alert("⛔Movimiento no encontrado⛔");
+      const mov = snap.val();
+      let html = `<p id="texto-ticket-modal">Ticket ${mov.id}</p>`;
+      html += `<p id="texto-ticket-modal">${formatFechaParaHeader(mov.fecha)}</p>`;
+      html += `<p id="texto-ticket-modal">Cajero: ${escapeHtml(mov.cajero)}</p>`;
+      (mov.items || []).forEach(it => {
+        html += `==================== <p id="texto-ticket-modal">${escapeHtml(it.nombre)} </p><span class="linea"></span><p id="texto-ticket-modal">${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
+      });
+      html += `==================== <p id="texto-ticket-modal"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket-modal">Pago en: ${escapeHtml(mov.tipo)}</p>`;
+      html += `<div style="margin-top:10px"><button id="__print_copy">🧾​​Imprimir</button><button id="__close_mov">❌Cancelar</button></div>`;
+      mostrarModal(html);
+      document.getElementById("__close_mov").onclick = cerrarModal;
+      document.getElementById("__print_copy").onclick = () => imprimirTicketMov(mov);
+    })();
+  }
 
 function imprimirTicketMov(mov) {
   const itemsPerPage = 9999;
@@ -1238,13 +1244,14 @@ function imprimirTicketMov(mov) {
   const totalParts = Math.max(1, Math.ceil(items.length / itemsPerPage));
   const printAreas = [];
 
-  let shopName = "Polirubro Todito";
+  // 🔥 Forzar lectura del nombre de la tienda en el momento de imprimir
+  let shopName = "Polirubro Todito"; // valor por defecto
   try {
     if (window.configCache && window.configCache.shopName) {
       shopName = window.configCache.shopName.toUpperCase();
     }
   } catch (err) {
-    console.warn("No se pudo leer configCache, usando valor por defecto", err);
+    console.warn("No se pudo leer configCache, usando ZONAPC", err);
   }
 
   for (let p = 0; p < totalParts; p++) {
