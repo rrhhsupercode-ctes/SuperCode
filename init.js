@@ -3,13 +3,14 @@
  * Inicialización de la base en Realtime Database
  *****************************************************/
 (() => {
-  const ramasIniciales = {
-    config: { shopName: "ZONAPC", passAdmin: "0123456789", masterPass: "9999" },
-    cajeros: {},
-    stock: {},
-    movimientos: {},
-    historial: {}
-  };
+const ramasIniciales = {
+  config: { shopName: "ZONAPC", passAdmin: "0123456789", masterPass: "9999" },
+  cajeros: {},
+  stock: {},
+  sueltos: {},
+  movimientos: {},
+  historial: {}
+};
 
   (async () => {
     const rootSnap = await window.get(window.ref(window.db, "/"));
