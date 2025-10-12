@@ -1162,16 +1162,29 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
     const mov = snap.val();
 
     // 🔥 Restaurar stock / sueltos antes de eliminar
+document.querySelectorAll(".btn-del-mov").forEach(btn => {
+  btn.onclick = () => requireAdminConfirm(async () => {
+    const movRef = window.ref(window.db, `movimientos/${btn.dataset.id}`);
+    const snap = await window.get(movRef);
+    if (!snap.exists()) return;
+
+    const mov = snap.val();
+
+    // 🔥 Restaurar stock / sueltos antes de eliminar
     if (mov.items && Array.isArray(mov.items)) {
       for (const item of mov.items) {
+        const tipo = (item.tipo || "").toLowerCase();
+        const nombre = (item.nombre || "").toLowerCase();
+        const codigo = String(item.codigo || "");
+
         const esSuelto =
-          (item.tipo && item.tipo.toLowerCase() === "suelto") ||
-          (item.nombre && item.nombre.toLowerCase().includes("suelto")) ||
-          (item.codigo && String(item.codigo).startsWith("S"));
+          tipo === "suelto" ||
+          nombre.includes("suelto") ||
+          codigo.startsWith("S");
 
         if (esSuelto) {
-          // Restaurar sueltos
-          const refSuelto = window.ref(window.db, `sueltos/${item.codigo}`);
+          // ✅ Restaurar en "sueltos"
+          const refSuelto = window.ref(window.db, `sueltos/${codigo}`);
           const snapSuelto = await window.get(refSuelto);
 
           if (snapSuelto.exists()) {
@@ -1187,8 +1200,8 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
             });
           }
         } else {
-          // Restaurar stock normal
-          const stockRef = window.ref(window.db, `stock/${item.codigo}`);
+          // ✅ Restaurar en "stock"
+          const stockRef = window.ref(window.db, `stock/${codigo}`);
           const stockSnap = await window.get(stockRef);
 
           if (stockSnap.exists()) {
@@ -1197,7 +1210,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
             await window.update(stockRef, { cantidad: Number(nuevaCantidad) });
           } else {
             await window.set(stockRef, {
-              codigo: item.codigo,
+              codigo,
               nombre: item.nombre || "PRODUCTO NUEVO",
               cantidad: Number(item.cantidad) || 0,
               precio: item.precio || 0,
@@ -1205,14 +1218,14 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
             });
           }
         }
-      } // fin for
+      }
     }
 
+    // 🔥 Eliminar movimiento
     await window.remove(movRef);
-    console.log(`Movimiento ${btn.dataset.id} eliminado y stock/sueltos restaurados correctamente`);
+    console.log(`✅ Movimiento ${btn.dataset.id} eliminado y stock/sueltos restaurados correctamente`);
   });
 });
-
 
     document.querySelectorAll(".btn-ver-mov").forEach(btn => {
       btn.onclick = () => verMovimientoModal(btn.dataset.id);
