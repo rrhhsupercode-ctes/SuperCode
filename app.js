@@ -867,7 +867,7 @@ async function renderTablaSueltos(data) {
     tr.innerHTML = `
       <td>${escapeHtml(codigo)}</td>
       <td>${escapeHtml(prod.nombre || "")}</td>
-      <td><input type="text" class="input-kg" data-id="${codigo}" value="${Number(prod.kg).toFixed(3)}" readonly></td>
+      <td>${Number(prod.kg).toFixed(3)}</td>
       <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
       <td>${precioDisplay}</td>
       <td>
