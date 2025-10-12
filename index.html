@@ -20,6 +20,7 @@
       <button class="nav-btn" data-section="movimientos">Movimientos</button>
       <button class="nav-btn" data-section="historial">Historial</button>
       <button class="nav-btn" data-section="stock">Stock</button>
+      <button class="nav-btn" data-section="sueltos">Sueltos</button>
       <button class="nav-btn" data-section="cajeros">Cajeros</button>
       <button class="nav-btn" data-section="config">Config</button>
       </nav>
@@ -37,11 +38,10 @@
   </div>
 
   <div id="cobro-controles" class="hidden">
-   
-    
-    <!-- Nuevo select de productos y botón OK -->
+
+    <!-- FILA COBRO NORMAL -->
     <div style="display:flex; gap:5px; align-items:center; margin-bottom:5px;">
-       <select id="cobro-cantidad"></select>
+      <select id="cobro-cantidad"></select>
       <input id="cobro-codigo" placeholder="Código producto" style="flex:1;">
       <select id="cobro-productos" style="flex:2;">
         <option value="">Elija un Item</option>
@@ -49,10 +49,28 @@
       <button id="btn-add-product">OK</button>
     </div>
 
+    <!-- FILA SUELTOS -->
+    <div style="display:flex; gap:5px; align-items:center; margin-bottom:5px;">
+      <button id="btn-decr-kg" style="width:30px;">-</button>
+      <input id="input-kg-suelto" type="text" value="0.100" readonly style="width:60px; text-align:center;">
+      <button id="btn-incr-kg" style="width:30px;">+</button>
+
+      <input id="cobro-codigo-suelto" placeholder="Código producto" style="flex:1;">
+      <select id="cobro-sueltos" style="flex:2;">
+        <option value="">Elija un Item (Sueltos)</option>
+      </select>
+      <button id="btn-add-suelto">OK</button>
+    </div>
+
+    <!-- TABLA DE COBRO (misma para todo) -->
     <table id="tabla-cobro">
       <thead>
         <tr>
-          <th>Cant</th><th>Producto</th><th>Precio Unidad</th><th>Total</th><th>Acción</th>
+          <th>Cant / KG</th>
+          <th>Producto</th>
+          <th>Precio Unidad</th>
+          <th>Total</th>
+          <th>Acción</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -112,6 +130,34 @@
         <tbody></tbody>
       </table>
     </section>
+
+    <!-- SUELTOS -->
+<section id="sueltos" class="hidden">
+  <h2>Sueltos</h2>
+
+  <div style="display:flex; gap:5px; align-items:center; margin-bottom:5px;">
+    <input id="sueltos-codigo" placeholder="Código producto" style="flex:1;">
+    <input id="sueltos-kg" type="text" value="0.100" readonly style="width:60px; text-align:center;">
+    <button id="sueltos-btn-decr" style="width:30px;">-</button>
+    <button id="sueltos-btn-incr" style="width:30px;">+</button>
+    <button id="btn-agregar-suelto">➕Agregar Suelto➕</button>
+    <button id="btn-buscar-suelto">🔍Buscar</button>
+  </div>
+
+  <table id="tabla-sueltos">
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Nombre</th>
+        <th>KG</th>
+        <th>Fecha</th>
+        <th>Precio</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</section>
 
     <!-- CAJEROS -->
     <section id="cajeros" class="hidden">
