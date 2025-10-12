@@ -623,11 +623,12 @@ async function finalizarCobro(tipoPago) {
     tipo: tipoPago,
     fecha: ahoraISO(),
     items: carrito.map(it => ({
-      codigo: it.codigo,
-      nombre: it.nombre,
-      precio: it.precio,
-      cantidad: it.cantidad
-    }))
+  codigo: it.codigo,
+  nombre: it.nombre,
+  precio: it.precio,
+  cantidad: it.cantidad,
+  tipo: it.tipo || "normal"
+}))
   };
 
   // Actualizar stock de sueltos
