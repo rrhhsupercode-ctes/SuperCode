@@ -484,14 +484,26 @@ if (cobroSueltosSelect) {
 }
 
 // Incrementar / decrementar KG en la fila de cobro
-btnIncrKgCobro.onclick = () => {
+btnIncrKgCobro.onclick = async () => {
+  const codigo = cobroSueltosSelect.value || inputCodigoSueltoCobro.value;
+  if (!codigo) return;
+
+  const snap = await window.get(window.ref(window.db, `sueltos/${codigo}`));
+  if (!snap.exists()) return;
+
+  const prod = snap.val();
   let val = Number(inputKgSueltoCobro.value);
-  val = Math.min(99.900, val + 0.100);
+  val += 0.1;
+  if (val > Number(prod.kg)) {
+    val = Number(prod.kg); // no superar stock
+    alert(`Stock insuficiente: solo hay ${prod.kg.toFixed(3)} kg disponibles`);
+  }
   inputKgSueltoCobro.value = val.toFixed(3);
 };
+
 btnDecrKgCobro.onclick = () => {
   let val = Number(inputKgSueltoCobro.value);
-  val = Math.max(0, val - 0.100); // mínimo 0.000
+  val = Math.max(0, val - 0.1); // mínimo 0
   inputKgSueltoCobro.value = val.toFixed(3);
 };
 
@@ -513,10 +525,10 @@ async function agregarSueltoCarrito(codigo) {
     : Number(String(prod.precio).replace(",", "."));
 
   // Validar stock suelto
-if (kg > Number(prod.kg)) {
-  alert(`Stock insuficiente: solo hay ${Number(prod.kg).toFixed(3)} kg de ${prod.nombre}`);
-  return; // cancelar la acción
-}
+  if (kg > Number(prod.kg)) {
+    alert(`Stock insuficiente: solo hay ${Number(prod.kg).toFixed(3)} kg de ${prod.nombre}`);
+    return; // cancelar la acción
+  }
 
   if (kg <= 0) {
     alert(`No hay stock disponible de ${prod.nombre}`);
@@ -550,8 +562,7 @@ inputCodigoSueltoCobro.addEventListener("keydown", async (e) => {
 
 // Click en botón OK suelto
 btnAddSuelto.addEventListener("click", async () => {
-  let codigo = cobroSueltosSelect.value;
-  if (!codigo) codigo = inputCodigoSueltoCobro.value;
+  let codigo = cobroSueltosSelect.value || inputCodigoSueltoCobro.value;
   if (!codigo) return alert("Seleccione un suelto o ingrese un código");
   await agregarSueltoCarrito(codigo);
   inputCodigoSueltoCobro.value = "";
