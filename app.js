@@ -1173,14 +1173,11 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
         if (tipo === "sueltos") {
           const refSuelto = window.ref(window.db, `sueltos/${item.codigo}`);
           const snapSuelto = await window.get(refSuelto);
-          
-          // ✅ Recuperar cantidad correctamente (kg si existe, sino cantidad)
-          const cantidadKg = Number(item.kg ?? item.cantidad ?? 0);
+          const cantidadKg = Number(item.kg || 0);
 
           if (snapSuelto.exists()) {
             const prod = snapSuelto.val();
-            const nuevaCantidad = Number(((prod.kg || 0) + cantidadKg).toFixed(3));
-            await window.update(refSuelto, { kg: nuevaCantidad });
+            await window.update(refSuelto, { kg: Number(((prod.kg || 0) + cantidadKg).toFixed(3)) });
             console.log(`✅ Suelto ${item.nombre} restaurado: +${cantidadKg} kg`);
           } else {
             await window.set(refSuelto, {
@@ -1220,6 +1217,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
     console.log(`Movimiento ${btn.dataset.id} eliminado y stock/sueltos restaurados`);
   });
 });
+
 
   // Botones ver movimiento
   document.querySelectorAll(".btn-ver-mov").forEach(btn => {
