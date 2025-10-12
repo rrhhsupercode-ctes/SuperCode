@@ -873,24 +873,12 @@ window.onValue(window.ref(window.db, "sueltos"), snap => {
     btn.onclick = () => requireAdminConfirm(() => editarSueltoModal(btn.dataset.id));
   });
 
-  // Botones + y - (respetando stock real)
+  // Botones + y - (solo mínimo 0, sin límite superior)
   document.querySelectorAll(".btn-incr-kg").forEach(btn => {
-    btn.onclick = async () => {
-      const refProd = window.ref(window.db, `sueltos/${btn.dataset.id}`);
-      const snap = await window.get(refProd);
-      if (!snap.exists()) return;
-      const prod = snap.val();
-
+    btn.onclick = () => {
       const input = document.querySelector(`.input-kg[data-id="${btn.dataset.id}"]`);
       let valActual = Number(input.value);
-      let nuevoKg = valActual + 0.1;
-
-      if (nuevoKg > Number(prod.kg)) {
-        alert(`Stock insuficiente: solo hay ${Number(prod.kg).toFixed(3)} kg disponibles`);
-        nuevoKg = Number(prod.kg);
-      }
-
-      input.value = nuevoKg.toFixed(3);
+      input.value = (valActual + 0.1).toFixed(3);
     };
   });
 
@@ -898,8 +886,7 @@ window.onValue(window.ref(window.db, "sueltos"), snap => {
     btn.onclick = () => {
       const input = document.querySelector(`.input-kg[data-id="${btn.dataset.id}"]`);
       let valActual = Number(input.value);
-      let nuevoKg = Math.max(0, valActual - 0.1);
-      input.value = nuevoKg.toFixed(3);
+      input.value = Math.max(0, valActual - 0.1).toFixed(3);
     };
   });
 });
@@ -935,14 +922,12 @@ btnAgregarSuelto.onclick = async () => {
 // === Botones fila de + / - KG ===
 btnIncrKg.onclick = () => {
   let val = Number(inputKgSuelto.value);
-  val = Math.min(99.9, val + 0.1);
-  inputKgSuelto.value = val.toFixed(3);
+  inputKgSuelto.value = Math.min(99.9, val + 0.1).toFixed(3);
 };
 
 btnDecrKg.onclick = () => {
   let val = Number(inputKgSuelto.value);
-  val = Math.max(0, val - 0.1);
-  inputKgSuelto.value = val.toFixed(3);
+  inputKgSuelto.value = Math.max(0, val - 0.1).toFixed(3);
 };
 
 // === Botón BUSCAR SUELTOS ===
@@ -1024,7 +1009,6 @@ function editarSueltoModal(codigo) {
     };
   })();
 }
-
 
   // -----------------------
   // CAJEROS
