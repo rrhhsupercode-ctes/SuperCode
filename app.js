@@ -475,11 +475,11 @@ if (cobroSueltosSelect) {
     if (!snap.exists()) return;
     const data = snap.val();
     cobroSueltosSelect.innerHTML = '<option value="">Elija un Item (Sueltos)</option>';
-Object.entries(data).forEach(([codigo, prod]) => {
-  if (Number(prod.kg) > 0) {  // <-- solo mostrar si hay stock
-    cobroSueltosSelect.innerHTML += `<option value="${codigo}">${escapeHtml(prod.nombre || codigo)}</option>`;
-  }
-});
+    Object.entries(data).forEach(([codigo, prod]) => {
+      if (Number(prod.kg) > 0) {  // solo mostrar si hay stock
+        cobroSueltosSelect.innerHTML += `<option value="${codigo}">${escapeHtml(prod.nombre || codigo)}</option>`;
+      }
+    });
   });
 }
 
@@ -513,24 +513,30 @@ async function agregarSueltoCarrito(codigo) {
     : Number(String(prod.precio).replace(",", "."));
 
   // Validar stock suelto
-if (kg > Number(prod.kg)) {
-  alert(`Solo quedan ${Number(prod.kg).toFixed(3)} kg de ${prod.nombre}`);
-  return;
-}
+  if (kg > Number(prod.kg)) {
+    kg = Number(prod.kg); // vender todo lo que queda
+    alert(`Solo quedan ${kg.toFixed(3)} kg de ${prod.nombre}, se venderá todo.`);
+  }
 
-// Si ya está en carrito, sumar KG
-const idx = carrito.findIndex(it => it.codigo === codigo && it.tipo === "suelto");
-if (idx >= 0) {
-  carrito[idx].cantidad += kg;
-} else {
-  carrito.push({
-    codigo,
-    nombre: prod.nombre || "SIN NOMBRE",
-    precio: Number(precioNumber) || 0,
-    cantidad: kg,
-    tipo: "suelto"
-  });
-}
+  if (kg <= 0) {
+    alert(`No hay stock disponible de ${prod.nombre}`);
+    return;
+  }
+
+  // Si ya está en carrito, sumar KG
+  const idx = carrito.findIndex(it => it.codigo === codigo && it.tipo === "suelto");
+  if (idx >= 0) {
+    carrito[idx].cantidad += kg;
+  } else {
+    carrito.push({
+      codigo,
+      nombre: prod.nombre || "SIN NOMBRE",
+      precio: Number(precioNumber) || 0,
+      cantidad: kg,
+      tipo: "suelto"
+    });
+  }
+
   renderCarrito();
 }
 
@@ -552,7 +558,6 @@ btnAddSuelto.addEventListener("click", async () => {
   cobroSueltosSelect.value = "";
   inputKgSueltoCobro.value = "0.100";
 });
-
   
 // -----------------------
 // COBRAR Y FINALIZAR
