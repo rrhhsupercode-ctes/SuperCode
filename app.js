@@ -1165,7 +1165,7 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
     if (mov.items && Array.isArray(mov.items)) {
       for (const item of mov.items) {
 
-        if (item.tipo === "suelto") {
+        if (item.tipo === "sueltos") {
           // Restaurar suelto
           const refSuelto = window.ref(window.db, `sueltos/${item.codigo}`);
           const snapSuelto = await window.get(refSuelto);
