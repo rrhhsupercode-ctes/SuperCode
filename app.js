@@ -513,10 +513,10 @@ async function agregarSueltoCarrito(codigo) {
     : Number(String(prod.precio).replace(",", "."));
 
   // Validar stock suelto
-  if (kg > Number(prod.kg)) {
-    kg = Number(prod.kg); // vender todo lo que queda
-    alert(`Solo quedan ${kg.toFixed(3)} kg de ${prod.nombre}, se venderá todo.`);
-  }
+if (kg > Number(prod.kg)) {
+  alert(`Stock insuficiente: solo hay ${Number(prod.kg).toFixed(3)} kg de ${prod.nombre}`);
+  return; // cancelar la acción
+}
 
   if (kg <= 0) {
     alert(`No hay stock disponible de ${prod.nombre}`);
@@ -860,26 +860,33 @@ window.onValue(window.ref(window.db, "sueltos"), snap => {
     btn.onclick = () => requireAdminConfirm(() => editarSueltoModal(btn.dataset.id));
   });
 
-  // Botones + y -
+  // Botones + y - (respetando stock)
   document.querySelectorAll(".btn-incr-kg").forEach(btn => {
     btn.onclick = async () => {
       const refProd = window.ref(window.db, `sueltos/${btn.dataset.id}`);
       const snap = await window.get(refProd);
       if (!snap.exists()) return;
       const prod = snap.val();
-      let nuevoKg = Math.min(99.9, Number(prod.kg || 0) + 0.1);
-      await window.update(refProd, { kg: Number(nuevoKg.toFixed(3)), fecha: ahoraISO() });
+
+      const input = document.querySelector(`.input-kg[data-id="${btn.dataset.id}"]`);
+      let valActual = Number(input.value);
+
+      let nuevoKg = valActual + 0.1;
+      if (nuevoKg > Number(prod.kg)) {
+        alert(`Stock insuficiente: solo hay ${Number(prod.kg).toFixed(3)} kg disponibles`);
+        return;
+      }
+
+      input.value = nuevoKg.toFixed(3);
     };
   });
 
   document.querySelectorAll(".btn-decr-kg").forEach(btn => {
-    btn.onclick = async () => {
-      const refProd = window.ref(window.db, `sueltos/${btn.dataset.id}`);
-      const snap = await window.get(refProd);
-      if (!snap.exists()) return;
-      const prod = snap.val();
-      let nuevoKg = Math.max(0, Number(prod.kg || 0) - 0.1); // <-- mínimo 0
-      await window.update(refProd, { kg: Number(nuevoKg.toFixed(3)), fecha: ahoraISO() });
+    btn.onclick = () => {
+      const input = document.querySelector(`.input-kg[data-id="${btn.dataset.id}"]`);
+      let valActual = Number(input.value);
+      let nuevoKg = Math.max(0, valActual - 0.1);
+      input.value = nuevoKg.toFixed(3);
     };
   });
 });
@@ -898,7 +905,7 @@ btnAgregarSuelto.onclick = async () => {
   }
 
   let kgVal = Number(inputKgSuelto.value);
-  if (kgVal < 0) kgVal = 0; // <-- mínimo 0
+  if (kgVal < 0) kgVal = 0;
   if (kgVal > 99.9) kgVal = 99.9;
 
   await window.set(refProd, {
@@ -909,7 +916,7 @@ btnAgregarSuelto.onclick = async () => {
   });
 
   inputSueltoCodigo.value = "";
-  inputKgSuelto.value = "0.000"; // <-- mínimo 0
+  inputKgSuelto.value = "0.000";
 };
 
 // === Botones fila de + / - KG ===
@@ -921,7 +928,7 @@ btnIncrKg.onclick = () => {
 
 btnDecrKg.onclick = () => {
   let val = Number(inputKgSuelto.value);
-  val = Math.max(0, val - 0.1); // <-- mínimo 0
+  val = Math.max(0, val - 0.1);
   inputKgSuelto.value = val.toFixed(3);
 };
 
@@ -986,7 +993,7 @@ function editarSueltoModal(codigo) {
       const nombre = (document.getElementById("__edit_suelto_nombre").value || "").trim();
       const precio = (document.getElementById("__edit_suelto_precio").value || "").trim();
       let kgVal = safeNumber(document.getElementById("__edit_suelto_kg").value.replace(",", "."));
-      if (kgVal < 0) kgVal = 0; // <-- mínimo 0
+      if (kgVal < 0) kgVal = 0;
       if (kgVal > 99.9) kgVal = 99.9;
 
       if (!/^\d{1,5},\d{2}$/.test(precio)) {
