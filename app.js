@@ -491,7 +491,7 @@ btnIncrKgCobro.onclick = () => {
 };
 btnDecrKgCobro.onclick = () => {
   let val = Number(inputKgSueltoCobro.value);
-  val = Math.max(0.100, val - 0.100);
+  val = Math.max(0, val - 0.100); // mínimo 0.000
   inputKgSueltoCobro.value = val.toFixed(3);
 };
 
@@ -545,7 +545,7 @@ inputCodigoSueltoCobro.addEventListener("keydown", async (e) => {
   if (e.key !== "Enter") return;
   await agregarSueltoCarrito(inputCodigoSueltoCobro.value);
   inputCodigoSueltoCobro.value = "";
-  inputKgSueltoCobro.value = "0.100";
+  inputKgSueltoCobro.value = "0.000";
 });
 
 // Click en botón OK suelto
@@ -556,7 +556,7 @@ btnAddSuelto.addEventListener("click", async () => {
   await agregarSueltoCarrito(codigo);
   inputCodigoSueltoCobro.value = "";
   cobroSueltosSelect.value = "";
-  inputKgSueltoCobro.value = "0.100";
+  inputKgSueltoCobro.value = "0.000";
 });
   
 // -----------------------
