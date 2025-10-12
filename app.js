@@ -1152,7 +1152,9 @@ cajerosOrdenados.forEach(([nro, caj]) => {
       tablaMovimientosBody.appendChild(tr);
     });
 
-    // attach actions
+// =======================
+// BOTÓN ELIMINAR MOVIMIENTO
+// =======================
 document.querySelectorAll(".btn-del-mov").forEach(btn => {
   btn.onclick = () => requireAdminConfirm(async () => {
     const movRef = window.ref(window.db, `movimientos/${btn.dataset.id}`);
@@ -1161,58 +1163,48 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
 
     const mov = snap.val();
 
-    // 🔥 Restaurar stock / sueltos antes de eliminar
     if (mov.items && Array.isArray(mov.items)) {
       for (const item of mov.items) {
-
         if (item.tipo === "suelto") {
-          // Restaurar suelto
+          // Restaurar sueltos
           const refSuelto = window.ref(window.db, `sueltos/${item.codigo}`);
           const snapSuelto = await window.get(refSuelto);
-
           if (snapSuelto.exists()) {
             const prod = snapSuelto.val();
-            const nuevaCantidad = (prod.kg || 0) + (item.cantidad || 0);
-            await window.update(refSuelto, { kg: nuevaCantidad });
+            await window.update(refSuelto, { kg: Number((prod.kg || 0) + Number(item.cantidad)).toFixed(3), fecha: ahoraISO() });
           } else {
-            // Si no existe, crearlo
             await window.set(refSuelto, {
               nombre: item.nombre || "PRODUCTO NUEVO",
-              precio: item.precio || 0,
-              kg: item.cantidad,
-              fecha: new Date().toISOString()
+              precio: item.precio || "00000,00",
+              kg: Number(item.cantidad).toFixed(3),
+              fecha: ahoraISO()
             });
           }
-
         } else {
           // Restaurar stock normal
           const stockRef = window.ref(window.db, `stock/${item.codigo}`);
           const stockSnap = await window.get(stockRef);
-
           if (stockSnap.exists()) {
             const prod = stockSnap.val();
-            const nuevaCantidad = (prod.cantidad || 0) + (item.cantidad || 0);
-            await window.update(stockRef, { cantidad: nuevaCantidad });
+            await window.update(stockRef, { cantidad: (Number(prod.cantidad || 0) + Number(item.cantidad)), fecha: ahoraISO() });
           } else {
             await window.set(stockRef, {
               codigo: item.codigo,
               nombre: item.nombre || "PRODUCTO NUEVO",
-              cantidad: item.cantidad,
-              precio: item.precio || 0,
-              fecha: new Date().toLocaleString()
+              cantidad: Number(item.cantidad),
+              precio: item.precio || "00000,00",
+              fecha: ahoraISO()
             });
           }
         }
-
-      } // fin for items
+      }
     }
 
-    // Ahora sí, eliminar el movimiento
+    // Finalmente eliminar el movimiento
     await window.remove(movRef);
-    console.log(`Movimiento ${btn.dataset.id} eliminado y stock/sueltos restaurados`);
+    console.log(`Movimiento ${btn.dataset.id} eliminado y stock/sueltos restaurados correctamente`);
   });
 });
-
 
     document.querySelectorAll(".btn-ver-mov").forEach(btn => {
       btn.onclick = () => verMovimientoModal(btn.dataset.id);
