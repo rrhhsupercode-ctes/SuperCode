@@ -1215,6 +1215,10 @@ document.querySelectorAll(".btn-del-mov").forEach(btn => {
     // Eliminar movimiento
     await window.remove(movRef);
     console.log(`Movimiento ${btn.dataset.id} eliminado y stock/sueltos restaurados`);
+
+    // 🔹 Actualizar tabla de sueltos automáticamente
+    const snapSueltos = await window.get(window.ref(window.db, "sueltos"));
+    renderTablaSueltos(snapSueltos.exists() ? snapSueltos.val() : null);
   });
 });
 
