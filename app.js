@@ -427,19 +427,34 @@ function renderCarrito() {
   if (totalDiv) totalDiv.textContent = `TOTAL: ${formatoPrecioParaPantalla(total)}`;
   if (btnCobrar) btnCobrar.classList.toggle("hidden", carrito.length === 0);
 
-  // Botones eliminar con confirmación admin
+  // 🔥 Botones eliminar con confirmación admin (respetando tipo de producto)
   document.querySelectorAll(".btn-delete-cart").forEach(btn => {
     btn.onclick = () => {
       const i = Number(btn.dataset.i);
       const it = carrito[i];
       requireAdminConfirm(async () => {
-        const snap = await window.get(window.ref(window.db, `stock/${it.codigo}`));
-        if (snap.exists()) {
-          const prod = snap.val();
-          await window.update(window.ref(window.db, `stock/${it.codigo}`), {
-            cantidad: Number(prod.cantidad) + Number(it.cantidad)
-          });
+        if (it.tipo === "suelto") {
+          // ➕ Restaurar stock de sueltos
+          const refSuelto = window.ref(window.db, `sueltos/${it.codigo}`);
+          const snapSuelto = await window.get(refSuelto);
+          if (snapSuelto.exists()) {
+            const prod = snapSuelto.val();
+            await window.update(refSuelto, {
+              kg: Number(prod.kg) + Number(it.cantidad)
+            });
+          }
+        } else {
+          // ➕ Restaurar stock normal
+          const refStock = window.ref(window.db, `stock/${it.codigo}`);
+          const snapStock = await window.get(refStock);
+          if (snapStock.exists()) {
+            const prod = snapStock.val();
+            await window.update(refStock, {
+              cantidad: Number(prod.cantidad) + Number(it.cantidad)
+            });
+          }
         }
+
         carrito.splice(i, 1);
         renderCarrito();
       });
@@ -447,17 +462,6 @@ function renderCarrito() {
   });
 }
 
-// Actualizar select de productos en tiempo real
-if (cobroProductosSelect) {
-  window.onValue(window.ref(window.db, "stock"), snap => {
-    if (!snap.exists()) return;
-    const data = snap.val();
-    cobroProductosSelect.innerHTML = '<option value="">Elija un Item</option>';
-    Object.entries(data).forEach(([codigo, prod]) => {
-      cobroProductosSelect.innerHTML += `<option value="${codigo}">${escapeHtml(prod.nombre || codigo)}</option>`;
-    });
-  });
-}
 
 // -----------------------
 // SUELTOS EN COBRAR
@@ -630,15 +634,27 @@ async function finalizarCobro(tipoPago) {
     }))
   };
 
-  // Actualizar stock de sueltos
+// 🔥 Actualizar inventarios según tipo de producto
 for (let it of carrito) {
-  if (it.tipo === "suelto") {
+  const tipo = (it.tipo || "").toLowerCase();
+
+  if (tipo === "suelto") {
+    // ✅ Actualizar sueltos
     const refSuelto = window.ref(window.db, `sueltos/${it.codigo}`);
     const snap = await window.get(refSuelto);
     if (snap.exists()) {
       const prod = snap.val();
-      let nuevoKg = Math.max(0, Number(prod.kg) - Number(it.cantidad)); // no bajar de 0.1 ha sido desactivado
+      let nuevoKg = Math.max(0, Number(prod.kg) - Number(it.cantidad));
       await window.update(refSuelto, { kg: Number(nuevoKg.toFixed(3)), fecha: ahoraISO() });
+    }
+  } else {
+    // ✅ Actualizar stock normal
+    const refStock = window.ref(window.db, `stock/${it.codigo}`);
+    const snap = await window.get(refStock);
+    if (snap.exists()) {
+      const prod = snap.val();
+      let nuevaCant = Math.max(0, Number(prod.cantidad) - Number(it.cantidad));
+      await window.update(refStock, { cantidad: nuevaCant, fecha: ahoraISO() });
     }
   }
 }
