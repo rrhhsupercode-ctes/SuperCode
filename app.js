@@ -427,34 +427,19 @@ function renderCarrito() {
   if (totalDiv) totalDiv.textContent = `TOTAL: ${formatoPrecioParaPantalla(total)}`;
   if (btnCobrar) btnCobrar.classList.toggle("hidden", carrito.length === 0);
 
-  // 🔥 Botones eliminar con confirmación admin (respetando tipo de producto)
+  // Botones eliminar con confirmación admin
   document.querySelectorAll(".btn-delete-cart").forEach(btn => {
     btn.onclick = () => {
       const i = Number(btn.dataset.i);
       const it = carrito[i];
       requireAdminConfirm(async () => {
-        if (it.tipo === "suelto") {
-          // ➕ Restaurar stock de sueltos
-          const refSuelto = window.ref(window.db, `sueltos/${it.codigo}`);
-          const snapSuelto = await window.get(refSuelto);
-          if (snapSuelto.exists()) {
-            const prod = snapSuelto.val();
-            await window.update(refSuelto, {
-              kg: Number(prod.kg) + Number(it.cantidad)
-            });
-          }
-        } else {
-          // ➕ Restaurar stock normal
-          const refStock = window.ref(window.db, `stock/${it.codigo}`);
-          const snapStock = await window.get(refStock);
-          if (snapStock.exists()) {
-            const prod = snapStock.val();
-            await window.update(refStock, {
-              cantidad: Number(prod.cantidad) + Number(it.cantidad)
-            });
-          }
+        const snap = await window.get(window.ref(window.db, `stock/${it.codigo}`));
+        if (snap.exists()) {
+          const prod = snap.val();
+          await window.update(window.ref(window.db, `stock/${it.codigo}`), {
+            cantidad: Number(prod.cantidad) + Number(it.cantidad)
+          });
         }
-
         carrito.splice(i, 1);
         renderCarrito();
       });
@@ -462,6 +447,17 @@ function renderCarrito() {
   });
 }
 
+// Actualizar select de productos en tiempo real
+if (cobroProductosSelect) {
+  window.onValue(window.ref(window.db, "stock"), snap => {
+    if (!snap.exists()) return;
+    const data = snap.val();
+    cobroProductosSelect.innerHTML = '<option value="">Elija un Item</option>';
+    Object.entries(data).forEach(([codigo, prod]) => {
+      cobroProductosSelect.innerHTML += `<option value="${codigo}">${escapeHtml(prod.nombre || codigo)}</option>`;
+    });
+  });
+}
 
 // -----------------------
 // SUELTOS EN COBRAR
@@ -490,6 +486,1343 @@ if (cobroSueltosSelect) {
 // Ajustar valor del input sin superar stock
 async function ajustarKgInput(codigo, incremento) {
   if (!codigo) return;
+  const snap = await window.get(window.ref(window.db, `sueltos/${codigo}`));
+  if (!snap.exists()) return alert("Producto suelto no encontrado");
+
+  const prod = snap.val();
+  let val = Number(inputKgSueltoCobro.value) + incremento;
+
+  if (val > Number(prod.kg)) {
+    val = Number(prod.kg);
+    if (incremento > 0) alert(`Stock insuficiente: solo hay ${prod.kg.toFixed(3)} kg de ${prod.nombre}`);
+  }
+  if (val < 0) val = 0;
+
+  inputKgSueltoCobro.value = val.toFixed(3);
+}
+
+// Incrementar / decrementar KG
+btnIncrKgCobro.onclick = async () => {
+  const codigo = cobroSueltosSelect.value || inputCodigoSueltoCobro.value;
+  await ajustarKgInput(codigo, 0.1);
+};
+
+btnDecrKgCobro.onclick = async () => {
+  const codigo = cobroSueltosSelect.value || inputCodigoSueltoCobro.value;
+  await ajustarKgInput(codigo, -0.1);
+};
+
+// Agregar suelto al carrito con validación estricta de stock
+async function agregarSueltoCarrito(codigo) {
+  codigo = (codigo || "").trim();
+  if (!codigo) return;
+
+  const snap = await window.get(window.ref(window.db, `sueltos/${codigo}`));
+  if (!snap.exists()) return alert("Producto suelto no encontrado");
+
+  const prod = snap.val();
+  let kg = safeNumber(inputKgSueltoCobro.value);
+
+  if (kg <= 0) return alert(`Ingrese cantidad válida de ${prod.nombre}`);
+  if (kg > Number(prod.kg)) {
+    alert(`Stock insuficiente: solo hay ${Number(prod.kg).toFixed(3)} kg de ${prod.nombre}`);
+    inputKgSueltoCobro.value = Number(prod.kg).toFixed(3);
+    return;
+  }
+
+  const precioNumber = (typeof prod.precio === "number")
+    ? prod.precio
+    : Number(String(prod.precio).replace(",", "."));
+
+  const idx = carrito.findIndex(it => it.codigo === codigo && it.tipo === "suelto");
+  if (idx >= 0) {
+    let suma = carrito[idx].cantidad + kg;
+    if (suma > Number(prod.kg)) {
+      alert(`Stock insuficiente: solo hay ${Number(prod.kg).toFixed(3)} kg de ${prod.nombre}`);
+      carrito[idx].cantidad = Number(prod.kg);
+    } else {
+      carrito[idx].cantidad += kg;
+    }
+  } else {
+    carrito.push({
+      codigo,
+      nombre: prod.nombre || "SIN NOMBRE",
+      precio: Number(precioNumber) || 0,
+      cantidad: kg,
+      tipo: "suelto"
+    });
+  }
+
+  renderCarrito();
+}
+
+// Enter en input código suelto
+inputCodigoSueltoCobro.addEventListener("keydown", async (e) => {
+  if (e.key !== "Enter") return;
+  await agregarSueltoCarrito(inputCodigoSueltoCobro.value);
+  inputCodigoSueltoCobro.value = "";
+  inputKgSueltoCobro.value = "0.000";
+});
+
+// Click en botón OK suelto
+btnAddSuelto.addEventListener("click", async () => {
+  let codigo = cobroSueltosSelect.value || inputCodigoSueltoCobro.value;
+  if (!codigo) return alert("Seleccione un suelto o ingrese un código");
+  await agregarSueltoCarrito(codigo);
+  inputCodigoSueltoCobro.value = "";
+  cobroSueltosSelect.value = "";
+  inputKgSueltoCobro.value = "0.000";
+});
+  
+// -----------------------
+// COBRAR Y FINALIZAR
+// -----------------------
+
+if (btnCobrar) {
+  btnCobrar.addEventListener("click", () => {
+    if (!cajeroActivo) return alert("Ingrese con un cajero primero");
+    if (carrito.length === 0) return;
+
+    mostrarModal(`
+      <h3>¿Efectivo o Tarjeta?</h3>
+      <div style="margin-top:10px">
+        <button id="__pay_cash">💵 Efectivo</button>
+        <button id="__pay_card">💳 Tarjeta</button>
+        <button id="__pay_cancel">❌ Cancelar</button>
+      </div>
+    `);
+
+    document.getElementById("__pay_cancel").onclick = cerrarModal;
+    document.getElementById("__pay_cash").onclick = () => finalizarCobro("Efectivo");
+    document.getElementById("__pay_card").onclick = () => finalizarCobro("Tarjeta");
+  });
+}
+
+// Generador de número de ticket secuencial diario
+function generarNumeroTicket() {
+  const hoy = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
+  const ultimaFecha = localStorage.getItem("ticket_fecha");
+  let contador = parseInt(localStorage.getItem("ticket_contador") || "0", 10);
+  if (ultimaFecha !== hoy) {
+    contador = 0;
+    localStorage.setItem("ticket_fecha", hoy);
+  }
+  contador++;
+  localStorage.setItem("ticket_contador", contador);
+  return "ID_" + String(contador).padStart(6, "0");
+}
+
+// Finalizar cobro y guardar en historial
+async function finalizarCobro(tipoPago) {
+  cerrarModal();
+  const movId = generarNumeroTicket();
+  const mov = {
+    id: movId,
+    cajero: cajeroActivo ? (cajeroActivo.nro || cajeroActivo.nombre) : "N/A",
+    total,
+    tipo: tipoPago,
+    fecha: ahoraISO(),
+    items: carrito.map(it => ({
+      codigo: it.codigo,
+      nombre: it.nombre,
+      precio: it.precio,
+      cantidad: it.cantidad
+    }))
+  };
+
+  // Actualizar stock de sueltos
+for (let it of carrito) {
+  if (it.tipo === "suelto") {
+    const refSuelto = window.ref(window.db, `sueltos/${it.codigo}`);
+    const snap = await window.get(refSuelto);
+    if (snap.exists()) {
+      const prod = snap.val();
+      let nuevoKg = Math.max(0, Number(prod.kg) - Number(it.cantidad)); // no bajar de 0.1 ha sido desactivado
+      await window.update(refSuelto, { kg: Number(nuevoKg.toFixed(3)), fecha: ahoraISO() });
+    }
+  }
+}
+
+  // Guardar en movimientos
+  await window.set(window.ref(window.db, `movimientos/${movId}`), mov);
+
+  // Guardar copia en historial por año-mes
+  try {
+    const fechaMov = mov.fecha ? new Date(mov.fecha) : new Date();
+    const año = fechaMov.getFullYear();
+    const mes = String(fechaMov.getMonth() + 1).padStart(2, "0");
+    await window.set(window.ref(window.db, `historial/${año}-${mes}/${movId}`), mov);
+  } catch (err) {
+    console.error("❌ Error guardando en historial:", err);
+  }
+
+  imprimirTicketMov(mov);
+  carrito = [];
+  renderCarrito();
+  alert("✅ Venta finalizada");
+}
+
+// -----------------------
+// STOCK
+// -----------------------
+window.onValue(window.ref(window.db, "stock"), snap => {
+  if (!tablaStockBody) return;
+  tablaStockBody.innerHTML = "";
+  if (!snap.exists()) return;
+
+  const data = snap.val();
+
+  // Convertir a array y ordenar por fecha (descendente)
+  const ordenados = Object.entries(data).sort(([, a], [, b]) => {
+    const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
+    const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
+    return tb - ta; // más nuevo primero
+  });
+
+  ordenados.forEach(([codigo, prod]) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(codigo)}</td>
+      <td>${escapeHtml(prod.nombre || "")}</td>
+      <td>${Number(prod.cantidad) || 0}</td>
+      <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
+      <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
+      <td>
+        <button class="btn-edit-stock" data-id="${codigo}">✏️</button>
+        <button class="btn-del-stock" data-id="${codigo}">❌</button>
+      </td>
+    `;
+    tablaStockBody.appendChild(tr);
+  });
+
+  // Reasignar eventos a botones
+  document.querySelectorAll(".btn-del-stock").forEach(btn => {
+    btn.onclick = () => {
+      requireAdminConfirm(async () => {
+        await window.remove(window.ref(window.db, `stock/${btn.dataset.id}`));
+      });
+    };
+  });
+  document.querySelectorAll(".btn-edit-stock").forEach(btn => {
+    btn.onclick = () => requireAdminConfirm(() => editarStockModal(btn.dataset.id));
+  });
+});
+
+// === Botón AGREGAR STOCK ===
+if (btnAgregarStock) {
+  btnAgregarStock.addEventListener("click", async () => {
+    const codigo = (inputStockCodigo.value || "").trim();
+    const cantidad = safeNumber(stockCantidadSelect.value);
+    if (!codigo) {
+      alert("Ingrese código");
+      return;
+    }
+    const refProd = window.ref(window.db, `stock/${codigo}`);
+    const snap = await window.get(refProd);
+    if (snap.exists()) {
+      const prod = snap.val();
+      await window.update(refProd, { cantidad: (Number(prod.cantidad) || 0) + cantidad, fecha: ahoraISO() });
+    } else {
+      await window.set(refProd, {
+        nombre: "PRODUCTO NUEVO",
+        cantidad,
+        precio: "00000,00",
+        fecha: ahoraISO()
+      });
+    }
+    inputStockCodigo.value = "";
+  });
+}
+
+// === Botón BUSCAR STOCK ===
+if (btnBuscarStock) {
+  btnBuscarStock.addEventListener("click", async () => {
+    const termino = (inputStockCodigo.value || "").trim().toLowerCase();
+    if (!termino) return alert("Ingrese código o nombre a buscar");
+
+    const snap = await window.get(window.ref(window.db, "stock"));
+    if (!snap.exists()) return alert("No hay productos cargados");
+
+    const data = snap.val();
+    const resultados = Object.entries(data).filter(([codigo, prod]) => {
+      return codigo.toLowerCase().includes(termino) || (prod.nombre || "").toLowerCase().includes(termino);
+    });
+
+    if (resultados.length === 0) return alert("No se encontraron productos");
+
+    // Limpiar tabla y mostrar solo resultados
+    tablaStockBody.innerHTML = "";
+    resultados.forEach(([codigo, prod]) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(codigo)}</td>
+        <td>${escapeHtml(prod.nombre || "")}</td>
+        <td>${Number(prod.cantidad) || 0}</td>
+        <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
+        <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
+        <td>
+          <button class="btn-edit-stock" data-id="${codigo}">✏️</button>
+          <button class="btn-del-stock" data-id="${codigo}">❌</button>
+        </td>
+      `;
+      tablaStockBody.appendChild(tr);
+    });
+
+    // Reasignar eventos a botones dentro de los resultados
+    document.querySelectorAll(".btn-del-stock").forEach(btn => {
+      btn.onclick = () => {
+        requireAdminConfirm(async () => {
+          await window.remove(window.ref(window.db, `stock/${btn.dataset.id}`));
+        });
+      };
+    });
+    document.querySelectorAll(".btn-edit-stock").forEach(btn => {
+      btn.onclick = () => requireAdminConfirm(() => editarStockModal(btn.dataset.id));
+    });
+  });
+}
+
+// === Función para editar producto ===
+function editarStockModal(codigo) {
+  (async () => {
+    const snap = await window.get(window.ref(window.db, `stock/${codigo}`));
+    if (!snap.exists()) return alert("Producto no encontrado");
+    const prod = snap.val();
+    mostrarModal(`
+      <h3>Editar Producto</h3>
+      <label>Nombre</label><input id="__edit_nombre" value="${escapeHtml(prod.nombre || "")}">
+      <label>Precio (00000,00)</label><input id="__edit_precio" value="${escapeHtml(String(prod.precio || "00000,00"))}">
+      <label>Cantidad</label><input id="__edit_cantidad" type="number" value="${Number(prod.cantidad) || 0}">
+      <div style="margin-top:10px">
+        <button id="__save_prod">✅Guardar</button>
+        <button id="__cancel_prod">❌Cancelar</button>
+      </div>
+    `);
+    document.getElementById("__cancel_prod").onclick = cerrarModal;
+    document.getElementById("__save_prod").onclick = async () => {
+      const nombre = (document.getElementById("__edit_nombre").value || "").trim();
+      const precio = (document.getElementById("__edit_precio").value || "").trim();
+      const cantidadVal = safeNumber(document.getElementById("__edit_cantidad").value);
+      if (!/^\d{1,5},\d{2}$/.test(precio)) {
+        alert("Precio inválido. Formato: 00000,00");
+        return;
+      }
+      await window.update(window.ref(window.db, `stock/${codigo}`), {
+        nombre: nombre || "PRODUCTO NUEVO",
+        precio: precio,
+        cantidad: cantidadVal,
+        fecha: ahoraISO()
+      });
+      cerrarModal();
+    };
+  })();
+}
+
+// -----------------------
+// SUELTOS
+// -----------------------
+const tablaSueltosBody = document.querySelector("#tabla-sueltos tbody");
+const inputSueltoCodigo = document.getElementById("sueltos-codigo");
+const inputKgSuelto = document.getElementById("sueltos-kg");
+const btnAgregarSuelto = document.getElementById("btn-agregar-suelto");
+const btnBuscarSuelto = document.getElementById("btn-buscar-suelto");
+const btnIncrKg = document.getElementById("sueltos-btn-incr");
+const btnDecrKg = document.getElementById("sueltos-btn-decr");
+
+// Escuchar cambios en sueltos y renderizar tabla
+window.onValue(window.ref(window.db, "sueltos"), snap => {
+  if (!tablaSueltosBody) return;
+  tablaSueltosBody.innerHTML = "";
+  if (!snap.exists()) return;
+
+  const data = snap.val();
+  const ordenados = Object.entries(data).sort(([, a], [, b]) => {
+    const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
+    const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
+    return tb - ta;
+  });
+
+  ordenados.forEach(([codigo, prod]) => {
+    const kgDisplay = Number(prod.kg || 0).toFixed(3);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(codigo)}</td>
+      <td>${escapeHtml(prod.nombre || "")}</td>
+      <td>
+        <input type="text" class="input-kg" data-id="${codigo}" value="${kgDisplay}" readonly>
+      </td>
+      <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
+      <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
+      <td>
+        <button class="btn-edit-suelto" data-id="${codigo}">✏️</button>
+        <button class="btn-del-suelto" data-id="${codigo}">❌</button>
+      </td>
+    `;
+    tablaSueltosBody.appendChild(tr);
+  });
+
+  // Botones eliminar
+  document.querySelectorAll(".btn-del-suelto").forEach(btn => {
+    btn.onclick = () => requireAdminConfirm(async () => {
+      await window.remove(window.ref(window.db, `sueltos/${btn.dataset.id}`));
+    });
+  });
+
+  // Botones editar
+  document.querySelectorAll(".btn-edit-suelto").forEach(btn => {
+    btn.onclick = () => requireAdminConfirm(() => editarSueltoModal(btn.dataset.id));
+  });
+});
+
+// === Botón agregar o sumar suelto ===
+btnAgregarSuelto.onclick = async () => {
+  const codigo = (inputSueltoCodigo.value || "").trim();
+  if (!codigo) return alert("Ingrese código");
+
+  const refProd = window.ref(window.db, `sueltos/${codigo}`);
+  const snap = await window.get(refProd);
+
+  let kgVal = Number(inputKgSuelto.value);
+  if (kgVal < 0) kgVal = 0;
+  if (kgVal > 99.9) kgVal = 99.9;
+
+  if (snap.exists()) {
+    // Sumar KG al producto existente
+    const prod = snap.val();
+    const nuevoKg = Math.min(99.9, Number(prod.kg || 0) + kgVal);
+    await window.update(refProd, { kg: Number(nuevoKg.toFixed(3)), fecha: ahoraISO() });
+  } else {
+    // Crear producto nuevo
+    await window.set(refProd, {
+      nombre: "PRODUCTO NUEVO",
+      precio: "00000,00",
+      kg: Number(kgVal.toFixed(3)),
+      fecha: ahoraISO()
+    });
+  }
+
+  inputSueltoCodigo.value = "";
+  inputKgSuelto.value = "0.000";
+};
+
+// === Botones fila de + / - KG (para el input de nuevo suelto) ===
+btnIncrKg.onclick = () => {
+  let val = Number(inputKgSuelto.value);
+  inputKgSuelto.value = Math.min(99.9, val + 0.1).toFixed(3);
+};
+
+btnDecrKg.onclick = () => {
+  let val = Number(inputKgSuelto.value);
+  inputKgSuelto.value = Math.max(0, val - 0.1).toFixed(3);
+};
+
+// === Botón BUSCAR SUELTOS ===
+btnBuscarSuelto.onclick = async () => {
+  const termino = (inputSueltoCodigo.value || "").trim().toLowerCase();
+  if (!termino) return alert("Ingrese código o nombre a buscar");
+
+  const snap = await window.get(window.ref(window.db, "sueltos"));
+  if (!snap.exists()) return alert("No hay productos cargados");
+
+  const data = snap.val();
+  const resultados = Object.entries(data).filter(([codigo, prod]) => {
+    return codigo.toLowerCase().includes(termino) || (prod.nombre || "").toLowerCase().includes(termino);
+  });
+
+  if (resultados.length === 0) return alert("No se encontraron productos");
+
+  tablaSueltosBody.innerHTML = "";
+  resultados.forEach(([codigo, prod]) => {
+    const kgDisplay = Number(prod.kg || 0).toFixed(3);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(codigo)}</td>
+      <td>${escapeHtml(prod.nombre || "")}</td>
+      <td>
+        <input type="text" class="input-kg" data-id="${codigo}" value="${kgDisplay}" readonly>
+      </td>
+      <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
+      <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
+      <td>
+        <button class="btn-edit-suelto" data-id="${codigo}">✏️</button>
+        <button class="btn-del-suelto" data-id="${codigo}">❌</button>
+      </td>
+    `;
+    tablaSueltosBody.appendChild(tr);
+  });
+};
+
+// === Función para editar SUELTO ===
+function editarSueltoModal(codigo) {
+  (async () => {
+    const snap = await window.get(window.ref(window.db, `sueltos/${codigo}`));
+    if (!snap.exists()) return alert("Producto no encontrado");
+    const prod = snap.val();
+
+    mostrarModal(`
+      <h3>Editar Producto</h3>
+      <label>Nombre</label><input id="__edit_suelto_nombre" value="${escapeHtml(prod.nombre || "")}">
+      <label>Precio (00000,00)</label><input id="__edit_suelto_precio" value="${escapeHtml(String(prod.precio || "00000,00"))}">
+      <label>KG</label><input id="__edit_suelto_kg" type="text" value="${Number(prod.kg || 0).toFixed(3)}">
+      <div style="margin-top:10px">
+        <button id="__save_suelto">✅Guardar</button>
+        <button id="__cancel_suelto">❌Cancelar</button>
+      </div>
+    `);
+
+    document.getElementById("__cancel_suelto").onclick = cerrarModal;
+    document.getElementById("__save_suelto").onclick = async () => {
+      const nombre = (document.getElementById("__edit_suelto_nombre").value || "").trim();
+      const precio = (document.getElementById("__edit_suelto_precio").value || "").trim();
+      let kgVal = safeNumber(document.getElementById("__edit_suelto_kg").value.replace(",", "."));
+      if (kgVal < 0) kgVal = 0;
+      if (kgVal > 99.9) kgVal = 99.9;
+
+      if (!/^\d{1,5},\d{2}$/.test(precio)) {
+        alert("Precio inválido. Formato: 00000,00");
+        return;
+      }
+
+      await window.update(window.ref(window.db, `sueltos/${codigo}`), {
+        nombre: nombre || "PRODUCTO NUEVO",
+        precio: precio,
+        kg: Number(kgVal.toFixed(3)),
+        fecha: ahoraISO()
+      });
+      cerrarModal();
+    };
+  })();
+}
+
+  // -----------------------
+  // CAJEROS
+  // -----------------------
+  window.onValue(window.ref(window.db, "cajeros"), snap => {
+    cajerosCache = {};
+    if (tablaCajerosBody) tablaCajerosBody.innerHTML = "";
+    // limpiar y añadir TODOS + cargar filtroCajero
+    if (filtroCajero) {
+      filtroCajero.innerHTML = `<option value="TODOS">TODOS</option>`;
+    }
+    if (!snap.exists()) return;
+    const data = snap.val();
+    // convertir data a array y ordenar por número
+const cajerosOrdenados = Object.entries(data).sort(([a], [b]) => {
+  return parseInt(a, 10) - parseInt(b, 10);
+});
+
+cajerosOrdenados.forEach(([nro, caj]) => {
+  cajerosCache[nro] = caj;
+
+  // tabla cajeros
+  if (tablaCajerosBody) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${escapeHtml(nro)}</td>
+      <td>${escapeHtml(caj.nombre || "")}</td>
+      <td>${escapeHtml(caj.dni || "")}</td>
+      <td>
+        <button class="btn-edit-caj" data-id="${nro}">✏️</button>
+        <button class="btn-del-caj" data-id="${nro}">❌</button>
+      </td>
+    `;
+    tablaCajerosBody.appendChild(tr);
+  }
+
+  // filtroCajero option
+  if (filtroCajero) {
+    const opt = document.createElement("option");
+    opt.value = nro;
+    opt.textContent = `${nro} - ${caj.nombre || ""}`;
+    filtroCajero.appendChild(opt);
+  }
+});
+
+    // attach events to cajeros table actions
+    document.querySelectorAll(".btn-del-caj").forEach(btn => {
+      btn.onclick = () => {
+        requireAdminConfirm(async () => {
+          await window.remove(window.ref(window.db, `cajeros/${btn.dataset.id}`));
+        });
+      };
+    });
+    document.querySelectorAll(".btn-edit-caj").forEach(btn => {
+      btn.onclick = () => requireAdminConfirm(() => editarCajeroModal(btn.dataset.id));
+    });
+  });
+
+ if (btnAgregarCajero) {
+  btnAgregarCajero.addEventListener("click", () => {
+    requireAdminConfirm(async () => {
+      const nro = (cajeroNroSelect.value || "").trim();
+      const nombre = (inputCajeroNombre.value || "").trim();
+      const dni = (inputCajeroDni.value || "").trim();
+      const pass = (inputCajeroPass.value || "").trim();
+
+      if (!nombre || !dni || !pass) {
+        alert("Complete todos los campos");
+        return;
+      }
+      if (!/^\d{8}$/.test(dni)) {
+        alert("DNI inválido (debe tener 8 dígitos numéricos)");
+        return;
+      }
+
+      try {
+        await window.set(window.ref(window.db, `cajeros/${nro}`), { nro, nombre, dni, pass });
+        cajerosCache[nro] = { nro, nombre, dni, pass }; // actualizar cache
+        inputCajeroNombre.value = "";
+        inputCajeroDni.value = "";
+        inputCajeroPass.value = "";
+        alert("✔️ Cajero agregado ✔️");
+      } catch (err) {
+        alert("Error al agregar cajero: " + err);
+      }
+    });
+  });
+}
+
+  function editarCajeroModal(nro) {
+    (async () => {
+      const snap = await window.get(window.ref(window.db, `cajeros/${nro}`));
+      if (!snap.exists()) return;
+      const caj = snap.val();
+      mostrarModal(`
+        <h3>Editar Cajero</h3>
+        <label>Nombre</label><input id="__edit_caj_nombre" value="${escapeHtml(caj.nombre || "")}">
+        <label>DNI</label><input id="__edit_caj_dni" value="${escapeHtml(caj.dni || "")}">
+        <label>Pass</label><input id="__edit_caj_pass" value="${escapeHtml(caj.pass || "")}">
+        <div style="margin-top:10px">
+          <button id="__save_caj">✅Guardar</button>
+          <button id="__cancel_caj">❌Cancelar</button>
+        </div>
+      `);
+      document.getElementById("__cancel_caj").onclick = cerrarModal;
+      document.getElementById("__save_caj").onclick = async () => {
+        const nombre = (document.getElementById("__edit_caj_nombre").value || "").trim();
+        const dni = (document.getElementById("__edit_caj_dni").value || "").trim();
+        const pass = (document.getElementById("__edit_caj_pass").value || "").trim();
+        if (!/^\d{8}$/.test(dni)) {
+          alert("DNI inválido (8 dígitos)");
+          return;
+        }
+        await window.update(window.ref(window.db, `cajeros/${nro}`), { nombre, dni, pass });
+        cerrarModal();
+      };
+    })();
+  }
+
+  // -----------------------
+  // MOVIMIENTOS (render + filtro)
+  // -----------------------
+  // listen movimientos (cache)
+  window.onValue(window.ref(window.db, "movimientos"), snap => {
+    movimientosCache = snap.exists() ? snap.val() : {};
+    renderMovimientos();
+  });
+
+  // filtro change
+  if (filtroCajero) {
+    filtroCajero.addEventListener("change", () => renderMovimientos());
+  }
+
+  function renderMovimientos() {
+    if (!tablaMovimientosBody) return;
+    tablaMovimientosBody.innerHTML = "";
+    const dataArr = Object.values(movimientosCache || {});
+    const filtro = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
+    const filtrados = filtro === "TODOS" ? dataArr : dataArr.filter(m => (m.cajero || "") === filtro);
+
+    // sort by fecha desc (newer first) if fecha exists
+    filtrados.sort((a, b) => {
+      const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
+      const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
+      return tb - ta;
+    });
+
+    filtrados.forEach(mov => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(mov.id)}</td>
+        <td>${formatoPrecioParaPantalla(mov.total)}</td>
+        <td>${escapeHtml(mov.tipo)}</td>
+        <td>
+          <button class="btn-ver-mov" data-id="${mov.id}">🧾</button>
+          <button class="btn-del-mov" data-id="${mov.id}">❌</button>
+        </td>
+      `;
+      tablaMovimientosBody.appendChild(tr);
+    });
+
+    // attach actions
+document.querySelectorAll(".btn-del-mov").forEach(btn => {
+  btn.onclick = () => requireAdminConfirm(async () => {
+    const movRef = window.ref(window.db, `movimientos/${btn.dataset.id}`);
+    const snap = await window.get(movRef);
+    if (!snap.exists()) return;
+
+    const mov = snap.val();
+
+    // 🔥 Restaurar stock / sueltos antes de eliminar
+    if (mov.items && Array.isArray(mov.items)) {
+      for (const item of mov.items) {
+
+        if (item.tipo === "suelto") {
+          // Restaurar suelto
+          const refSuelto = window.ref(window.db, `sueltos/${item.codigo}`);
+          const snapSuelto = await window.get(refSuelto);
+
+          if (snapSuelto.exists()) {
+            const prod = snapSuelto.val();
+            const nuevaCantidad = (prod.kg || 0) + (item.cantidad || 0);
+            await window.update(refSuelto, { kg: nuevaCantidad });
+          } else {
+            // Si no existe, crearlo
+            await window.set(refSuelto, {
+              nombre: item.nombre || "PRODUCTO NUEVO",
+              precio: item.precio || 0,
+              kg: item.cantidad,
+              fecha: new Date().toISOString()
+            });
+          }
+
+        } else {
+          // Restaurar stock normal
+          const stockRef = window.ref(window.db, `stock/${item.codigo}`);
+          const stockSnap = await window.get(stockRef);
+
+          if (stockSnap.exists()) {
+            const prod = stockSnap.val();
+            const nuevaCantidad = (prod.cantidad || 0) + (item.cantidad || 0);
+            await window.update(stockRef, { cantidad: nuevaCantidad });
+          } else {
+            await window.set(stockRef, {
+              codigo: item.codigo,
+              nombre: item.nombre || "PRODUCTO NUEVO",
+              cantidad: item.cantidad,
+              precio: item.precio || 0,
+              fecha: new Date().toLocaleString()
+            });
+          }
+        }
+
+      } // fin for items
+    }
+
+    // Ahora sí, eliminar el movimiento
+    await window.remove(movRef);
+    console.log(`Movimiento ${btn.dataset.id} eliminado y stock/sueltos restaurados`);
+  });
+});
+
+
+    document.querySelectorAll(".btn-ver-mov").forEach(btn => {
+      btn.onclick = () => verMovimientoModal(btn.dataset.id);
+    });
+  }
+
+  function verMovimientoModal(id) {
+    (async () => {
+      const snap = await window.get(window.ref(window.db, `movimientos/${id}`));
+      if (!snap.exists()) return alert("⛔Movimiento no encontrado⛔");
+      const mov = snap.val();
+      let html = `<p id="texto-ticket-modal">Ticket ${mov.id}</p>`;
+      html += `<p id="texto-ticket-modal">${formatFechaParaHeader(mov.fecha)}</p>`;
+      html += `<p id="texto-ticket-modal">Cajero: ${escapeHtml(mov.cajero)}</p>`;
+      (mov.items || []).forEach(it => {
+        html += `==================== <p id="texto-ticket-modal">${escapeHtml(it.nombre)} </p><span class="linea"></span><p id="texto-ticket-modal">${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
+      });
+      html += `==================== <p id="texto-ticket-modal"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket-modal">Pago en: ${escapeHtml(mov.tipo)}</p>`;
+      html += `<div style="margin-top:10px"><button id="__print_copy">🧾​​Imprimir</button><button id="__close_mov">❌Cancelar</button></div>`;
+      mostrarModal(html);
+      document.getElementById("__close_mov").onclick = cerrarModal;
+      document.getElementById("__print_copy").onclick = () => imprimirTicketMov(mov);
+    })();
+  }
+
+function imprimirTicketMov(mov) {
+  const itemsPerPage = 9999;
+  const items = mov.items || [];
+  const totalParts = Math.max(1, Math.ceil(items.length / itemsPerPage));
+  const printAreas = [];
+
+  // 🔥 Forzar lectura del nombre de la tienda en el momento de imprimir
+  let shopName = "Polirubro Todito"; // valor por defecto
+  try {
+    if (window.configCache && window.configCache.shopName) {
+      shopName = window.configCache.shopName.toUpperCase();
+    }
+  } catch (err) {
+    console.warn("No se pudo leer configCache, usando ZONAPC", err);
+  }
+
+  for (let p = 0; p < totalParts; p++) {
+    const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
+    const header = `
+      <div style="text-align:center">
+        <p id="texto-ticket">
+          ${escapeHtml(shopName)} <br>
+          ${mov.id} <br>
+          Nro - Cajero: ${escapeHtml(mov.cajero)} <br>
+          ${formatFechaParaHeader(mov.fecha)}
+        </p>
+      </div>
+    `;
+
+    let body = "";
+    slice.forEach(it => {
+      body += `
+        ==================== 
+        <p id="texto-ticket">
+          ${escapeHtml(it.nombre)} <br>
+          ${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}
+        </p>
+      `;
+    });
+
+    const footer = `
+      ==================== 
+      <p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p>
+      <p id="texto-ticket">(Pago en: ${escapeHtml(mov.tipo)})</p>
+      <p id="texto-ticket">Ticket: </p><br>
+    `;
+
+    const area = document.createElement("div");
+    area.className = "print-area";
+    area.style.width = "5cm";
+    area.innerHTML = header + body + footer;
+    printAreas.push(area);
+  }
+
+  printAreas.forEach(a => document.body.appendChild(a));
+  window.print();
+  printAreas.forEach(a => document.body.removeChild(a));
+}
+
+ // -----------------------
+// TIRAR Z (por cajero o TODOS)
+// -----------------------
+if (btnTirarZ) {
+  btnTirarZ.addEventListener("click", async () => {
+    // Abrir modal para pedir pass admin
+    mostrarModal(`
+      <h3>Confirme: Tirar Z</h3>
+      <p>Contraseña de Encargado: ¡No se podrá cancelar después de imprimir!</p>
+      <input id="z-pass" type="password" style="width:100%; margin:10px 0; padding:6px">
+      <div style="text-align:right">
+        <button id="z-cancel">❌Cancelar</button>
+        <button id="z-ok">✅Aceptar</button>
+      </div>
+    `);
+
+    document.getElementById("z-cancel").onclick = cerrarModal;
+    document.getElementById("z-ok").onclick = async () => {
+      const inputPass = document.getElementById("z-pass").value.trim();
+      const snapConfig = await window.get(window.ref(window.db, "config"));
+      const config = snapConfig.exists() ? snapConfig.val() : {};
+      const adminPass = config.passAdmin || "0123456789"; // por defecto
+
+      if (inputPass !== adminPass) {
+        alert("❌Contraseña incorrecta❌");
+        return;
+      }
+      cerrarModal();
+
+      // === Tirar Z real ===
+      const snap = await window.get(window.ref(window.db, "movimientos"));
+      if (!snap.exists()) return alert("❌No hay movimientos para tirar Z❌");
+      const allMovArr = Object.values(snap.val());
+      const cajSel = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
+
+      let data = allMovArr;
+      if (cajSel !== "TODOS") {
+        data = allMovArr.filter(m => (m.cajero || "") === cajSel);
+        if (data.length === 0) return alert(`❌No hay movimientos para el cajero ${cajSel}❌`);
+      }
+
+      // group by cajero y tipo
+      const grouped = {};
+      data.forEach(m => {
+        const caj = m.cajero || "N/A";
+        if (!grouped[caj]) grouped[caj] = { Efectivo: [], Tarjeta: [], otros: [] };
+        if (m.tipo === "Efectivo") grouped[caj].Efectivo.push(m);
+        else if (m.tipo === "Tarjeta") grouped[caj].Tarjeta.push(m);
+        else grouped[caj].otros.push(m);
+      });
+
+      let html = `<h2>Reporte Z - ${new Date().toLocaleString()}</h2>`;
+      let grandTotal = 0;
+      const resumenZItems = [];
+
+      Object.keys(grouped).forEach(caj => {
+        html += `<h3>Cajero: ${caj}</h3><hr>`;
+        let totalEf = 0, totalTar = 0;
+
+        html += `<h4>Efectivo</h4>`;
+        grouped[caj].Efectivo.forEach(m => { 
+          html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
+          totalEf += Number(m.total); 
+        });
+        html += `<p><b>Total Efectivo Cajero: ${formatoPrecioParaPantalla(totalEf)}</b></p>`;
+        html += `<hr><h4>Tarjeta</h4>`;
+        grouped[caj].Tarjeta.forEach(m => { 
+          html += `<p>ID ${m.id} - ${formatoPrecioParaPantalla(m.total)}</p>`;
+          totalTar += Number(m.total); 
+        });
+        html += `<p><b>Total Tarjeta Cajero: ${formatoPrecioParaPantalla(totalTar)}</b></p><hr>`;
+        html += `<p><b>Subtotal Cajero: ${formatoPrecioParaPantalla(totalEf + totalTar)}</b></p><hr>`;
+        grandTotal += totalEf + totalTar;
+
+        resumenZItems.push({
+          cajero: caj,
+          totalEfectivo: totalEf,
+          totalTarjeta: totalTar,
+          subtotal: totalEf + totalTar,
+          // 🔹 Guardamos también las ventas para la reimpresión detallada
+          ventasEfectivo: grouped[caj].Efectivo.map(m => ({ id: m.id, total: m.total })),
+          ventasTarjeta: grouped[caj].Tarjeta.map(m => ({ id: m.id, total: m.total }))
+        });
+      });
+
+      html += `<h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>`;
+      html += `<br><table border="1" style="width:100%; margin-top:20px"><tr><th>Efectivo Cobrado</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
+      html += `<br><table border="1" style="width:100%; margin-top:10px"><tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr><tr><td></td><td></td><td></td></tr></table>`;
+
+      // Imprimir
+      const area = document.createElement("div");
+      area.className = "print-area";
+      area.style.width = "21cm";
+      area.innerHTML = html;
+      document.body.appendChild(area);
+      window.print();
+      document.body.removeChild(area);
+
+      // === Guardar copia de Z en HISTORIAL (con detalles) ===
+      try {
+        const ahora = new Date();
+        const año = ahora.getFullYear();
+        const mes = String(ahora.getMonth() + 1).padStart(2, "0");
+        const idZ = "Z-" + ahora.getTime();
+        const path = `historial/${año}-${mes}/${idZ}`;
+
+        await window.set(window.ref(window.db, path), {
+          id: idZ,
+          tipo: "TIRAR Z",
+          cajero: cajSel,
+          total: grandTotal,
+          fecha: ahora.toISOString(),
+          items: resumenZItems
+        });
+      } catch (err) {
+        console.error("⛔Error guardando Z en historial:", err);
+      }
+
+      // Borrar movimientos
+      if (cajSel === "TODOS") {
+        await window.set(window.ref(window.db, "movimientos"), {});
+      } else {
+        const updates = {};
+        Object.values(snap.val()).forEach(m => {
+          if ((m.cajero || "") === cajSel) updates[m.id] = null;
+        });
+        await window.update(window.ref(window.db, "movimientos"), updates);
+      }
+
+      alert(`✔️Tirar Z completado para ${cajSel}✔️`);
+    };
+  });
+}
+
+// -----------------------
+// CONFIG
+// -----------------------
+window.onValue(window.ref(window.db, "config"), snap => {
+  if (!snap.exists()) return;
+  const conf = snap.val();
+  configCache = conf;
+
+  if (inputConfigNombre) inputConfigNombre.value = conf.shopName || "";
+
+  const appTitle = document.getElementById("app-title");
+  if (appTitle) {
+    appTitle.textContent = conf.shopName || "ZONAPC";
+  }
+});
+
+if (btnGuardarConfig) {
+  btnGuardarConfig.addEventListener("click", async () => {
+    const shopName = (inputConfigNombre.value || "").trim();
+    const actual = (inputConfigPassActual.value || "").trim();
+    const nueva = (inputConfigPassNueva.value || "").trim();
+
+    if (!actual || !nueva) return alert("⛔Complete los campos⛔");
+
+    const snap = await window.get(window.ref(window.db, "config"));
+    if (!snap.exists()) return alert("❌Error de lectura❌");
+
+    const conf = snap.val();
+    if (actual !== conf.passAdmin) return alert("❌Contraseña actual incorrecta❌");
+
+    if (nueva.length < 4 || nueva.length > 10) {
+      return alert("La nueva contraseña debe tener entre 4 y 10 caracteres");
+    }
+
+    // 🔥 preparar lo que se actualizará
+    const updateData = { passAdmin: nueva };
+    if (shopName) updateData.shopName = shopName;
+
+    await window.update(window.ref(window.db, "config"), updateData);
+
+    if (configMsg) configMsg.textContent = "Guardado con éxito ✅";
+
+    inputConfigPassActual.value = "";
+    inputConfigPassNueva.value = "";
+  });
+}
+btnRestaurar.onclick = async () => {
+  const v = (inputMasterPass.value || "").trim();
+  if (v === "9999") {
+    await window.update(window.ref(window.db, "config"), { passAdmin: "0123456789" });
+    configMsg.textContent = "Contraseña restaurada a 0123456789";
+  } else {
+    configMsg.textContent = "Contraseña administrativa incorrecta";
+  }
+};
+
+// -----------------------
+// HISTORIAL (render + acciones) - con paginación por DÍA + soporte TIRAR Z
+// -----------------------
+function cargarHistorial() {
+  const ahora = new Date();
+  const hoyDia = ahora.getDate();
+  let startYear = ahora.getFullYear();
+  let startMonthIndex;
+
+  if (hoyDia >= 15) {
+    startMonthIndex = ahora.getMonth();
+  } else {
+    startMonthIndex = ahora.getMonth() - 1;
+    if (startMonthIndex < 0) {
+      startMonthIndex = 11;
+      startYear--;
+    }
+  }
+
+  const startDate = new Date(startYear, startMonthIndex, 1);
+  const endDate = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+
+  if (historialInfo) {
+    const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    historialInfo.textContent = `Historial desde ${startDate.getDate()}/${String(startDate.getMonth()+1).padStart(2,"0")}/${startDate.getFullYear()} hasta ${endDate.getDate()}/${String(endDate.getMonth()+1).padStart(2,"0")}/${endDate.getFullYear()}`;
+  }
+
+  function toDateKey(d) {
+    return d.toISOString().slice(0,10);
+  }
+
+  const dayPages = [];
+  for (let d = new Date(startDate.getFullYear(), startDate.getMonth(), 1); d <= endDate; d.setDate(d.getDate() + 1)) {
+    dayPages.push(toDateKey(new Date(d)));
+  }
+
+  const tablaHistorialEl = document.getElementById("tabla-historial");
+  if (tablaHistorialEl && !document.getElementById("historial-paginador-top")) {
+    const pagTop = document.createElement("div");
+    pagTop.id = "historial-paginador-top";
+    pagTop.className = "historial-paginador";
+    pagTop.style.margin = "10px 0";
+    tablaHistorialEl.parentNode.insertBefore(pagTop, tablaHistorialEl);
+  }
+  if (tablaHistorialEl && !document.getElementById("historial-paginador-bottom")) {
+    const pagBottom = document.createElement("div");
+    pagBottom.id = "historial-paginador-bottom";
+    pagBottom.className = "historial-paginador";
+    pagBottom.style.margin = "10px 0";
+    tablaHistorialEl.parentNode.insertBefore(pagBottom, tablaHistorialEl.nextSibling);
+  }
+
+  const pagTopEl = document.getElementById("historial-paginador-top");
+  const pagBottomEl = document.getElementById("historial-paginador-bottom");
+
+  let monthsSnapshots = {};
+  let histByDay = {};
+  let movCache = {};
+  let currentIndex = dayPages.length - 1;
+
+  function formatoDiaReadable(dateKey) {
+    if (!dateKey) return "";
+    const d = new Date(dateKey + "T00:00:00");
+    const meses = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+    const dd = d.getDate().toString().padStart(2, "0");
+    return `${dd} ${meses[d.getMonth()]} ${d.getFullYear()}`;
+  }
+
+  function rebuildFromSnapshots() {
+    histByDay = {};
+    movCache = {};
+    Object.entries(monthsSnapshots).forEach(([monthKey, dataset]) => {
+      if (!dataset) return;
+      Object.entries(dataset).forEach(([id, mov]) => {
+        if (!mov) return;
+        let dateKey = "";
+        try {
+          dateKey = mov.fecha ? (new Date(mov.fecha)).toISOString().slice(0,10) : (monthKey + "-01");
+        } catch (e) {
+          dateKey = monthKey + "-01";
+        }
+        if (!histByDay[dateKey]) histByDay[dateKey] = [];
+        histByDay[dateKey].push(mov);
+        movCache[mov.id] = { mov, monthKey };
+      });
+    });
+    Object.keys(histByDay).forEach(k => {
+      histByDay[k].sort((a,b) => {
+        const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
+        const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
+        return tb - ta;
+      });
+    });
+  }
+
+  function renderPaginators() {
+    const total = dayPages.length;
+    const currentLabel = formatoDiaReadable(dayPages[currentIndex]);
+
+    function buildHtml(prevDisabled, nextDisabled) {
+      return `
+        <div id="hist-pager" style="display:flex; justify-content:center; align-items:center; gap:10px;">
+          <button id="hist-prev" ${prevDisabled ? 'disabled' : ''} style="padding:6px 10px; border-radius:6px; cursor:pointer">◀ Anterior</button>
+          <div id="hist-dia-label" style="font-weight:bold; min-width:200px; text-align:center">${currentLabel}</div>
+          <button id="hist-next" ${nextDisabled ? 'disabled' : ''} style="padding:6px 10px; border-radius:6px; cursor:pointer">Siguiente ▶</button>
+        </div>
+      `;
+    }
+
+    const prevDisabled = currentIndex <= 0;
+    const nextDisabled = currentIndex >= total - 1;
+    if (pagTopEl) pagTopEl.innerHTML = buildHtml(prevDisabled, nextDisabled);
+    if (pagBottomEl) pagBottomEl.innerHTML = buildHtml(prevDisabled, nextDisabled);
+
+    ["historial-paginador-top", "historial-paginador-bottom"].forEach(pid => {
+      const container = document.getElementById(pid);
+      if (!container) return;
+      const prevBtn = container.querySelector("#hist-prev");
+      const nextBtn = container.querySelector("#hist-next");
+      if (prevBtn) prevBtn.onclick = () => { if (currentIndex > 0) { currentIndex--; renderDay(currentIndex); renderPaginators(); } };
+      if (nextBtn) nextBtn.onclick = () => { if (currentIndex < dayPages.length - 1) { currentIndex++; renderDay(currentIndex); renderPaginators(); } };
+    });
+  }
+
+  function renderDay(index) {
+    if (!tablaHistorialBody) return;
+    tablaHistorialBody.innerHTML = "";
+
+    const dateKey = dayPages[index];
+    const items = histByDay[dateKey] || [];
+
+    if (!items.length) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td colspan="6">No hay movimientos para ${formatoDiaReadable(dateKey)}</td>`;
+      tablaHistorialBody.appendChild(tr);
+      return;
+    }
+
+    items.forEach(mov => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${escapeHtml(mov.id)}</td>
+        <td>${formatoPrecioParaPantalla(mov.total)}</td>
+        <td>${escapeHtml(mov.tipo)}</td>
+        <td>${escapeHtml(mov.cajero || "")}</td>
+        <td>${formatFechaParaHeader(mov.fecha)}</td>
+        <td>
+          <button class="btn-ver-hist" data-id="${mov.id}">🧾​</button>
+        </td>
+      `;
+      tablaHistorialBody.appendChild(tr);
+    });
+
+    document.querySelectorAll(".btn-ver-hist").forEach(btn => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        const item = movCache[id];
+        let mov = item ? item.mov : null;
+        if (!mov) {
+          const monthKey = (dateKey || "").slice(0,7);
+          const snapMov = await window.get(window.ref(window.db, `historial/${monthKey}/${id}`));
+          if (!snapMov.exists()) return alert("Movimiento no encontrado en historial");
+          mov = snapMov.val();
+        }
+
+        let html = `<h3>Ticket ${mov.id}</h3>`;
+        html += `<p>${formatFechaParaHeader(mov.fecha)}</p>`;
+        html += `<p>Cajero: ${escapeHtml(mov.cajero)}</p>==================== `;
+
+        if (mov.tipo === "TIRAR Z") {
+          // Mostrar datos del cierre Z
+          html += `<p><b>Corte Z</b></p>`;
+          html += `<p>Total del día: ${formatoPrecioParaPantalla(mov.total)}</p>`;
+          if (mov.detalle) {
+            html += `<hr><p>Detalle:</p>`;
+            Object.entries(mov.detalle).forEach(([k,v]) => {
+              html += `<p>${escapeHtml(k)}: ${formatoPrecioParaPantalla(v)}</p>`;
+            });
+          }
+          html += `<div style="margin-top:10px"><button id="__print_z_hist">Imprimir Corte Z</button><button id="__close_hist">Cerrar</button></div>`;
+        } else {
+          // Ticket de venta normal
+          (mov.items || []).forEach(it => {
+            html += `<p>${escapeHtml(it.nombre)} - ${it.cantidad} - ${formatoPrecioParaPantalla(it.precio)} - ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
+          });
+          html += `==================== <p><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p>Pago: ${escapeHtml(mov.tipo)}</p>`;
+          html += `<div style="margin-top:10px"><button id="__print_copy_hist">Imprimir Copia</button><button id="__close_hist">Cerrar</button></div>`;
+        }
+
+        mostrarModal(html);
+        const closeBtn = document.getElementById("__close_hist");
+        if (closeBtn) closeBtn.onclick = cerrarModal;
+        const printBtn = document.getElementById("__print_copy_hist");
+        if (printBtn) printBtn.onclick = () => imprimirTicketMov(mov);
+        const printZBtn = document.getElementById("__print_z_hist");
+        if (printZBtn) printZBtn.onclick = () => imprimirCorteZ(mov);
+      };
+    });
+  }
+
+  function buildMonthKeys(startD, endD) {
+    const keys = [];
+    const cur = new Date(startD.getFullYear(), startD.getMonth(), 1);
+    const last = new Date(endD.getFullYear(), endD.getMonth(), 1);
+    while (cur <= last) {
+      const k = `${cur.getFullYear()}-${String(cur.getMonth()+1).padStart(2,"0")}`;
+      keys.push(k);
+      cur.setMonth(cur.getMonth() + 1);
+    }
+    return keys;
+  }
+
+  const monthKeys = buildMonthKeys(startDate, endDate);
+  monthKeys.forEach(monthKey => {
+    monthsSnapshots[monthKey] = null;
+    window.onValue(window.ref(window.db, `historial/${monthKey}`), snap => {
+      monthsSnapshots[monthKey] = snap.exists() ? snap.val() : null;
+      rebuildFromSnapshots();
+      if (currentIndex > dayPages.length - 1) currentIndex = dayPages.length - 1;
+      renderPaginators();
+      renderDay(currentIndex);
+    });
+  });
+
+  renderPaginators();
+  renderDay(currentIndex);
+}
+
+// iniciar carga historial
+cargarHistorial();
+
+/*****************************************************
+ * Imprimir Corte Z (desde historial) — versión final mejorada con detalles de TIRAR Z
+ *****************************************************/
+function imprimirCorteZ(mov) {
+  if (!mov || mov.tipo !== "TIRAR Z") {
+    alert("No hay datos válidos para imprimir Z");
+    return;
+  }
+
+  const fecha = new Date(mov.fecha || new Date()).toLocaleString();
+  const resumenZItems = mov.items || [];
+  const grandTotal = mov.total || 0;
+
+  let html = `
+    <h2 style="text-align:center">${mov.shopName || "ZONAPC"}</h2>
+    <h3 style="text-align:center">REIMPRESIÓN DE CORTE Z</h3>
+    <p style="text-align:center">${fecha}</p>
+    <hr>
+  `;
+
+  resumenZItems.forEach(item => {
+    html += `<h3>Cajero: ${item.cajero}</h3><hr>`;
+
+    // ===== Efectivo =====
+    html += `<h4>Efectivo</h4>`;
+    if (item.ventasEfectivo && item.ventasEfectivo.length > 0) {
+      item.ventasEfectivo.forEach(v => {
+        html += `<p>ID ${v.id} — ${formatoPrecioParaPantalla(v.total)}</p>`;
+      });
+    } else if (item.detallesEfectivo && item.detallesEfectivo.length > 0) {
+      // Compatibilidad con versiones anteriores
+      item.detallesEfectivo.forEach(v => {
+        html += `<p>ID ${v.id} — ${formatoPrecioParaPantalla(v.total)}</p>`;
+      });
+    } else {
+      html += `<p>(Sin ventas registradas en efectivo)</p>`;
+    }
+    html += `<p><b>Total Efectivo Cajero:</b> ${formatoPrecioParaPantalla(item.totalEfectivo || 0)}</p>`;
+
+    // ===== Tarjeta =====
+    html += `<hr><h4>Tarjeta</h4>`;
+    if (item.ventasTarjeta && item.ventasTarjeta.length > 0) {
+      item.ventasTarjeta.forEach(v => {
+        html += `<p>ID ${v.id} — ${formatoPrecioParaPantalla(v.total)}</p>`;
+      });
+    } else if (item.detallesTarjeta && item.detallesTarjeta.length > 0) {
+      item.detallesTarjeta.forEach(v => {
+        html += `<p>ID ${v.id} — ${formatoPrecioParaPantalla(v.total)}</p>`;
+      });
+    } else {
+      html += `<p>(Sin ventas registradas con tarjeta)</p>`;
+    }
+    html += `<p><b>Total Tarjeta Cajero:</b> ${formatoPrecioParaPantalla(item.totalTarjeta || 0)}</p><hr>`;
+
+    // ===== Subtotal =====
+    html += `<p><b>Subtotal Cajero:</b> ${formatoPrecioParaPantalla(item.subtotal || 0)}</p><hr>`;
+  });
+
+  // ===== Total General =====
+  html += `
+    <h2>Total General: ${formatoPrecioParaPantalla(grandTotal)}</h2>
+    <br>
+    <table border="1" style="width:100%; margin-top:20px">
+      <tr><th>Efectivo Cobrado</th><th>Firma Cajero</th><th>Firma Encargado</th></tr>
+      <tr><td></td><td></td><td></td></tr>
+    </table>
+    <br>
+    <table border="1" style="width:100%; margin-top:10px">
+      <tr><th>Tarjeta Cobrada</th><th>Firma Cajero</th><th>Firma Encargado</th></tr>
+      <tr><td></td><td></td><td></td></tr>
+    </table>
+    <p style="text-align:center; margin-top:20px">Reimpresión de Corte Z</p>
+    <p style="text-align:center">Gracias por usar ZONAPC</p>
+  `;
+
+  // ===== Crear e imprimir el área =====
+  const area = document.createElement("div");
+  area.className = "print-area";
+  area.style.width = "21cm";
+  area.innerHTML = html;
+
+  document.body.appendChild(area);
+  window.print();
+  document.body.removeChild(area);
+}
+
+// ==== SE PIERDE INTERNET ====
+function recargarPagina() {
+  location.reload();
+}
+
+// Detectar pérdida de conexión
+window.addEventListener("offline", recargarPagina);
+
+// Detectar regreso de conexión
+window.addEventListener("online", recargarPagina);
+
+
+  // -----------------------
+  // Final
+  // -----------------------
+  console.log("✅ app.js cargado y listo");
+})();  if (!codigo) return;
   const snap = await window.get(window.ref(window.db, `sueltos/${codigo}`));
   if (!snap.exists()) return alert("Producto suelto no encontrado");
 
