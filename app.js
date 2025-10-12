@@ -849,9 +849,7 @@ window.onValue(window.ref(window.db, "sueltos"), snap => {
       <td>${escapeHtml(codigo)}</td>
       <td>${escapeHtml(prod.nombre || "")}</td>
       <td>
-        <button class="btn-decr-kg" data-id="${codigo}">-</button>
         <input type="text" class="input-kg" data-id="${codigo}" value="${kgDisplay}" readonly>
-        <button class="btn-incr-kg" data-id="${codigo}">+</button>
       </td>
       <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
       <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
@@ -874,26 +872,9 @@ window.onValue(window.ref(window.db, "sueltos"), snap => {
   document.querySelectorAll(".btn-edit-suelto").forEach(btn => {
     btn.onclick = () => requireAdminConfirm(() => editarSueltoModal(btn.dataset.id));
   });
-
-  // Botones + y - (solo mínimo 0, sin límite superior)
-  document.querySelectorAll(".btn-incr-kg").forEach(btn => {
-    btn.onclick = () => {
-      const input = document.querySelector(`.input-kg[data-id="${btn.dataset.id}"]`);
-      let valActual = Number(input.value);
-      input.value = (valActual + 0.1).toFixed(3);
-    };
-  });
-
-  document.querySelectorAll(".btn-decr-kg").forEach(btn => {
-    btn.onclick = () => {
-      const input = document.querySelector(`.input-kg[data-id="${btn.dataset.id}"]`);
-      let valActual = Number(input.value);
-      input.value = Math.max(0, valActual - 0.1).toFixed(3);
-    };
-  });
 });
 
-// === Botón agregar nuevo suelto ===
+// === Botón agregar o sumar suelto ===
 btnAgregarSuelto.onclick = async () => {
   const codigo = (inputSueltoCodigo.value || "").trim();
   if (!codigo) return alert("Ingrese código");
@@ -901,27 +882,30 @@ btnAgregarSuelto.onclick = async () => {
   const refProd = window.ref(window.db, `sueltos/${codigo}`);
   const snap = await window.get(refProd);
 
-  if (snap.exists()) {
-    alert("El producto ya existe");
-    return;
-  }
-
   let kgVal = Number(inputKgSuelto.value);
   if (kgVal < 0) kgVal = 0;
   if (kgVal > 99.9) kgVal = 99.9;
 
-  await window.set(refProd, {
-    nombre: "PRODUCTO NUEVO",
-    precio: "00000,00",
-    kg: Number(kgVal.toFixed(3)),
-    fecha: ahoraISO()
-  });
+  if (snap.exists()) {
+    // Sumar KG al producto existente
+    const prod = snap.val();
+    const nuevoKg = Math.min(99.9, Number(prod.kg || 0) + kgVal);
+    await window.update(refProd, { kg: Number(nuevoKg.toFixed(3)), fecha: ahoraISO() });
+  } else {
+    // Crear producto nuevo
+    await window.set(refProd, {
+      nombre: "PRODUCTO NUEVO",
+      precio: "00000,00",
+      kg: Number(kgVal.toFixed(3)),
+      fecha: ahoraISO()
+    });
+  }
 
   inputSueltoCodigo.value = "";
   inputKgSuelto.value = "0.000";
 };
 
-// === Botones fila de + / - KG ===
+// === Botones fila de + / - KG (para el input de nuevo suelto) ===
 btnIncrKg.onclick = () => {
   let val = Number(inputKgSuelto.value);
   inputKgSuelto.value = Math.min(99.9, val + 0.1).toFixed(3);
@@ -955,9 +939,7 @@ btnBuscarSuelto.onclick = async () => {
       <td>${escapeHtml(codigo)}</td>
       <td>${escapeHtml(prod.nombre || "")}</td>
       <td>
-        <button class="btn-decr-kg" data-id="${codigo}">-</button>
         <input type="text" class="input-kg" data-id="${codigo}" value="${kgDisplay}" readonly>
-        <button class="btn-incr-kg" data-id="${codigo}">+</button>
       </td>
       <td>${prod.fecha ? formatoFechaIsoToDisplay(prod.fecha) : ""}</td>
       <td>${typeof prod.precio === "number" ? formatoPrecioParaPantalla(prod.precio) : ('$' + String(prod.precio || "").replace('.',','))}</td>
