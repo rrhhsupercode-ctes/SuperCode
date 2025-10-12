@@ -475,9 +475,11 @@ if (cobroSueltosSelect) {
     if (!snap.exists()) return;
     const data = snap.val();
     cobroSueltosSelect.innerHTML = '<option value="">Elija un Item (Sueltos)</option>';
-    Object.entries(data).forEach(([codigo, prod]) => {
-      cobroSueltosSelect.innerHTML += `<option value="${codigo}">${escapeHtml(prod.nombre || codigo)}</option>`;
-    });
+Object.entries(data).forEach(([codigo, prod]) => {
+  if (Number(prod.kg) > 0) {  // <-- solo mostrar si hay stock
+    cobroSueltosSelect.innerHTML += `<option value="${codigo}">${escapeHtml(prod.nombre || codigo)}</option>`;
+  }
+});
   });
 }
 
@@ -510,20 +512,25 @@ async function agregarSueltoCarrito(codigo) {
     ? prod.precio
     : Number(String(prod.precio).replace(",", "."));
 
-  // Si ya está en carrito, sumar KG
-  const idx = carrito.findIndex(it => it.codigo === codigo && it.tipo === "suelto");
-  if (idx >= 0) {
-    carrito[idx].cantidad += kg;
-  } else {
-    carrito.push({
-      codigo,
-      nombre: prod.nombre || "SIN NOMBRE",
-      precio: Number(precioNumber) || 0,
-      cantidad: kg,
-      tipo: "suelto" // identificador para saber que es suelto
-    });
-  }
+  // Validar stock suelto
+if (kg > Number(prod.kg)) {
+  alert(`Solo quedan ${Number(prod.kg).toFixed(3)} kg de ${prod.nombre}`);
+  return;
+}
 
+// Si ya está en carrito, sumar KG
+const idx = carrito.findIndex(it => it.codigo === codigo && it.tipo === "suelto");
+if (idx >= 0) {
+  carrito[idx].cantidad += kg;
+} else {
+  carrito.push({
+    codigo,
+    nombre: prod.nombre || "SIN NOMBRE",
+    precio: Number(precioNumber) || 0,
+    cantidad: kg,
+    tipo: "suelto"
+  });
+}
   renderCarrito();
 }
 
@@ -602,6 +609,19 @@ async function finalizarCobro(tipoPago) {
       cantidad: it.cantidad
     }))
   };
+
+  // Actualizar stock de sueltos
+for (let it of carrito) {
+  if (it.tipo === "suelto") {
+    const refSuelto = window.ref(window.db, `sueltos/${it.codigo}`);
+    const snap = await window.get(refSuelto);
+    if (snap.exists()) {
+      const prod = snap.val();
+      let nuevoKg = Math.max(0, Number(prod.kg) - Number(it.cantidad)); // no bajar de 0.1 ha sido desactivado
+      await window.update(refSuelto, { kg: Number(nuevoKg.toFixed(3)), fecha: ahoraISO() });
+    }
+  }
+}
 
   // Guardar en movimientos
   await window.set(window.ref(window.db, `movimientos/${movId}`), mov);
