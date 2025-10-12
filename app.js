@@ -1186,6 +1186,7 @@ function renderMovimientos() {
           const tipo = (item.tipo || "").toLowerCase().trim();
 
           if (tipo === "suelto") {
+            // Restaurar en sueltos
             const refSuelto = window.ref(window.db, `sueltos/${item.codigo}`);
             const snapSuelto = await window.get(refSuelto);
 
@@ -1204,7 +1205,8 @@ function renderMovimientos() {
               console.log(`🆕 Suelto ${item.nombre} creado en sueltos con ${item.cantidad} kg`);
             }
 
-          } else {
+          } else if (tipo === "stock" || tipo === "" || tipo === "normal" || !tipo) {
+            // Restaurar en stock normal
             const stockRef = window.ref(window.db, `stock/${item.codigo}`);
             const stockSnap = await window.get(stockRef);
 
@@ -1224,6 +1226,7 @@ function renderMovimientos() {
               console.log(`🆕 Producto ${item.nombre} creado en stock`);
             }
           }
+          // otros tipos se ignoran
         }
       }
 
@@ -1314,7 +1317,6 @@ function imprimirTicketMov(mov) {
   window.print();
   printAreas.forEach(a => document.body.removeChild(a));
 }
-
 
  // -----------------------
 // TIRAR Z (por cajero o TODOS)
