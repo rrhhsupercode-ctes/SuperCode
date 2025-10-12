@@ -460,6 +460,94 @@ if (cobroProductosSelect) {
 }
 
 // -----------------------
+// SUELTOS EN COBRAR
+// -----------------------
+const cobroSueltosSelect = document.getElementById("cobro-sueltos");
+const inputKgSueltoCobro = document.getElementById("input-kg-suelto");
+const inputCodigoSueltoCobro = document.getElementById("cobro-codigo-suelto");
+const btnAddSuelto = document.getElementById("btn-add-suelto");
+const btnIncrKgCobro = document.getElementById("btn-incr-kg");
+const btnDecrKgCobro = document.getElementById("btn-decr-kg");
+
+// Actualizar select de sueltos en tiempo real
+if (cobroSueltosSelect) {
+  window.onValue(window.ref(window.db, "sueltos"), snap => {
+    if (!snap.exists()) return;
+    const data = snap.val();
+    cobroSueltosSelect.innerHTML = '<option value="">Elija un Item (Sueltos)</option>';
+    Object.entries(data).forEach(([codigo, prod]) => {
+      cobroSueltosSelect.innerHTML += `<option value="${codigo}">${escapeHtml(prod.nombre || codigo)}</option>`;
+    });
+  });
+}
+
+// Incrementar / decrementar KG en la fila de cobro
+btnIncrKgCobro.onclick = () => {
+  let val = Number(inputKgSueltoCobro.value);
+  val = Math.min(99.900, val + 0.100);
+  inputKgSueltoCobro.value = val.toFixed(3);
+};
+btnDecrKgCobro.onclick = () => {
+  let val = Number(inputKgSueltoCobro.value);
+  val = Math.max(0.100, val - 0.100);
+  inputKgSueltoCobro.value = val.toFixed(3);
+};
+
+// Función para agregar suelto al carrito
+async function agregarSueltoCarrito(codigo) {
+  codigo = (codigo || "").trim();
+  let kg = safeNumber(inputKgSueltoCobro.value);
+  if (!codigo) return;
+
+  const snap = await window.get(window.ref(window.db, `sueltos/${codigo}`));
+  if (!snap.exists()) {
+    alert("Producto suelto no encontrado");
+    return;
+  }
+
+  const prod = snap.val();
+  const precioNumber = (typeof prod.precio === "number")
+    ? prod.precio
+    : Number(String(prod.precio).replace(",", "."));
+
+  // Si ya está en carrito, sumar KG
+  const idx = carrito.findIndex(it => it.codigo === codigo && it.tipo === "suelto");
+  if (idx >= 0) {
+    carrito[idx].cantidad += kg;
+  } else {
+    carrito.push({
+      codigo,
+      nombre: prod.nombre || "SIN NOMBRE",
+      precio: Number(precioNumber) || 0,
+      cantidad: kg,
+      tipo: "suelto" // identificador para saber que es suelto
+    });
+  }
+
+  renderCarrito();
+}
+
+// Enter en input código suelto
+inputCodigoSueltoCobro.addEventListener("keydown", async (e) => {
+  if (e.key !== "Enter") return;
+  await agregarSueltoCarrito(inputCodigoSueltoCobro.value);
+  inputCodigoSueltoCobro.value = "";
+  inputKgSueltoCobro.value = "0.100";
+});
+
+// Click en botón OK suelto
+btnAddSuelto.addEventListener("click", async () => {
+  let codigo = cobroSueltosSelect.value;
+  if (!codigo) codigo = inputCodigoSueltoCobro.value;
+  if (!codigo) return alert("Seleccione un suelto o ingrese un código");
+  await agregarSueltoCarrito(codigo);
+  inputCodigoSueltoCobro.value = "";
+  cobroSueltosSelect.value = "";
+  inputKgSueltoCobro.value = "0.100";
+});
+
+  
+// -----------------------
 // COBRAR Y FINALIZAR
 // -----------------------
 
