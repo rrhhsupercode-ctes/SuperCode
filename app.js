@@ -1132,31 +1132,33 @@ cajerosOrdenados.forEach(([nro, caj]) => {
 // MOVIMIENTOS (render + filtro)
 // -----------------------
 
-// listen movimientos (cache)
+// Escuchar cambios en movimientos (cache)
 window.onValue(window.ref(window.db, "movimientos"), snap => {
   movimientosCache = snap.exists() ? snap.val() : {};
   renderMovimientos();
 });
 
-// filtro change
+// Filtro por cajero
 if (filtroCajero) {
-  filtroCajero.addEventListener("change", () => renderMovimientos());
+  filtroCajero.addEventListener("change", renderMovimientos);
 }
 
 function renderMovimientos() {
   if (!tablaMovimientosBody) return;
   tablaMovimientosBody.innerHTML = "";
+
   const dataArr = Object.values(movimientosCache || {});
   const filtro = (filtroCajero && filtroCajero.value) ? filtroCajero.value : "TODOS";
   const filtrados = filtro === "TODOS" ? dataArr : dataArr.filter(m => (m.cajero || "") === filtro);
 
-  // sort by fecha desc (newer first) if fecha exists
+  // Ordenar por fecha descendente
   filtrados.sort((a, b) => {
     const ta = a.fecha ? new Date(a.fecha).getTime() : 0;
     const tb = b.fecha ? new Date(b.fecha).getTime() : 0;
     return tb - ta;
   });
 
+  // Renderizar filas
   filtrados.forEach(mov => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
@@ -1171,7 +1173,7 @@ function renderMovimientos() {
     tablaMovimientosBody.appendChild(tr);
   });
 
-  // attach actions
+  // Botones eliminar movimiento
   document.querySelectorAll(".btn-del-mov").forEach(btn => {
     btn.onclick = () => requireAdminConfirm(async () => {
       const movRef = window.ref(window.db, `movimientos/${btn.dataset.id}`);
@@ -1180,63 +1182,62 @@ function renderMovimientos() {
 
       const mov = snap.val();
 
-      // 🔥 Restaurar stock / sueltos antes de eliminar
+      // Restaurar stock / sueltos
       if (mov.items && Array.isArray(mov.items)) {
         for (const item of mov.items) {
           const tipo = (item.tipo || "").toLowerCase().trim();
 
           if (tipo === "suelto") {
-            // Restaurar en sueltos
             const refSuelto = window.ref(window.db, `sueltos/${item.codigo}`);
             const snapSuelto = await window.get(refSuelto);
+            const cantidadKg = Number(item.cantidad || 0);
 
             if (snapSuelto.exists()) {
               const prod = snapSuelto.val();
-              const nuevaCantidad = (prod.kg || 0) + (item.cantidad || 0);
+              const nuevaCantidad = (prod.kg || 0) + cantidadKg;
               await window.update(refSuelto, { kg: Number(nuevaCantidad.toFixed(3)) });
-              console.log(`✅ Suelto ${item.nombre} restaurado: +${item.cantidad} kg`);
+              console.log(`✅ Suelto ${item.nombre} restaurado: +${cantidadKg} kg`);
             } else {
               await window.set(refSuelto, {
                 nombre: item.nombre || "PRODUCTO NUEVO",
                 precio: item.precio || 0,
-                kg: item.cantidad,
+                kg: cantidadKg,
                 fecha: new Date().toISOString()
               });
-              console.log(`🆕 Suelto ${item.nombre} creado en sueltos con ${item.cantidad} kg`);
+              console.log(`🆕 Suelto ${item.nombre} creado en sueltos con ${cantidadKg} kg`);
             }
 
-          } else if (tipo === "stock" || tipo === "" || tipo === "normal" || !tipo) {
-            // Restaurar en stock normal
+          } else {
             const stockRef = window.ref(window.db, `stock/${item.codigo}`);
             const stockSnap = await window.get(stockRef);
+            const cantidadStock = Number(item.cantidad || 0);
 
             if (stockSnap.exists()) {
               const prod = stockSnap.val();
-              const nuevaCantidad = (prod.cantidad || 0) + (item.cantidad || 0);
+              const nuevaCantidad = (prod.cantidad || 0) + cantidadStock;
               await window.update(stockRef, { cantidad: nuevaCantidad });
-              console.log(`✅ Stock ${item.nombre} restaurado: +${item.cantidad}`);
+              console.log(`✅ Stock ${item.nombre} restaurado: +${cantidadStock}`);
             } else {
               await window.set(stockRef, {
                 codigo: item.codigo,
                 nombre: item.nombre || "PRODUCTO NUEVO",
-                cantidad: item.cantidad,
+                cantidad: cantidadStock,
                 precio: item.precio || 0,
                 fecha: new Date().toISOString()
               });
               console.log(`🆕 Producto ${item.nombre} creado en stock`);
             }
           }
-          // otros tipos se ignoran
         }
       }
 
-      // Ahora sí, eliminar el movimiento
+      // Eliminar movimiento
       await window.remove(movRef);
       console.log(`Movimiento ${btn.dataset.id} eliminado y stock/sueltos restaurados`);
     });
   });
 
-  // attach ver movimientos
+  // Botones ver movimiento
   document.querySelectorAll(".btn-ver-mov").forEach(btn => {
     btn.onclick = () => verMovimientoModal(btn.dataset.id);
   });
@@ -1248,14 +1249,25 @@ function verMovimientoModal(id) {
     const snap = await window.get(window.ref(window.db, `movimientos/${id}`));
     if (!snap.exists()) return alert("⛔Movimiento no encontrado⛔");
     const mov = snap.val();
+
     let html = `<p id="texto-ticket-modal">Ticket ${mov.id}</p>`;
     html += `<p id="texto-ticket-modal">${formatFechaParaHeader(mov.fecha)}</p>`;
     html += `<p id="texto-ticket-modal">Cajero: ${escapeHtml(mov.cajero)}</p>`;
+
     (mov.items || []).forEach(it => {
-      html += `==================== <p id="texto-ticket-modal">${escapeHtml(it.nombre)} </p><span class="linea"></span><p id="texto-ticket-modal">${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
+      html += `==================== 
+        <p id="texto-ticket-modal">${escapeHtml(it.nombre)}</p>
+        <span class="linea"></span>
+        <p id="texto-ticket-modal">${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}</p>`;
     });
-    html += `==================== <p id="texto-ticket-modal"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p><p id="texto-ticket-modal">Pago en: ${escapeHtml(mov.tipo)}</p>`;
-    html += `<div style="margin-top:10px"><button id="__print_copy">🧾​​Imprimir</button><button id="__close_mov">❌Cancelar</button></div>`;
+
+    html += `==================== <p id="texto-ticket-modal"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p>`;
+    html += `<p id="texto-ticket-modal">Pago en: ${escapeHtml(mov.tipo)}</p>`;
+    html += `<div style="margin-top:10px">
+               <button id="__print_copy">🧾​​Imprimir</button>
+               <button id="__close_mov">❌Cancelar</button>
+             </div>`;
+
     mostrarModal(html);
     document.getElementById("__close_mov").onclick = cerrarModal;
     document.getElementById("__print_copy").onclick = () => imprimirTicketMov(mov);
@@ -1264,48 +1276,39 @@ function verMovimientoModal(id) {
 
 // Imprimir ticket
 function imprimirTicketMov(mov) {
-  const itemsPerPage = 9999;
   const items = mov.items || [];
-  const totalParts = Math.max(1, Math.ceil(items.length / itemsPerPage));
+  const totalParts = Math.max(1, Math.ceil(items.length / 9999));
   const printAreas = [];
-
-  let shopName = "Polirubro Todito";
-  try {
-    if (window.configCache && window.configCache.shopName) {
-      shopName = window.configCache.shopName.toUpperCase();
-    }
-  } catch (err) {
-    console.warn("No se pudo leer configCache, usando ZONAPC", err);
-  }
+  let shopName = (window.configCache && window.configCache.shopName)
+                   ? window.configCache.shopName.toUpperCase()
+                   : "Polirubro Todito";
 
   for (let p = 0; p < totalParts; p++) {
-    const slice = items.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
-    const header = `
-      <div style="text-align:center">
-        <p id="texto-ticket">
-          ${escapeHtml(shopName)} <br>
-          ${mov.id} <br>
-          Nro - Cajero: ${escapeHtml(mov.cajero)} <br>
-          ${formatFechaParaHeader(mov.fecha)}
-        </p>
-      </div>
-    `;
+    const slice = items.slice(p * 9999, (p + 1) * 9999);
+
+    const header = `<div style="text-align:center">
+                      <p id="texto-ticket">
+                        ${escapeHtml(shopName)} <br>
+                        ${mov.id} <br>
+                        Nro - Cajero: ${escapeHtml(mov.cajero)} <br>
+                        ${formatFechaParaHeader(mov.fecha)}
+                      </p>
+                    </div>`;
+
     let body = "";
     slice.forEach(it => {
-      body += `
-        ==================== 
-        <p id="texto-ticket">
-          ${escapeHtml(it.nombre)} <br>
-          ${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}
-        </p>
-      `;
+      body += `==================== 
+               <p id="texto-ticket">
+                 ${escapeHtml(it.nombre)} <br>
+                 ${formatoPrecioParaPantalla(it.precio)} (x${it.cantidad}) = ${formatoPrecioParaPantalla(it.precio * it.cantidad)}
+               </p>`;
     });
-    const footer = `
-      ==================== 
-      <p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p>
-      <p id="texto-ticket">(Pago en: ${escapeHtml(mov.tipo)})</p>
-      <p id="texto-ticket">Ticket: </p><br>
-    `;
+
+    const footer = `==================== 
+                    <p id="texto-ticket"><b>TOTAL: ${formatoPrecioParaPantalla(mov.total)}</b></p>
+                    <p id="texto-ticket">(Pago en: ${escapeHtml(mov.tipo)})</p>
+                    <p id="texto-ticket">Ticket: </p><br>`;
+
     const area = document.createElement("div");
     area.className = "print-area";
     area.style.width = "5cm";
