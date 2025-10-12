@@ -483,28 +483,35 @@ if (cobroSueltosSelect) {
   });
 }
 
-// Incrementar / decrementar KG en la fila de cobro
+// Función para actualizar valor del input sin superar stock
+async function ajustarKgInput(codigo, incremento) {
+  if (!codigo) return;
+  const snap = await window.get(window.ref(window.db, `sueltos/${codigo}`));
+  if (!snap.exists()) {
+    alert("Producto suelto no encontrado");
+    return;
+  }
+  const prod = snap.val();
+  let val = Number(inputKgSueltoCobro.value) + incremento;
+
+  if (val > Number(prod.kg)) {
+    val = Number(prod.kg);
+    if (incremento > 0) alert(`Stock insuficiente: solo hay ${prod.kg.toFixed(3)} kg disponibles`);
+  }
+  if (val < 0) val = 0;
+
+  inputKgSueltoCobro.value = val.toFixed(3);
+}
+
+// Incrementar / decrementar KG
 btnIncrKgCobro.onclick = async () => {
   const codigo = cobroSueltosSelect.value || inputCodigoSueltoCobro.value;
-  if (!codigo) return;
-
-  const snap = await window.get(window.ref(window.db, `sueltos/${codigo}`));
-  if (!snap.exists()) return;
-
-  const prod = snap.val();
-  let val = Number(inputKgSueltoCobro.value);
-  val += 0.1;
-  if (val > Number(prod.kg)) {
-    val = Number(prod.kg); // no superar stock
-    alert(`Stock insuficiente: solo hay ${prod.kg.toFixed(3)} kg disponibles`);
-  }
-  inputKgSueltoCobro.value = val.toFixed(3);
+  await ajustarKgInput(codigo, 0.1);
 };
 
-btnDecrKgCobro.onclick = () => {
-  let val = Number(inputKgSueltoCobro.value);
-  val = Math.max(0, val - 0.1); // mínimo 0
-  inputKgSueltoCobro.value = val.toFixed(3);
+btnDecrKgCobro.onclick = async () => {
+  const codigo = cobroSueltosSelect.value || inputCodigoSueltoCobro.value;
+  await ajustarKgInput(codigo, -0.1);
 };
 
 // Función para agregar suelto al carrito
@@ -527,9 +534,8 @@ async function agregarSueltoCarrito(codigo) {
   // Validar stock suelto
   if (kg > Number(prod.kg)) {
     alert(`Stock insuficiente: solo hay ${Number(prod.kg).toFixed(3)} kg de ${prod.nombre}`);
-    return; // cancelar la acción
+    return;
   }
-
   if (kg <= 0) {
     alert(`No hay stock disponible de ${prod.nombre}`);
     return;
