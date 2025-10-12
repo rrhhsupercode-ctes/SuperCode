@@ -483,14 +483,11 @@ if (cobroSueltosSelect) {
   });
 }
 
-// Función para actualizar input KG sin superar stock
+// Ajustar valor del input sin superar stock
 async function ajustarKgInput(codigo, incremento) {
   if (!codigo) return;
   const snap = await window.get(window.ref(window.db, `sueltos/${codigo}`));
-  if (!snap.exists()) {
-    alert("Producto suelto no encontrado");
-    return;
-  }
+  if (!snap.exists()) return alert("Producto suelto no encontrado");
 
   const prod = snap.val();
   let val = Number(inputKgSueltoCobro.value) + incremento;
@@ -515,24 +512,23 @@ btnDecrKgCobro.onclick = async () => {
   await ajustarKgInput(codigo, -0.1);
 };
 
-// Función para agregar suelto al carrito y **restar stock real**
+// Agregar suelto al carrito con validación estricta de stock
 async function agregarSueltoCarrito(codigo) {
   codigo = (codigo || "").trim();
-  let kg = safeNumber(inputKgSueltoCobro.value);
-  if (!codigo || kg <= 0) return;
+  if (!codigo) return;
 
-  const refProd = window.ref(window.db, `sueltos/${codigo}`);
-  const snap = await window.get(refProd);
+  const snap = await window.get(window.ref(window.db, `sueltos/${codigo}`));
   if (!snap.exists()) return alert("Producto suelto no encontrado");
 
   const prod = snap.val();
-  if (kg > Number(prod.kg)) {
-    return alert(`Stock insuficiente: solo hay ${Number(prod.kg).toFixed(3)} kg de ${prod.nombre}`);
-  }
+  let kg = safeNumber(inputKgSueltoCobro.value);
 
-  // Restar stock en Firebase
-  const nuevoStock = Number(prod.kg) - kg;
-  await window.update(refProd, { kg: Number(nuevoStock.toFixed(3)), fecha: ahoraISO() });
+  if (kg <= 0) return alert(`Ingrese cantidad válida de ${prod.nombre}`);
+  if (kg > Number(prod.kg)) {
+    alert(`Stock insuficiente: solo hay ${Number(prod.kg).toFixed(3)} kg de ${prod.nombre}`);
+    inputKgSueltoCobro.value = Number(prod.kg).toFixed(3);
+    return;
+  }
 
   const precioNumber = (typeof prod.precio === "number")
     ? prod.precio
@@ -540,7 +536,13 @@ async function agregarSueltoCarrito(codigo) {
 
   const idx = carrito.findIndex(it => it.codigo === codigo && it.tipo === "suelto");
   if (idx >= 0) {
-    carrito[idx].cantidad += kg;
+    let suma = carrito[idx].cantidad + kg;
+    if (suma > Number(prod.kg)) {
+      alert(`Stock insuficiente: solo hay ${Number(prod.kg).toFixed(3)} kg de ${prod.nombre}`);
+      carrito[idx].cantidad = Number(prod.kg);
+    } else {
+      carrito[idx].cantidad += kg;
+    }
   } else {
     carrito.push({
       codigo,
@@ -554,7 +556,7 @@ async function agregarSueltoCarrito(codigo) {
   renderCarrito();
 }
 
-// Enter en input de código suelto
+// Enter en input código suelto
 inputCodigoSueltoCobro.addEventListener("keydown", async (e) => {
   if (e.key !== "Enter") return;
   await agregarSueltoCarrito(inputCodigoSueltoCobro.value);
@@ -562,9 +564,9 @@ inputCodigoSueltoCobro.addEventListener("keydown", async (e) => {
   inputKgSueltoCobro.value = "0.000";
 });
 
-// Click en botón OK
+// Click en botón OK suelto
 btnAddSuelto.addEventListener("click", async () => {
-  const codigo = cobroSueltosSelect.value || inputCodigoSueltoCobro.value;
+  let codigo = cobroSueltosSelect.value || inputCodigoSueltoCobro.value;
   if (!codigo) return alert("Seleccione un suelto o ingrese un código");
   await agregarSueltoCarrito(codigo);
   inputCodigoSueltoCobro.value = "";
